@@ -225,6 +225,18 @@ th {
   background: rgba(134, 239, 172, 0.12);
 }
 
+.status-pill[data-status='em_hospedagem'] {
+  color: #a5b4fc;
+  border-color: rgba(165, 180, 252, 0.45);
+  background: rgba(165, 180, 252, 0.12);
+}
+
+.status-pill[data-status='checkout_concluido'] {
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(148, 163, 184, 0.12);
+}
+
 .status-pill[data-status='cancelada'] {
   color: #fca5a5;
   border-color: rgba(252, 165, 165, 0.45);
@@ -305,7 +317,9 @@ th {
 
 .btn-primary,
 .btn-ghost,
-.btn-link {
+.btn-link,
+.btn-secondary,
+.btn-danger-ghost {
   border-radius: var(--admin-radius-sm);
   font-weight: var(--admin-font-weight-semibold);
   cursor: pointer;
@@ -314,6 +328,33 @@ th {
   &:hover {
     opacity: 0.9;
   }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--admin-text-strong);
+  border: 1px solid var(--admin-border);
+  padding: 0.58rem 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-danger-ghost {
+  background: transparent;
+  color: #fca5a5;
+  border: 1px solid rgba(252, 165, 165, 0.45);
+  padding: 0.55rem 0.75rem;
 }
 
 .btn-primary {
@@ -362,6 +403,25 @@ th {
     color: var(--admin-muted);
     font-size: var(--admin-font-size-sm);
   }
+}
+
+.status-actions {
+  padding: 0 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.drawer-subtitle {
+  margin: 0 0 0.25rem;
+  font-size: var(--admin-font-size-sm);
+  color: var(--admin-text-strong);
+  font-weight: var(--admin-font-weight-semibold);
+}
+
+.drawer-form--tight {
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--admin-border);
 }
 
 .drawer-form,

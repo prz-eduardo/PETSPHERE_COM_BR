@@ -1,9 +1,11 @@
 <section class="reservas-page">
   <header class="page-hero">
     <div>
-      <p class="eyebrow">Operacao hoteleira</p>
-      <h1>Reservas &amp; Hotel</h1>
-      <p class="subtitle">Painel revisado para gestao diaria de hospedagem, check-ins e ocupacao dos leitos.</p>
+      <p class="eyebrow">Recepção de pets</p>
+      <h1>Hospedagem pet &amp; creche</h1>
+      <p class="subtitle">
+        Controle diário de estadias: entradas e saídas, ocupação dos espaços e reservas dos tutores.
+      </p>
     </div>
     <button type="button" class="btn-primary" (click)="openCreateDrawer()" [disabled]="loading()">
       <i class="fa fa-plus"></i>
@@ -18,29 +20,29 @@
 
   <div class="kpis-grid">
     <article class="kpi-card">
-      <span>Ocupacao</span>
+      <span>Ocupação dos espaços</span>
       <strong>{{ occupancyRate() }}%</strong>
-      <small>{{ leitosDisponiveisCount() }} leitos disponiveis</small>
+      <small>{{ leitosDisponiveisCount() }} espaços livres</small>
     </article>
     <article class="kpi-card">
-      <span>Check-ins hoje</span>
+      <span>Chegadas hoje</span>
       <strong>{{ checkInHojeCount() }}</strong>
-      <small>Fluxo de chegada do dia</small>
+      <small>Pets com chegada prevista para hoje</small>
     </article>
     <article class="kpi-card">
       <span>Reservas pendentes</span>
       <strong>{{ pendentesCount() }}</strong>
-      <small>Aguardando confirmacao</small>
+      <small>Aguardando confirmação</small>
     </article>
     <article class="kpi-card">
       <span>Confirmadas</span>
       <strong>{{ confirmadasCount() }}</strong>
-      <small>Com pagamento validado</small>
+      <small>Prontas para recepção</small>
     </article>
   </div>
 
   <section class="panel">
-    <div class="tab-row" role="tablist" aria-label="Visao de reservas e leitos">
+    <div class="tab-row" role="tablist" aria-label="Hospedagem e espaços">
       <button
         type="button"
         class="tab-btn"
@@ -57,7 +59,7 @@
         (click)="setTab('leitos')"
         [attr.aria-selected]="activeTab() === 'leitos'"
       >
-        Leitos &amp; Quartos
+        Baias &amp; acomodações
       </button>
     </div>
 
@@ -73,7 +75,7 @@
         </label>
 
         <label class="field">
-          <span>Periodo</span>
+          <span>Período</span>
           <select [ngModel]="filterPeriod()" (ngModelChange)="filterPeriod.set($event)">
             @for (option of periodOptions; track option.value) {
               <option [ngValue]="option.value">{{ option.label }}</option>
@@ -85,7 +87,7 @@
           <span>Busca</span>
           <input
             type="text"
-            placeholder="Tutor, pet, acomodacao ou reserva"
+            placeholder="Tutor, pet, espaço ou número da reserva"
             [ngModel]="searchTerm()"
             (ngModelChange)="searchTerm.set($event)"
           />
@@ -106,8 +108,8 @@
               <tr>
                 <th>Reserva</th>
                 <th>Tutor / Pet</th>
-                <th>Acomodacao</th>
-                <th>Periodo</th>
+                <th>Espaço</th>
+                <th>Período</th>
                 <th>Status</th>
                 <th>Valor</th>
                 <th></th>
@@ -124,7 +126,7 @@
                     </div>
                   </td>
                   <td>{{ getAcomodacaoNome(reserva) }}</td>
-                  <td>{{ formatDate(reserva.check_in) }} - {{ formatDate(reserva.check_out) }}</td>
+                  <td>{{ formatDate(reserva.check_in) }} – {{ formatDate(reserva.check_out) }}</td>
                   <td>
                     <span class="status-pill" [attr.data-status]="reserva.status">{{ statusLabel(reserva.status) }}</span>
                   </td>
@@ -140,19 +142,19 @@
       }
     } @else {
       <div class="leitos-toolbar">
-        <button type="button" class="btn-primary" (click)="openCreateLeitoDrawer()">Cadastrar leito</button>
+        <button type="button" class="btn-primary" (click)="openCreateLeitoDrawer()">Cadastrar espaço</button>
       </div>
       <div class="rooms-grid">
         @for (leito of leitos(); track trackLeito($index, leito)) {
           <article class="room-card" [class.occupied]="leito.ocupado === 1 || leito.ocupado === true">
-            <img class="room-photo" *ngIf="leito.foto_url" [src]="leito.foto_url" [alt]="'Foto do leito ' + leito.nome" />
+            <img class="room-photo" *ngIf="leito.foto_url" [src]="leito.foto_url" [alt]="'Foto do espaço ' + leito.nome" />
             <h3>{{ leito.nome }}</h3>
-            <p>{{ leito.tipo }} · capacidade {{ leito.capacidade }}</p>
-            <span class="room-status">{{ (leito.ocupado === 1 || leito.ocupado === true) ? 'Ocupado' : 'Disponivel' }}</span>
+            <p>{{ leito.tipo }} · até {{ leito.capacidade }} pet(s)</p>
+            <span class="room-status">{{ (leito.ocupado === 1 || leito.ocupado === true) ? 'Ocupado' : 'Disponível' }}</span>
             <small *ngIf="leito.exibir_na_vitrine === 1 || leito.exibir_na_vitrine === true">
-              Exibido na vitrine como servico
+              Exibido na vitrine como serviço de hospedagem
             </small>
-            <small *ngIf="leito.proxima_reserva">Proxima reserva: {{ formatDate(leito.proxima_reserva) }}</small>
+            <small *ngIf="leito.proxima_reserva">Próxima reserva: {{ formatDate(leito.proxima_reserva) }}</small>
           </article>
         }
       </div>
@@ -170,7 +172,7 @@
     @if (drawerMode() === 'create') {
       <header class="drawer-header">
         <h2>Nova reserva</h2>
-        <p>Cadastro rapido para simulacao da operacao.</p>
+        <p>Cadastro rápido com tutor e pet (entrada manual). Ideal para telefone ou balcão.</p>
       </header>
 
       <div class="drawer-form">
@@ -183,9 +185,9 @@
           <input type="text" [ngModel]="draftPet()" (ngModelChange)="draftPet.set($event)" placeholder="Nome do pet" />
         </label>
         <label>
-          <span>Leito</span>
+          <span>Espaço de hospedagem</span>
           <select [ngModel]="draftLeitoId()" (ngModelChange)="draftLeitoId.set($event)">
-            <option [ngValue]="null">Sem leito especifico</option>
+            <option [ngValue]="null">Sem espaço definido (definir depois)</option>
             @for (leito of leitos(); track trackLeito($index, leito)) {
               <option [ngValue]="leito.id">{{ leito.nome }} · {{ leito.tipo }}</option>
             }
@@ -193,21 +195,39 @@
         </label>
         <div class="date-grid">
           <label>
-            <span>Check-in</span>
+            <span>Entrada</span>
             <input type="date" [ngModel]="draftCheckIn()" (ngModelChange)="draftCheckIn.set($event)" />
           </label>
           <label>
-            <span>Check-out</span>
+            <span>Saída</span>
             <input type="date" [ngModel]="draftCheckOut()" (ngModelChange)="draftCheckOut.set($event)" />
           </label>
         </div>
         <label>
-          <span>Observacoes</span>
+          <span>Observações gerais</span>
           <textarea
-            rows="3"
+            rows="2"
             [ngModel]="draftObservacoes()"
             (ngModelChange)="draftObservacoes.set($event)"
-            placeholder="Informacoes adicionais para equipe"
+            placeholder="Comportamento, medicação, contato de emergência..."
+          ></textarea>
+        </label>
+        <label>
+          <span>Cuidados especiais</span>
+          <textarea
+            rows="2"
+            [ngModel]="draftCuidadosEspeciais()"
+            (ngModelChange)="draftCuidadosEspeciais.set($event)"
+            placeholder="Medicação, medo de fogos, restrições..."
+          ></textarea>
+        </label>
+        <label>
+          <span>Alimentação</span>
+          <textarea
+            rows="2"
+            [ngModel]="draftAlimentacaoObs()"
+            (ngModelChange)="draftAlimentacaoObs.set($event)"
+            placeholder="Ração da casa, ração própria, horários..."
           ></textarea>
         </label>
         <p class="error-msg" *ngIf="formError()">{{ formError() }}</p>
@@ -215,39 +235,39 @@
 
       <footer class="drawer-footer">
         <button type="button" class="btn-ghost" (click)="closeDrawer()">Cancelar</button>
-        <button type="button" class="btn-primary" (click)="saveMockReserva()" [disabled]="saving()">
+        <button type="button" class="btn-primary" (click)="saveReservaRapida()" [disabled]="saving()">
           {{ saving() ? 'Salvando...' : 'Salvar reserva' }}
         </button>
       </footer>
     } @else {
       @if (drawerMode() === 'create-leito') {
         <header class="drawer-header">
-          <h2>Novo leito</h2>
-          <p>Cadastre leito com foto e opcao de exibicao na vitrine.</p>
+          <h2>Novo espaço</h2>
+          <p>Cadastre baia, canil ou suíte com foto e, se quiser, oferta na vitrine.</p>
         </header>
         <div class="drawer-form">
           <label>
-            <span>Nome do leito</span>
-            <input type="text" [ngModel]="draftLeitoNome()" (ngModelChange)="draftLeitoNome.set($event)" placeholder="Suite 01" />
+            <span>Nome do espaço</span>
+            <input type="text" [ngModel]="draftLeitoNome()" (ngModelChange)="draftLeitoNome.set($event)" placeholder="Ex.: Box 01, Canil médio" />
           </label>
           <label>
             <span>Tipo</span>
-            <input type="text" [ngModel]="draftLeitoTipo()" (ngModelChange)="draftLeitoTipo.set($event)" placeholder="Premium" />
+            <input type="text" [ngModel]="draftLeitoTipo()" (ngModelChange)="draftLeitoTipo.set($event)" placeholder="Ex.: Suíte família, creche" />
           </label>
           <label>
-            <span>Capacidade</span>
+            <span>Capacidade (nº de pets)</span>
             <input type="number" min="1" [ngModel]="draftLeitoCapacidade()" (ngModelChange)="draftLeitoCapacidade.set($event)" />
           </label>
           <label>
-            <span>Foto do leito (URL)</span>
+            <span>Foto do espaço (URL)</span>
             <input type="url" [ngModel]="draftLeitoFotoUrl()" (ngModelChange)="draftLeitoFotoUrl.set($event)" placeholder="https://..." />
           </label>
           <label class="checkbox-row">
             <input type="checkbox" [ngModel]="draftLeitoExibirVitrine()" (ngModelChange)="draftLeitoExibirVitrine.set($event)" />
-            <span>Exibir na vitrine como servico</span>
+            <span>Exibir na vitrine como serviço de hospedagem</span>
           </label>
           <label *ngIf="draftLeitoExibirVitrine()">
-            <span>Preco da diaria (R$)</span>
+            <span>Preço da diária (R$)</span>
             <input type="number" min="0" step="0.01" [ngModel]="draftLeitoPrecoDiaria()" (ngModelChange)="draftLeitoPrecoDiaria.set($event)" />
           </label>
           <p class="error-msg" *ngIf="formError()">{{ formError() }}</p>
@@ -255,36 +275,87 @@
         <footer class="drawer-footer">
           <button type="button" class="btn-ghost" (click)="closeDrawer()">Cancelar</button>
           <button type="button" class="btn-primary" (click)="saveLeito()" [disabled]="saving()">
-            {{ saving() ? 'Salvando...' : 'Salvar leito' }}
+            {{ saving() ? 'Salvando...' : 'Salvar espaço' }}
           </button>
         </footer>
       } @else {
-      <header class="drawer-header">
-        <h2>Detalhes da reserva</h2>
-        <p>Visualizacao de dados simulados para validacao de UX.</p>
-      </header>
+        <header class="drawer-header">
+          <h2>Detalhes da estadia</h2>
+          <p>Fluxo operacional e notas para a equipe.</p>
+        </header>
 
-      @if (selectedReserva(); as reserva) {
-        <div class="details-list">
-          <div><span>Reserva</span><strong>{{ reserva.id }}</strong></div>
-          <div><span>Tutor</span><strong>{{ getTutorNome(reserva) }}</strong></div>
-          <div><span>Pet</span><strong>{{ getPetNome(reserva) }}</strong></div>
-          <div><span>Acomodacao</span><strong>{{ getAcomodacaoNome(reserva) }}</strong></div>
-          <div><span>Check-in</span><strong>{{ formatDate(reserva.check_in) }}</strong></div>
-          <div><span>Check-out</span><strong>{{ formatDate(reserva.check_out) }}</strong></div>
-          <div>
-            <span>Status</span>
-            <strong><span class="status-pill" [attr.data-status]="reserva.status">{{ statusLabel(reserva.status) }}</span></strong>
+        @if (selectedReserva(); as reserva) {
+          <div class="details-list">
+            <div><span>Reserva</span><strong>#{{ reserva.id }}</strong></div>
+            <div><span>Tutor</span><strong>{{ getTutorNome(reserva) }}</strong></div>
+            <div><span>Pet</span><strong>{{ getPetNome(reserva) }}</strong></div>
+            <div><span>Espaço</span><strong>{{ getAcomodacaoNome(reserva) }}</strong></div>
+            <div><span>Entrada</span><strong>{{ formatDate(reserva.check_in) }}</strong></div>
+            <div><span>Saída</span><strong>{{ formatDate(reserva.check_out) }}</strong></div>
+            <div>
+              <span>Status</span>
+              <strong><span class="status-pill" [attr.data-status]="reserva.status">{{ statusLabel(reserva.status) }}</span></strong>
+            </div>
+            <div><span>Valor total</span><strong>{{ formatCurrency(reserva.valor_total || 0) }}</strong></div>
           </div>
-          <div><span>Valor total</span><strong>{{ formatCurrency(reserva.valor_total || 0) }}</strong></div>
-          <div class="full"><span>Observacoes</span><strong>{{ reserva.observacoes || 'Sem observacoes.' }}</strong></div>
-        </div>
-      }
 
-      <footer class="drawer-footer">
-        <button type="button" class="btn-primary" (click)="openCreateDrawer()">Nova reserva</button>
-        <button type="button" class="btn-ghost" (click)="closeDrawer()">Fechar</button>
-      </footer>
+          <div class="status-actions" *ngIf="reserva.status !== 'checkout_concluido' && reserva.status !== 'cancelada'">
+            @if (reserva.status === 'pendente') {
+              <button type="button" class="btn-primary btn-block" (click)="patchReservaStatus('confirmada')" [disabled]="saving()">
+                Confirmar reserva
+              </button>
+            }
+            @if (reserva.status === 'confirmada') {
+              <button type="button" class="btn-secondary btn-block" (click)="patchReservaStatus('checkin_hoje')" [disabled]="saving()">
+                Marcar chegada prevista hoje
+              </button>
+              <button type="button" class="btn-primary btn-block" (click)="patchReservaStatus('em_hospedagem')" [disabled]="saving()">
+                Pet na unidade (check-in)
+              </button>
+            }
+            @if (reserva.status === 'checkin_hoje') {
+              <button type="button" class="btn-primary btn-block" (click)="patchReservaStatus('em_hospedagem')" [disabled]="saving()">
+                Confirmar entrada do pet
+              </button>
+            }
+            @if (reserva.status === 'em_hospedagem') {
+              <button type="button" class="btn-primary btn-block" (click)="patchReservaStatus('checkout_concluido')" [disabled]="saving()">
+                Registrar saída (check-out)
+              </button>
+            }
+            @if (statusAllowsCancel(reserva.status)) {
+              <button type="button" class="btn-danger-ghost btn-block" (click)="patchReservaStatus('cancelada')" [disabled]="saving()">
+                Cancelar reserva
+              </button>
+            }
+          </div>
+
+          <div class="drawer-form drawer-form--tight">
+            <h3 class="drawer-subtitle">Notas operacionais</h3>
+            <label>
+              <span>Observações gerais</span>
+              <textarea rows="2" [ngModel]="detailObservacoes()" (ngModelChange)="detailObservacoes.set($event)"></textarea>
+            </label>
+            <label>
+              <span>Cuidados especiais</span>
+              <textarea rows="2" [ngModel]="detailCuidados()" (ngModelChange)="detailCuidados.set($event)"></textarea>
+            </label>
+            <label>
+              <span>Alimentação</span>
+              <textarea rows="2" [ngModel]="detailAlimentacao()" (ngModelChange)="detailAlimentacao.set($event)"></textarea>
+            </label>
+            <button type="button" class="btn-secondary btn-block" (click)="saveNotasOperacao()" [disabled]="saving()">
+              {{ saving() ? 'Salvando...' : 'Salvar notas' }}
+            </button>
+          </div>
+        }
+
+        <p class="error-msg" *ngIf="formError()">{{ formError() }}</p>
+
+        <footer class="drawer-footer">
+          <button type="button" class="btn-primary" (click)="openCreateDrawer()">Nova reserva</button>
+          <button type="button" class="btn-ghost" (click)="closeDrawer()">Fechar</button>
+        </footer>
       }
     }
   </section>

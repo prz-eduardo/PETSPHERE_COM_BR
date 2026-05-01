@@ -1,78 +1,131 @@
 <div class="painel-wrapper animate-fade">
 
-  <!-- ── Hero / Welcome ──────────────────────────────────────────────────── -->
-  <section class="hero-card" [class.collapsed]="isCollapsed('welcome')">
-    <header class="hero-card-head">
-      <div class="hero-greeting-titles">
-        <span *ngIf="!isCollapsed('welcome')" class="hero-eyebrow">{{ greeting }}</span>
-        <h2 class="hero-title">Bem-vindo ao <span class="gradient-text">Painel do Parceiro</span></h2>
-      </div>
-      <button
-        type="button"
-        class="hero-toggle"
-        (click)="toggleSection('welcome')"
-        [attr.aria-expanded]="!isCollapsed('welcome')"
-        [attr.aria-label]="isCollapsed('welcome') ? 'Expandir' : 'Recolher'"
-      >
-        <i class="fa fa-chevron-down hero-toggle-chevron"></i>
-      </button>
-    </header>
+  <!-- ── Hero / Welcome (flip card) ─────────────────────────────────────── -->
+  <section class="hero-card">
+    <div class="hero-flip-scene">
+      <div class="hero-flip-inner" [class.is-flipped]="heroFlipped">
+        <!-- Frente -->
+        <div class="hero-face hero-face--front">
+          <header class="hero-card-head">
+            <div class="hero-greeting-titles">
+              <span class="hero-eyebrow">{{ greeting }}</span>
+              <h2 class="hero-title">Bem-vindo ao <span class="gradient-text">Painel do Parceiro</span></h2>
+            </div>
+            <button
+              #flipToggleBtn
+              type="button"
+              class="hero-toggle"
+              (click)="toggleHeroFlip()"
+              [attr.aria-pressed]="heroFlipped"
+              [attr.aria-label]="heroFlipped ? 'Voltar ao painel principal' : 'Mostrar resumo operacional'"
+            >
+              <i class="fa fa-chevron-down hero-toggle-chevron" aria-hidden="true"></i>
+            </button>
+          </header>
 
-    <div class="hero-main" *ngIf="!isCollapsed('welcome')">
-      <div class="hero-main-left">
-        <p class="hero-subtitle">Gerencie sua operação, consultas veterinárias e todos os serviços do seu negócio pet em um só lugar.</p>
-        <div class="hero-search">
-          <i class="fa fa-search"></i>
-          <input
-            type="text"
-            placeholder="Buscar atalho... (ex: agenda, receita, pacientes)"
-            [(ngModel)]="searchTerm"
-            (keydown.escape)="searchTerm = ''"
-            aria-label="Buscar atalhos do painel"
-          />
-          <button *ngIf="searchTerm" class="clear-btn" (click)="searchTerm = ''" aria-label="Limpar busca">
-            <i class="fa fa-times"></i>
-          </button>
-          <kbd class="hero-kbd">/</kbd>
+          <div class="hero-main">
+            <div class="hero-main-left">
+              <p class="hero-subtitle">Gerencie sua operação, consultas veterinárias e todos os serviços do seu negócio pet em um só lugar.</p>
+              <div class="hero-search">
+                <i class="fa fa-search"></i>
+                <input
+                  type="text"
+                  placeholder="Buscar atalho... (ex: agenda, receita, pacientes)"
+                  [(ngModel)]="searchTerm"
+                  (keydown.escape)="searchTerm = ''"
+                  aria-label="Buscar atalhos do painel"
+                />
+                <button *ngIf="searchTerm" class="clear-btn" (click)="searchTerm = ''" aria-label="Limpar busca">
+                  <i class="fa fa-times"></i>
+                </button>
+                <kbd class="hero-kbd">/</kbd>
+              </div>
+            </div>
+
+            <div class="hero-stats">
+              <button class="stat" (click)="goToAgenda()">
+                <span class="stat-icon stat-icon--blue"><i class="fa fa-calendar"></i></span>
+                <span class="stat-info">
+                  <span class="stat-label">Operação</span>
+                  <span class="stat-value">Agenda</span>
+                </span>
+              </button>
+              <button class="stat" (click)="goToAreaVet()">
+                <span class="stat-icon stat-icon--teal"><i class="fa fa-flask"></i></span>
+                <span class="stat-info">
+                  <span class="stat-label">Veterinário</span>
+                  <span class="stat-value">Área Vet</span>
+                </span>
+              </button>
+              <button class="stat" (click)="goToMinhaLoja()">
+                <span class="stat-icon stat-icon--amber"><i class="fa fa-store"></i></span>
+                <span class="stat-info">
+                  <span class="stat-label">Vitrine</span>
+                  <span class="stat-value">Minha loja</span>
+                </span>
+              </button>
+              <button class="stat" (click)="goToPacientes()">
+                <span class="stat-icon stat-icon--purple"><i class="fa fa-paw"></i></span>
+                <span class="stat-info">
+                  <span class="stat-label">Clínica</span>
+                  <span class="stat-value">Pacientes</span>
+                </span>
+              </button>
+              <button class="stat" (click)="goToGerarReceita()">
+                <span class="stat-icon stat-icon--green"><i class="fa fa-file-text-o"></i></span>
+                <span class="stat-info">
+                  <span class="stat-label">Receitas</span>
+                  <span class="stat-value">Gerar</span>
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="hero-stats">
-        <button class="stat" (click)="goToAgenda()">
-          <span class="stat-icon stat-icon--blue"><i class="fa fa-calendar"></i></span>
-          <span class="stat-info">
-            <span class="stat-label">Operação</span>
-            <span class="stat-value">Agenda</span>
-          </span>
-        </button>
-        <button class="stat" (click)="goToAreaVet()">
-          <span class="stat-icon stat-icon--teal"><i class="fa fa-flask"></i></span>
-          <span class="stat-info">
-            <span class="stat-label">Veterinário</span>
-            <span class="stat-value">Área Vet</span>
-          </span>
-        </button>
-        <button class="stat" (click)="goToMinhaLoja()">
-          <span class="stat-icon stat-icon--amber"><i class="fa fa-store"></i></span>
-          <span class="stat-info">
-            <span class="stat-label">Vitrine</span>
-            <span class="stat-value">Minha loja</span>
-          </span>
-        </button>
-        <button class="stat" (click)="goToPacientes()">
-          <span class="stat-icon stat-icon--purple"><i class="fa fa-paw"></i></span>
-          <span class="stat-info">
-            <span class="stat-label">Clínica</span>
-            <span class="stat-value">Pacientes</span>
-          </span>
-        </button>
-        <button class="stat" (click)="goToGerarReceita()">
-          <span class="stat-icon stat-icon--green"><i class="fa fa-file-text-o"></i></span>
-          <span class="stat-info">
-            <span class="stat-label">Receitas</span>
-            <span class="stat-value">Gerar</span>
-          </span>
-        </button>
+        <!-- Verso -->
+        <div class="hero-face hero-face--back">
+          <header class="hero-card-head hero-card-head--back">
+            <div class="hero-greeting-titles">
+              <span class="hero-eyebrow hero-eyebrow--back">Operação</span>
+              <h2 class="hero-title hero-title--back">Resumo <span class="gradient-text">operacional</span></h2>
+            </div>
+            <button
+              type="button"
+              class="hero-toggle"
+              (click)="toggleHeroFlip()"
+              [attr.aria-pressed]="heroFlipped"
+              aria-label="Voltar ao painel principal"
+            >
+              <i class="fa fa-chevron-down hero-toggle-chevron" aria-hidden="true"></i>
+            </button>
+          </header>
+
+          <div
+            #heroBackFocus
+            class="hero-back-body"
+            tabindex="-1"
+            role="region"
+            aria-label="Conteúdo do resumo operacional"
+          >
+            <div class="hero-back-toolbar">
+              <label class="hero-back-label" for="parceiro-operacao-tipo">Tipo de operação</label>
+              <select
+                id="parceiro-operacao-tipo"
+                class="hero-back-select"
+                [(ngModel)]="operacaoTipo"
+                (ngModelChange)="onOperacaoTipoChange()"
+              >
+                <option value="vendas">Vendas</option>
+                <option value="hotelaria">Hospedagem pet</option>
+              </select>
+            </div>
+
+            <ng-container [ngSwitch]="operacaoTipo">
+              <app-parceiro-painel-operacao-vendas *ngSwitchCase="'vendas'"></app-parceiro-painel-operacao-vendas>
+              <app-parceiro-painel-operacao-hotelaria *ngSwitchCase="'hotelaria'"></app-parceiro-painel-operacao-hotelaria>
+            </ng-container>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -138,9 +191,9 @@
           <span>Telemedicina</span>
           <i class="fa fa-arrow-right item-arrow"></i>
         </button>
-        <button class="item" *ngIf="matches('reservas hotel creche hospedagem')" (click)="goToReservasHotel()" tabindex="0">
-          <i class="fa fa-bed"></i>
-          <span>Reservas & Hotel</span>
+        <button class="item" *ngIf="matches('reservas hotel creche hospedagem pet baias acomodacoes espacos canil')" (click)="goToReservasHotel()" tabindex="0">
+          <i class="fa fa-paw"></i>
+          <span>Hospedagem pet &amp; creche</span>
           <i class="fa fa-arrow-right item-arrow"></i>
         </button>
         <button class="item item--soon" *ngIf="matches('atendimento chat suporte omnichannel')" tabindex="0" disabled>

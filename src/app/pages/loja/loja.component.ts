@@ -15,6 +15,7 @@ import { normalizeCatalogConfig } from '../../constants/loja-tema-card.config';
 import { BannedUserModalService } from '../../services/banned-user-modal.service';
 import { isAccountBannedHttpError } from '../../utils/account-ban.util';
 import { MARCA_NOME } from '../../constants/loja-public';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-loja',
@@ -74,6 +75,11 @@ export class LojaComponent implements OnInit, AfterViewInit, OnDestroy {
   minRatingDraft?: number;
   // UI responsive flag: true when viewport matches mobile breakpoint
   mobileView = false;
+  /** Itens no carrinho (atualizado via cart$). */
+  cartCount = 0;
+  /** Ex.: "3 itens · R$ 89,90" para o botão do carrinho na barra da loja. */
+  cartSummaryLine = '';
+  private cartSub?: Subscription;
   private resizeListener?: () => void;
   private openLoginListener?: EventListenerOrEventListenerObject;
 
@@ -95,6 +101,7 @@ export class LojaComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     this.store.categories$.subscribe(c => this.categorias = c);
     this.store.meta$.subscribe(m => this.storeMeta = m);
+    this.cartSub = this.store.cart$.subscribe(() => this.refreshCartBar());
 
     // Initialize mobileView and listen for resizes so template can conditionally
     // hide/skip the first item only on small screens.
@@ -200,6 +207,7 @@ export class LojaComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     try { this.io?.disconnect(); } catch {}
+    try { this.cartSub?.unsubscribe(); } catch {}
     try {
       if (typeof window !== 'undefined' && this.resizeListener) {
         window.removeEventListener('resize', this.resizeListener);
@@ -208,6 +216,25 @@ export class LojaComponent implements OnInit, AfterViewInit, OnDestroy {
         window.removeEventListener('open-login', this.openLoginListener as EventListener);
       }
     } catch {}
+  }
+
+  private refreshCartBar(): void {
+    const { count, total } = this.store.getCartTotals();
+    this.cartCount = count;
+    if (count <= 0) {
+      this.cartSummaryLine = '';
+      return;
+    }
+    const it = count === 1 ? 'item' : 'itens';
+    this.cartSummaryLine = `${count} ${it} · ${this.formatCartBrl(total)}`;
+  }
+
+  private formatCartBrl(v: number): string {
+    try {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+    } catch {
+      return `R$ ${(v || 0).toFixed(2)}`;
+    }
   }
 
   // Base list to display: accumulated (infinite) if present, else latest page
@@ -480,11 +507,6 @@ export class LojaComponent implements OnInit, AfterViewInit, OnDestroy {
     return ok;
   }
   price(p: ShopProduct) { return this.store.getPriceWithDiscount(p); }
-
-  // Exibe a quantidade total de itens no carrinho no botão do topo
-  get cartCount(): number {
-    return this.store.getCartTotals().count;
-  }
 
   get hasBackendToken(): boolean {
     return !!this.auth.getToken();

@@ -108,7 +108,12 @@ export class AgendaGridComponent implements OnChanges, AfterViewInit {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['selectedDate'] || changes['config']) {
+    if (
+      changes['selectedDate'] ||
+      changes['config'] ||
+      changes['workStart'] ||
+      changes['workEnd']
+    ) {
       setTimeout(() => this.scrollToInitial(), 0);
     }
   }
@@ -134,6 +139,13 @@ export class AgendaGridComponent implements OnChanges, AfterViewInit {
         else offsetMin = off;
       } else {
         offsetMin = 0;
+      }
+
+      // Início do dia (ou “agora” antes da janela): manter scroll no topo para o primeiro
+      // horário não ficar sob o cabeçalho sticky da grade.
+      if (offsetMin <= 0) {
+        host.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
       }
 
       // The host (:host with overflow: auto) is the scroll container.

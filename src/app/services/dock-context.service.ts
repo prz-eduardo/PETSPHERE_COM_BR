@@ -22,7 +22,15 @@ export type DockActionId =
   | 'comprar'
   | 'hospedagem'
   | 'meus-pets'
-  | 'galeria';
+  | 'galeria'
+  /** Atalhos FAB — modo veterinário (dock profissional) */
+  | 'vet-pacientes'
+  | 'vet-receitas'
+  | 'vet-gerar'
+  /** Atalhos FAB — modo parceiro */
+  | 'parceiro-painel'
+  | 'parceiro-agenda'
+  | 'parceiro-equipe';
 
 const FREQ_KEY = 'ps_dock_action_freq_v1';
 const NIGHT_HOUR = 19;

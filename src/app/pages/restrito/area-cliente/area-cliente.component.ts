@@ -118,9 +118,11 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
     this.hasAuth = !!this.auth.getToken() && !!this.getStoredUserType();
     if (this.hasAuth) {
       const token = this.auth.getToken()!;
+      const chatParceiroFromUrl = this.route.snapshot.queryParamMap.get('chatParceiro');
       this.loadProfile(token);
       this.loadConsentimentoData(token);
       this.queueInitialViewOpen();
+      setTimeout(() => this.tryNavigateToChatAfterLogin(chatParceiroFromUrl), 0);
     }
   }
 
@@ -198,6 +200,8 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
       this.loadProfile(token);
       this.loadConsentimentoData(token);
       this.queueInitialViewOpen();
+      const cp = this.route.snapshot.queryParamMap.get('chatParceiro');
+      setTimeout(() => this.tryNavigateToChatAfterLogin(cp), 0);
     }
 
     // Cross-sync with global auth: react when login/logout happens elsewhere (e.g., Loja popover)
@@ -207,9 +211,11 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
       this.hasAuth = !!ok && !!tokenNow && !!typeNow;
       if (this.hasAuth && tokenNow) {
         // refresh profile quickly
+        const cp = this.route.snapshot.queryParamMap.get('chatParceiro');
         this.loadProfile(tokenNow);
         this.loadConsentimentoData(tokenNow);
         this.queueInitialViewOpen();
+        setTimeout(() => this.tryNavigateToChatAfterLogin(cp), 0);
       } else {
         // reflect logout immediately in the modal
         this.clienteData = null;
@@ -895,5 +901,41 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
         this.open(view as any);
       }
     });
+  }
+
+  /**
+   * Após login (mapa → Enviar mensagem), envia para /chat-parceiro/:id.
+   * Usa query `chatParceiro` ou sessionStorage `fp_post_login_chat_parceiro_id`.
+   */
+  private tryNavigateToChatAfterLogin(chatParceiroFromQuery: string | null): void {
+    if (!this.isBrowser) {
+      return;
+    }
+    let raw = chatParceiroFromQuery;
+    if (!raw) {
+      try {
+        raw = sessionStorage.getItem('fp_post_login_chat_parceiro_id');
+      } catch {
+        raw = null;
+      }
+    }
+    if (!raw) {
+      return;
+    }
+    const id = Number(raw);
+    if (!Number.isFinite(id) || id < 1) {
+      try {
+        sessionStorage.removeItem('fp_post_login_chat_parceiro_id');
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    try {
+      sessionStorage.removeItem('fp_post_login_chat_parceiro_id');
+    } catch {
+      /* ignore */
+    }
+    void this.router.navigate(['/chat-parceiro', String(id)], { replaceUrl: true });
   }
 }

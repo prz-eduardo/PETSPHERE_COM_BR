@@ -422,9 +422,9 @@
 .mobile-only { display: none; }
 
 /* Confirm remove modal */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 4500; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 2000100; }
 .confirm-modal {
-	position: fixed; z-index: 4600; left: 50%; top: 24vh; transform: translateX(-50%);
+	position: fixed; z-index: 2000110; left: 50%; top: 24vh; transform: translateX(-50%);
 	width: min(420px, calc(100vw - 24px));
 	background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.25);
 	padding: 16px; text-align: center;
@@ -443,7 +443,7 @@
 	position: fixed;
 	right: 20px;
 	bottom: 24px;
-	z-index: 4800;
+	z-index: 2000118;
 	width: min(420px, calc(100vw - 32px));
 	background: linear-gradient(90deg, #fffdf6, #fff9f0);
 	border: 1px solid rgba(245,167,0,0.12);
@@ -473,7 +473,7 @@
 .allergy-list .actions { display:flex; gap:8px; }
 @media (max-width:768px) { .allergy-toast { left: 12px; right: 12px; width: auto; bottom: 16px; } }
 
-.addr-modal { position: fixed; z-index: 4700; left: 50%; top: 16vh; transform: translateX(-50%); width: min(520px, calc(100vw - 24px)); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); padding: 14px; max-height: calc(100vh - 120px); display: flex; flex-direction: column; }
+.addr-modal { position: fixed; z-index: 2000110; left: 50%; top: 16vh; transform: translateX(-50%); width: min(520px, calc(100vw - 24px)); background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); padding: 14px; max-height: calc(100vh - 120px); display: flex; flex-direction: column; }
 .addr-modal h3 { margin: 0 0 8px; color: #111827; }
 .addr-modal .help { margin: -4px 0 8px; color: #6b7280; font-size: 12px; }
 .addr-modal .lista { display: grid; gap: 8px; max-height: calc(100vh - 240px); overflow: auto; padding-right: 4px; }

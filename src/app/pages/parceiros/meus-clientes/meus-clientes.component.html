@@ -100,6 +100,7 @@
                 <th>E-mail</th>
                 <th>Status</th>
                 <th>Escopo</th>
+                <th>Chat</th>
               </tr>
             </thead>
             <tbody>
@@ -109,6 +110,13 @@
                   <td>{{ row.cliente_email || '-' }}</td>
                   <td><span class="status">{{ row.status || '-' }}</span></td>
                   <td>{{ row.escopo || '-' }}</td>
+                  <td>
+                    @if (row.status === 'concedido') {
+                      <a class="chat-link" [routerLink]="['/parceiros/chat', row.cliente_id]">Abrir chat</a>
+                    } @else {
+                      <span class="muted">—</span>
+                    }
+                  </td>
                 </tr>
               }
             </tbody>

@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, NgZone, AfterViewInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
@@ -16,6 +17,8 @@ import { ChangeDetectorRef } from '@angular/core'
 import { NavmenuComponent } from '../../../../navmenu/navmenu.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MARCA_LOGO_PATH, MARCA_NOME } from '../../../../constants/loja-public';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 
 
@@ -81,6 +84,9 @@ interface AtendimentoFoto {
   styleUrls: ['./gerar-receita.component.scss']
 })
 export class GerarReceitaComponent implements OnInit, AfterViewInit {
+  /** Quando true, a página roda dentro do shell `/parceiros/*` (sem menu do site). */
+  embedInParceiroShell = false;
+
   readonly marcaNome = MARCA_NOME;
   readonly marcaLogoPath = MARCA_LOGO_PATH;
   @ViewChild('pdfContent') pdfContent!: ElementRef;
@@ -140,16 +146,16 @@ isBrowser: any;
   tourPopoverStyle: any = {};
   tourHighlightStyle: any = {};
   tourSteps: Array<{ id: string; title: string; text: string; position?: 'top'|'right'|'bottom'|'left' }>= [
-    { id: 'cpfInput', title: 'CPF do Tutor', text: 'Digite o CPF do tutor e clique em Buscar para carregar os dados.', position: 'bottom' },
-    { id: 'buscarBtn', title: 'Buscar Tutor', text: 'Use este botão para buscar o tutor pelo CPF informado.', position: 'right' },
-    { id: 'dadosTutor', title: 'Dados do Tutor', text: 'Aqui aparecem os dados do tutor quando encontrados.', position: 'bottom' },
-    { id: 'listaPets', title: 'Pets do Tutor', text: 'Selecione um pet existente para preencher os dados automaticamente.', position: 'bottom' },
-    { id: 'dadosPet', title: 'Dados do Pet', text: 'Edite os dados do pet ou cadastre um novo preenchendo estes campos.', position: 'bottom' },
-    { id: 'alergiasVet', title: 'Alergias do Pet', text: 'Busque e selecione alergias pré-definidas para este pet.', position: 'bottom' },
-    { id: 'ativosCard', title: 'Selecionar Ativos', text: 'Pesquise e selecione os medicamentos (ativos) para a receita.', position: 'top' },
-    { id: 'btnExibirTodosAtivos', title: 'Listar medicamentos', text: 'Você pode exibir todos os medicamentos ou pesquisar por nome.', position: 'left' },
-    { id: 'assinaturaSec', title: 'Assinatura', text: 'Desenhe a assinatura do(a) veterinário(a) para constar na receita.', position: 'top' },
-    { id: 'salvarReceitaBtn', title: 'Salvar Receita', text: 'Por fim, clique aqui para salvar a receita com os dados preenchidos.', position: 'top' },
+    { id: 'cpfInput', title: 'Identificação na recepção', text: 'Informe o CPF do tutor (responsável legal) — o mesmo que você usaria no balcão.', position: 'bottom' },
+    { id: 'buscarBtn', title: 'Buscar cadastro', text: 'Carrega dados já existentes na plataforma, quando o tutor já é cliente.', position: 'right' },
+    { id: 'dadosTutor', title: 'Tutor localizado', text: 'Confira nome e contato antes de seguir para o paciente.', position: 'bottom' },
+    { id: 'listaPets', title: 'Paciente da consulta', text: 'Selecione o animal atendido ou preencha os dados como primeiro atendimento.', position: 'bottom' },
+    { id: 'dadosPet', title: 'Ficha do paciente', text: 'Peso, idade e alergias importam para dose e segurança da prescrição.', position: 'bottom' },
+    { id: 'alergiasVet', title: 'Alergias conhecidas', text: 'Registre alergias medicamentosas para alertas ao prescrever.', position: 'bottom' },
+    { id: 'ativosCard', title: 'Prescrição', text: 'Escolha os princípios ativos conforme a conduta clínica.', position: 'top' },
+    { id: 'btnExibirTodosAtivos', title: 'Guia de medicamentos', text: 'Pesquise por nome ou expanda a lista completa do guia.', position: 'left' },
+    { id: 'assinaturaSec', title: 'Assinatura', text: 'Assinatura opcional no canvas; o documento segue com os dados do profissional.', position: 'top' },
+    { id: 'salvarReceitaBtn', title: 'Encerrar atendimento', text: 'Salva prontuário e receita — equivalente a arquivar a consulta.', position: 'top' },
   ];
 
   carregandoTutor = false;
@@ -185,9 +191,21 @@ isBrowser: any;
   @Inject(PLATFORM_ID) private platformId: Object,
   private sanitizer: DomSanitizer,
   private authService: AuthService,
-  private parceiroAuth: ParceiroAuthService
+  private parceiroAuth: ParceiroAuthService,
+  private router: Router,
     ) {
     this.debouncedFiltrarAtivos = debounce(this.filtrarAtivos.bind(this), 250);
+    this.syncParceiroShellContext();
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.syncParceiroShellContext());
+  }
+
+  private syncParceiroShellContext(): void {
+    this.embedInParceiroShell = this.router.url.includes('/parceiros/');
   }
 
   getEffectiveToken(): string | null {

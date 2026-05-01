@@ -93,6 +93,7 @@ $ps-glow-active:   0 0 14px rgba(197, 255, 61, 0.55);
   --ps-glass-darker:  #{$ps-glass-darker};
   --ps-glass-light:   #{$ps-glass-light};
   --ps-glass-line:    #{$ps-glass-line};
+  --ps-glass-line-d:  #{$ps-glass-line-d};
 
   // motion
   --ps-ease-spring:   #{$ps-ease-spring};
@@ -116,6 +117,9 @@ $ps-glow-active:   0 0 14px rgba(197, 255, 61, 0.55);
 // Cosmic Mode (auto via JS or media-query); apply on <html data-ps-night="true">
 [data-ps-night="true"] {
   --ps-cosmos:        #08061C;
+  --ps-cosmos-deep:   #040310;
   --ps-cosmos-soft:   #120E36;
   --ps-glass-dark:    rgba(8, 6, 28, 0.70);
+  --ps-glass-darker:  rgba(6, 4, 22, 0.84);
+  --ps-glass-line:    rgba(255, 255, 255, 0.12);
 }

@@ -113,7 +113,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.dockMode === 'guest') {
       right.push({ id: 'login', label: 'Entrar', shortLabel: 'Entrar', link: '#', icon: 'fas fa-fw fa-right-to-bracket', psIcon: 'login' });
     } else {
-      right.push({ id: 'esfera', label: 'Minha Esfera', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'person' });
+      right.push({ id: 'esfera', label: 'Minha Esfera', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'sparkle' });
     }
     return [...left, ...right];
   }
@@ -125,7 +125,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         { id: 'pacientes', label: 'Pacientes', shortLabel: 'Pacientes', link: '/pacientes', icon: 'fas fa-fw fa-paw', psIcon: 'paw' },
         { id: 'receitas', label: 'Receitas', shortLabel: 'Receitas', link: '/historico-receitas', icon: 'fas fa-fw fa-file-prescription', psIcon: 'sparkle' },
         { id: 'gerar', label: 'Nova', shortLabel: 'Nova', link: '/gerar-receita', icon: 'fas fa-fw fa-plus', psIcon: 'sparkle' },
-        { id: 'esfera', label: 'Eu', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'person' },
+        { id: 'esfera', label: 'Eu', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'sparkle' },
       ];
     }
     if (this.dockMode === 'parceiro') {
@@ -133,7 +133,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         { id: 'painel', label: 'Painel', shortLabel: 'Painel', link: '/parceiros/painel', icon: 'fas fa-fw fa-gauge', psIcon: 'home' },
         { id: 'agenda', label: 'Agenda', shortLabel: 'Agenda', link: '/parceiros/agenda', icon: 'fas fa-fw fa-calendar', psIcon: 'calendar' },
         { id: 'colab', label: 'Equipe', shortLabel: 'Equipe', link: '/parceiros/colaboradores', icon: 'fas fa-fw fa-users', psIcon: 'person' },
-        { id: 'esfera', label: 'Eu', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'person' },
+        { id: 'esfera', label: 'Eu', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'sparkle' },
       ];
     }
     return this.mobileDockItems;
@@ -154,14 +154,43 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     'hospedagem':   { id: 'hospedagem',   label: 'Hospedagem',      caption: 'Hotéis pet near you',       link: '/mapa?service=hospedagem', icon: 'bed', tone: 'aurora' },
     'meus-pets':    { id: 'meus-pets',    label: 'Meus pets',       caption: 'Cadastros e carteirinhas',  link: '/meus-pets', icon: 'paw', tone: 'aurora' },
     'galeria':      { id: 'galeria',      label: 'Galeria pet',     caption: 'Comunidade Petsphere',      link: '/galeria', icon: 'sparkle', tone: 'aurora' },
+    'vet-pacientes': { id: 'vet-pacientes', label: 'Pacientes',    caption: 'Carteira clínica',          link: '/pacientes', icon: 'paw', tone: 'aqua' },
+    'vet-receitas':  { id: 'vet-receitas',  label: 'Receitas',     caption: 'Histórico de prescrições',  link: '/historico-receitas', icon: 'sparkle', tone: 'aqua' },
+    'vet-gerar':     { id: 'vet-gerar',     label: 'Nova receita',  caption: 'Emitir receita',            link: '/gerar-receita', icon: 'sparkle', tone: 'aqua' },
+    'parceiro-painel':   { id: 'parceiro-painel',   label: 'Painel',     caption: 'Resumo da loja',       link: '/parceiros/painel', icon: 'home', tone: 'neutral' },
+    'parceiro-agenda':   { id: 'parceiro-agenda',   label: 'Agenda',     caption: 'Compromissos',         link: '/parceiros/agenda', icon: 'calendar', tone: 'neutral' },
+    'parceiro-equipe':   { id: 'parceiro-equipe',   label: 'Equipe',     caption: 'Colaboradores',        link: '/parceiros/colaboradores', icon: 'person', tone: 'neutral' },
   };
 
-  /** Sheet completa: 5 ações ordenadas. */
+  /**
+   * Sheet FAB — 5 ações por contexto:
+   * - vet: rotas área veterinário
+   * - parceiro: painel loja física + loja online
+   * - guest / cliente: ecossistema consumidor (igual ao anterior)
+   */
   get sheetActions(): QuickAction[] {
+    if (this.dockMode === 'vet') {
+      const ids: DockActionId[] = ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'telemedicina', 'buscar-vet'];
+      return ids.map(id => this.quickActionCatalog[id]);
+    }
+    if (this.dockMode === 'parceiro') {
+      const ids: DockActionId[] = ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar', 'buscar-vet'];
+      return ids.map(id => this.quickActionCatalog[id]);
+    }
     const ids: DockActionId[] = this.isCliente
       ? ['agendar', 'telemedicina', 'buscar-vet', 'comprar', 'hospedagem']
       : ['buscar-vet', 'agendar', 'telemedicina', 'comprar', 'hospedagem'];
     return ids.map(id => this.quickActionCatalog[id]);
+  }
+
+  private fabRadialDefaultIds(): DockActionId[] {
+    if (this.dockMode === 'vet') {
+      return ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'telemedicina'];
+    }
+    if (this.dockMode === 'parceiro') {
+      return ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar'];
+    }
+    return ['agendar', 'telemedicina', 'buscar-vet', 'comprar'];
   }
 
   // ─── Mini-bag (carrinho contextual flutuante) ───────────────────────────────
@@ -203,6 +232,8 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   private nightSub?: Subscription;
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private longPressFired = false;
+  /** Evita que o `click` pós-long-press abra o sheet por cima do radial. */
+  private fabIgnoreNextClick = false;
   private interactionDismissEventsBound = false;
   private readonly interactionDismissEvents: Array<keyof DocumentEventMap> = ['pointerdown', 'touchstart', 'wheel', 'keydown'];
   private lastPillMetrics: { left: number; top: number; width: number; height: number; key: string } | null = null;
@@ -297,7 +328,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     this.radialActions = this.dockCtx
-      .topActions(4, ['agendar', 'telemedicina', 'buscar-vet', 'comprar'])
+      .topActions(4, this.fabRadialDefaultIds())
       .map(id => this.quickActionCatalog[id]);
   }
 
@@ -478,6 +509,15 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     this.scheduleTabPillUpdate();
   }
 
+  /** `activeMobileItems` recria objetos a cada CD — sem trackBy o DOM do dock era destruído sempre (piscar + FAB quebrado). */
+  trackByNavItemId(_index: number, item: NavMainItem): string {
+    return item.id;
+  }
+
+  trackByQuickActionId(_index: number, action: QuickAction): string {
+    return action.id;
+  }
+
   /** Item especial: Esfera (perfil) ou Login. Não navega — abre modal. */
   onMobileItemActivate(item: NavMainItem, ev?: Event): void {
     if (item.id === 'esfera' || item.id === 'login') {
@@ -531,16 +571,21 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ─── FAB: tap → bottom sheet, long-press → radial menu ──────────────────────
   onFabPointerDown(ev: PointerEvent): void {
-    ev.preventDefault();
+    // Não usar preventDefault aqui: em alguns WebViews/iOS isso quebra a sequência
+    // confiável de pointerup/click no botão fixo.
+    if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+    this.fabIgnoreNextClick = false;
     this.longPressFired = false;
     if (this.longPressTimer) clearTimeout(this.longPressTimer);
     this.longPressTimer = setTimeout(() => {
       this.longPressFired = true;
+      this.fabIgnoreNextClick = true;
       this.openRadial();
     }, NavmenuComponent.LONG_PRESS_MS);
   }
 
-  onFabPointerUp(): void {
+  onFabPointerUp(ev?: PointerEvent): void {
+    if (ev && ev.button !== 0 && ev.pointerType === 'mouse') return;
     if (this.longPressTimer) {
       clearTimeout(this.longPressTimer);
       this.longPressTimer = null;
@@ -560,8 +605,35 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     this.longPressFired = false;
   }
 
-  /** Fallback para devices/navegadores onde pointer events falham no FAB. */
+  /**
+   * Fallback para toque quando Pointer Events falham ou o alvo some no meio do gesto
+   * (ex.: re-render do dock). Não abre sheet se radial/sheet já estiverem abertos.
+   */
+  onFabTouchEnd(ev: TouchEvent): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.isRadialOpen || this.isSheetOpen) {
+      try { ev.preventDefault(); } catch { /* ignore */ }
+      return;
+    }
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+    if (this.longPressFired) {
+      this.longPressFired = false;
+      return;
+    }
+    try { ev.preventDefault(); } catch { /* ignore */ }
+    this.openSheet();
+  }
+
+  /** Fallback quando só o evento de click chega (ex.: teclado mouse emulado). */
   onFabClick(ev: Event): void {
+    if (this.fabIgnoreNextClick) {
+      this.fabIgnoreNextClick = false;
+      ev.preventDefault();
+      return;
+    }
     ev.preventDefault();
     this.openSheet();
   }
@@ -591,7 +663,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.isRadialOpen) return;
     this.haptics.heavy();
     this.radialActions = this.dockCtx
-      .topActions(4, ['agendar', 'telemedicina', 'buscar-vet', 'comprar'])
+      .topActions(4, this.fabRadialDefaultIds())
       .map(id => this.quickActionCatalog[id]);
     this.isRadialOpen = true;
     this.cdr.detectChanges();

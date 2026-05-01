@@ -1,0 +1,100 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.hotel-state {
+  font-size: 13px;
+  color: var(--admin-muted, #94a3b8);
+  line-height: 1.5;
+  margin-bottom: 12px;
+
+  &--error {
+    color: #fca5a5;
+  }
+}
+
+.hotel-retry {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border, rgba(255, 255, 255, 0.15));
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--admin-text, #e2e8f0);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.hotel-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.hotel-kpi {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border, rgba(255, 255, 255, 0.12));
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hotel-kpi-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-muted, #94a3b8);
+}
+
+.hotel-kpi-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--admin-text-strong, #f1f5f9);
+}
+
+.hotel-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.12);
+  color: #e0f2fe;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: rgba(34, 211, 238, 0.2);
+    border-color: rgba(34, 211, 238, 0.5);
+  }
+
+  &--secondary {
+    margin-top: 12px;
+    max-width: none;
+    border-color: var(--admin-border, rgba(255, 255, 255, 0.15));
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--admin-text, #e2e8f0);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+}

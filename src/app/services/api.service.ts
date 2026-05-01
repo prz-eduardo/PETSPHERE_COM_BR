@@ -1520,4 +1520,10 @@ export class ApiService {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
     return this.http.get<any>(`${this.baseUrl}/admin/home-overview`, { headers });
   }
+
+  /** Resumo da vitrine do parceiro (fila de pedidos + KPIs + vendas 7d), escopo parceiro_id. */
+  getParceiroHomeOverview(token: string | null | undefined): Observable<any> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.get<any>(`${this.baseUrl}/parceiro/home-overview`, { headers });
+  }
 }

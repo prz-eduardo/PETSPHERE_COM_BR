@@ -125,54 +125,15 @@
     </div>
 
     <!-- Fila de pedidos -->
-    <div class="card queue-card">
-      <div class="card-header">
-        <h3>Fila de pedidos</h3>
-        <small>{{ data?.queue?.total || 0 }} pedido(s) em andamento.</small>
-      </div>
-
-      <div class="queue-columns">
-        <div class="queue-col" *ngFor="let s of statuses">
-          <div class="col-head">
-            <span class="col-title">{{ statusLabel(s) }}</span>
-            <span class="col-count">{{ ordersOf(s).length }}</span>
-          </div>
-          <div class="col-body">
-            <div
-              *ngFor="let p of ordersOf(s)"
-              class="order"
-              (click)="openOrder(p)"
-            >
-              <div class="top">
-                <strong>#{{ p.id }}</strong>
-                <span class="total">{{ formatCurrency(p.total_liquido) }}</span>
-              </div>
-              <div class="cliente" [title]="p.cliente_nome || ''">{{ p.cliente_nome || 'Cliente ' + p.cliente_id }}</div>
-              <div class="meta">
-                <span class="age"><i class="fa-regular fa-clock"></i> {{ relativeTime(p.created_at) }}</span>
-                <span class="pagto" *ngIf="p.pagamento_forma">{{ p.pagamento_forma }}</span>
-              </div>
-              <div class="actions">
-                <button
-                  type="button"
-                  class="btn btn-advance"
-                  [disabled]="!nextStatus(p)"
-                  (click)="advance(p, $event)"
-                  [title]="nextStatus(p) ? 'Avançar para ' + nextStatusLabel(p) : 'Sem próxima etapa'"
-                >
-                  <i class="fa-solid fa-forward-step"></i>
-                  {{ nextStatus(p) ? nextStatusLabel(p) : '—' }}
-                </button>
-                <button type="button" class="btn btn-cancel" (click)="cancel(p, $event)" title="Cancelar pedido">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-            </div>
-            <div class="col-empty" *ngIf="!ordersOf(s).length">Sem pedidos aqui.</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <app-order-queue-kanban-board
+      heading="Fila de pedidos (PetShop)"
+      [subheading]="(data?.queue?.total || 0) + ' pedido(s) em andamento na loja.'"
+      [columns]="queueKanbanColumns"
+      [showActions]="true"
+      (orderCardClick)="openOrder($event)"
+      (orderAdvance)="advance($event)"
+      (orderCancel)="cancel($event)"
+    />
       </div>
     </section>
   </ng-container>

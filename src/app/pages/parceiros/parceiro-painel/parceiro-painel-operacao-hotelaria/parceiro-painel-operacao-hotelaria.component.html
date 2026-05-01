@@ -1,0 +1,41 @@
+<div *ngIf="loading" class="hotel-state" role="status">Carregando resumo…</div>
+
+<div *ngIf="!loading && error" class="hotel-state hotel-state--error" role="alert">
+  {{ error }}
+  <button type="button" class="hotel-retry" (click)="load()">Tentar novamente</button>
+</div>
+
+<ng-container *ngIf="!loading && !error && resumo as r">
+  <div class="hotel-kpis">
+    <div class="hotel-kpi">
+      <span class="hotel-kpi-label">Ocupação dos espaços</span>
+      <span class="hotel-kpi-value">{{ r.ocupacao_percentual | number: '1.0-1' }}%</span>
+    </div>
+    <div class="hotel-kpi">
+      <span class="hotel-kpi-label">Espaços ocupados</span>
+      <span class="hotel-kpi-value">{{ r.leitos_ocupados }} / {{ r.total_leitos }}</span>
+    </div>
+    <div class="hotel-kpi">
+      <span class="hotel-kpi-label">Chegadas hoje</span>
+      <span class="hotel-kpi-value">{{ r.checkins_hoje }}</span>
+    </div>
+    <div class="hotel-kpi">
+      <span class="hotel-kpi-label">Pendentes</span>
+      <span class="hotel-kpi-value">{{ r.reservas_pendentes }}</span>
+    </div>
+    <div class="hotel-kpi">
+      <span class="hotel-kpi-label">Confirmadas</span>
+      <span class="hotel-kpi-value">{{ r.reservas_confirmadas }}</span>
+    </div>
+  </div>
+
+  <button type="button" class="hotel-cta" (click)="abrirReservas()">
+    <i class="fa fa-paw" aria-hidden="true"></i>
+    Abrir hospedagem pet
+  </button>
+</ng-container>
+
+<div *ngIf="!loading && !error && !resumo" class="hotel-state">
+  Nenhum dado de hospedagem ainda. Cadastre baias e reservas na área de hospedagem.
+  <button type="button" class="hotel-cta hotel-cta--secondary" (click)="abrirReservas()">Ir para hospedagem</button>
+</div>

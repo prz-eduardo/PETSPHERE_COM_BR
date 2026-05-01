@@ -10,6 +10,7 @@ import { authGuard } from './guards/auth.guard';
 import { vetGuard } from './guards/vet.guard';
 import { parceiroGuard } from './guards/parceiro.guard';
 import { parceiroVetGuard } from './guards/parceiro-vet.guard';
+import { clienteSessionGuard } from './guards/cliente-session.guard';
 
 export const routes: Routes = [
   { path: '', loadChildren: () => import('./pages/loja/loja.module').then(m => m.LojaModule) }, // Página pública (loja)
@@ -116,6 +117,12 @@ export const routes: Routes = [
   },
   { path: 'novo-pet', loadComponent: () => import('./pages/novo-pet/novo-pet.component').then(m => m.NovoPetComponent) },
   { path: 'editar-pet/:id', loadComponent: () => import('./pages/novo-pet/novo-pet.component').then(m => m.NovoPetComponent) },
+  {
+    path: 'chat-parceiro/:parceiroId',
+    loadComponent: () =>
+      import('./pages/chat-parceiro-cliente/chat-parceiro-cliente.component').then((m) => m.ChatParceiroClienteComponent),
+    canActivate: [clienteSessionGuard],
+  },
   { path: 'area-vet', loadComponent: () => import('./pages/restrito/area-vet/area-vet.component').then(m => m.AreaVetComponent)},
   { path: 'gerar-receita', loadComponent: () => import('./pages/restrito/area-vet/gerar-receita/gerar-receita.component').then(m => m.GerarReceitaComponent), canActivate: [vetGuard] },
   { path: 'historico-receitas', loadComponent: () => import('./pages/restrito/area-vet/historico-receitas/historico-receitas.component').then(m => m.HistoricoReceitasComponent), canActivate: [vetGuard] },
@@ -195,16 +202,64 @@ export const routes: Routes = [
         data: { title: 'Meus clientes' },
       },
       {
+        path: 'chat/:clienteId',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-chat-cliente/parceiro-chat-cliente.component').then(
+            (m) => m.ParceiroChatClienteComponent
+          ),
+        data: { title: 'Chat com cliente' },
+      },
+      {
+        path: 'hospedagem',
+        redirectTo: 'reservas-hotel',
+        pathMatch: 'full',
+      },
+      {
         path: 'reservas-hotel',
         loadComponent: () =>
           import('./pages/parceiros/reservas-hotel/reservas-hotel.component').then(m => m.ReservasHotelComponent),
-        data: { title: 'Reservas & Hotel' },
+        data: { title: 'Hospedagem pet & creche' },
       },
       {
         path: 'minha-loja',
         loadComponent: () =>
           import('./pages/parceiros/parceiro-minha-loja/parceiro-minha-loja.component').then(m => m.ParceiroMinhaLojaComponent),
         data: { title: 'Minha loja' },
+      },
+      {
+        path: 'gestao-clinica',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-modulo-em-breve/parceiro-modulo-em-breve.component').then(
+            (m) => m.ParceiroModuloEmBreveComponent
+          ),
+        data: {
+          title: 'Gestão da clínica',
+          description:
+            'Cadastro da unidade, responsável técnico, convênios e documentação administrativa — tudo no mesmo painel.',
+          bullets: [
+            'Dados cadastrais e filiais',
+            'Responsável técnico e alvarás',
+            'Convênios e tabelas de preço',
+            'Integração com agenda e prontuário',
+          ],
+        },
+      },
+      {
+        path: 'financeiro-parceiro',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-modulo-em-breve/parceiro-modulo-em-breve.component').then(
+            (m) => m.ParceiroModuloEmBreveComponent
+          ),
+        data: {
+          title: 'Pagamentos e repasses',
+          description:
+            'Conciliação de recebíveis, repasses da plataforma e extratos — visão financeira para a gestão da clínica.',
+          bullets: [
+            'Extrato e histórico de repasses',
+            'Conciliação com atendimentos e vendas',
+            'Notas fiscais e comprovantes (quando aplicável)',
+          ],
+        },
       },
       // ── Área Vet centralizada no painel parceiro ─────────────────────────
       {

@@ -13,8 +13,9 @@ import {
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { filter, take } from 'rxjs/operators';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api.service';
+import { SessionService } from '../../services/session.service';
 import { ToastService } from '../../services/toast.service';
 import {
   LOJA_CEP,
@@ -73,6 +74,8 @@ export class MapaComponent implements OnInit, OnDestroy {
   marcaNome = MARCA_NOME;
   readonly marcaNomeMapa = MARCA_NOME;
   lojaEnderecoExibicao = `${LOJA_ENDERECO_TEXTO}, CEP ${LOJA_CEP}`;
+  /** Cidade e UF para o hero (default = loja demo; tenant sobrescreve em applyStoreAddressFromParts). */
+  mapHeroCidadeEstado = 'Curitiba - PR';
   readonly defaultPartnerLogoPath = MARCA_LOGO_PATH || '/imagens/logo-marca.svg';
   private defaultCenterAddress = `${LOJA_ENDERECO_TEXTO}, Curitiba, PR, CEP ${LOJA_CEP}`;
   private pharmacyAddress = `${LOJA_ENDERECO_TEXTO}, Curitiba, PR`;
@@ -126,6 +129,8 @@ export class MapaComponent implements OnInit, OnDestroy {
     private mapLocationConsent: MapLocationConsentService,
     readonly tenantLoja: TenantLojaService,
     private route: ActivatedRoute,
+    private router: Router,
+    private session: SessionService,
     @Inject(PLATFORM_ID) private platformId: Object,
     private appRef: ApplicationRef,
     private zone: NgZone
@@ -669,6 +674,11 @@ export class MapaComponent implements OnInit, OnDestroy {
     if (!parts) return;
     const nome = String(parts.nome ?? '').trim();
     if (nome) this.marcaNome = nome;
+    const cidade = String(parts.cidade ?? '').trim();
+    const estado = String(parts.estado ?? '').trim();
+    if (cidade || estado) {
+      this.mapHeroCidadeEstado = [cidade, estado].filter(Boolean).join(' - ');
+    }
     const fullDisplay = this.buildAddressPartsAddress(parts);
     if (!fullDisplay) return;
 
@@ -1041,6 +1051,32 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Abre o chat parceiro–cliente (rota /chat-parceiro/:id) se o utilizador tiver sessão de cliente.
+   */
+  private goToPartnerChatFromMap(partner: any): void {
+    const parceiroId = Number(partner?.id ?? partner?._raw?.id ?? 0);
+    if (!Number.isFinite(parceiroId) || parceiroId < 1) {
+      this.toast.error('Não foi possível identificar esta loja para o chat.');
+      return;
+    }
+    const decoded = this.session.decodeToken();
+    const tipo = String(decoded?.tipo || decoded?.role || '');
+    if (!this.session.hasValidSession(false) || tipo !== 'cliente') {
+      this.toast.info('Entre na sua conta de cliente para enviar mensagens à loja.');
+      try {
+        sessionStorage.setItem('fp_post_login_chat_parceiro_id', String(parceiroId));
+      } catch {
+        /* ignore */
+      }
+      void this.router.navigate(['/area-cliente'], {
+        queryParams: { login: '1', chatParceiro: String(parceiroId) },
+      });
+      return;
+    }
+    void this.router.navigate(['/chat-parceiro', String(parceiroId)]);
+  }
+
+  /**
    * Attach an info window to a partner marker showing basic info and actions.
    */
   private attachPartnerInfo(marker: any, partner: any) {
@@ -1063,8 +1099,11 @@ export class MapaComponent implements OnInit, OnDestroy {
     const logoFallback = this.defaultPartnerLogoPath;
 
     const routeBtnId = `map-route-btn-${uid}`;
-    const openBtnId = `map-open-btn-${uid}`;
+    const msgBtnId = `map-msg-btn-${uid}`;
     const closeBtnId = `map-close-btn-${uid}`;
+    const storeLinkHtml = storeUrl
+      ? `<a href="${storeUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;font-size:12px;font-weight:600;color:#0369a1">Ver loja online →</a>`
+      : '';
 
     const content = `
       <div style="max-width:340px;font-family:Inter,Arial,Helvetica,sans-serif;color:#0f172a;padding:12px;box-sizing:border-box;border-radius:10px;position:relative;overflow:visible">
@@ -1083,10 +1122,11 @@ export class MapaComponent implements OnInit, OnDestroy {
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button id="${routeBtnId}" style="flex:1;border:0;background:#0f172a;color:#fff;padding:8px 10px;border-radius:8px;font-weight:600;cursor:pointer">Traçar rota</button>
-        <button id="${openBtnId}" style="flex:1;border:1px solid #e5e7eb;background:#fff;color:#0f172a;padding:8px 10px;border-radius:8px;font-weight:600;cursor:pointer">Ver produtos</button>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button id="${routeBtnId}" type="button" style="flex:1;min-width:120px;border:0;background:#0f172a;color:#fff;padding:8px 10px;border-radius:8px;font-weight:600;cursor:pointer">Traçar rota</button>
+        <button id="${msgBtnId}" type="button" style="flex:1;min-width:120px;border:1px solid #0ea5e9;background:#e0f2fe;color:#0c4a6e;padding:8px 10px;border-radius:8px;font-weight:600;cursor:pointer">Enviar mensagem</button>
       </div>
+      ${storeLinkHtml}
       </div>
     `;
 
@@ -1117,26 +1157,26 @@ export class MapaComponent implements OnInit, OnDestroy {
             } catch (e) {}
 
             const routeBtn = document.getElementById(routeBtnId);
-            const openBtn = document.getElementById(openBtnId);
+            const msgBtn = document.getElementById(msgBtnId);
             const closeBtn = document.getElementById(closeBtnId);
             if (routeBtn) {
               routeBtn.addEventListener('click', (ev) => {
                 ev.preventDefault();
                 const destObj = { lat: Number(lat), lng: Number(lng) };
                 try { localStorage.setItem('fp_last_dest', JSON.stringify(destObj)); } catch (e) {}
-                this.drawRoute(destObj);
+                this.zone.run(() => {
+                  void this.drawRoute(destObj);
+                });
                 try { iw.close(); } catch (e) {}
               });
             }
-            if (openBtn) {
-              openBtn.addEventListener('click', (ev) => {
+            if (msgBtn) {
+              msgBtn.addEventListener('click', (ev) => {
                 ev.preventDefault();
-                if (!storeUrl) return;
-                try {
-                  window.open(storeUrl, '_blank', 'noopener,noreferrer');
-                } catch (e) {
-                  try { window.location.href = storeUrl; } catch {}
-                }
+                this.zone.run(() => {
+                  this.goToPartnerChatFromMap(partner);
+                  try { iw.close(); } catch {}
+                });
               });
             }
             if (closeBtn) {

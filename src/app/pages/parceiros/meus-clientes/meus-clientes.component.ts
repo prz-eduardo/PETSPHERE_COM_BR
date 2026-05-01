@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import {
   AgendaApiService,
   DiscoveryCandidateRow,
@@ -12,7 +13,7 @@ type EscopoPermissao = 'dados_basicos' | 'pets' | 'completo';
 @Component({
   selector: 'app-meus-clientes',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './meus-clientes.component.html',
   styleUrls: ['./meus-clientes.component.scss'],
 })

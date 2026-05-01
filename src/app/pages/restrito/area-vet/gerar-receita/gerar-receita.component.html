@@ -1,13 +1,39 @@
-<div class="area-vet-wrapper">
-  <app-navmenu></app-navmenu>
-    <div class="acoes-row" style="justify-content: end; padding-top: 5px;">
-    <button id="btnTutorialReceita" class="btn-help" type="button" (click)="startTour()" aria-label="Como funciona?">?</button>
-  </div>
-  <h1 class="titulo">Prontuário do Atendimento</h1>
+<app-navmenu *ngIf="!embedInParceiroShell"></app-navmenu>
+
+<section class="atendimento-page" [class.atendimento-page--embedded]="embedInParceiroShell">
+  <header class="atendimento-hero">
+    <div class="atendimento-hero__text">
+      <p class="atendimento-kicker">Consultório</p>
+      <h1 class="atendimento-title">Consulta, prontuário e receita</h1>
+      <p class="atendimento-lede">
+        Fluxo pensado para o dia a dia da clínica: identificar o tutor, registrar o paciente, documentar a consulta,
+        prescrever com segurança e arquivar o atendimento — sem sair do painel do parceiro.
+      </p>
+    </div>
+    <div class="atendimento-hero__actions">
+      <button id="btnTutorialReceita" class="btn-help" type="button" (click)="startTour()" aria-label="Tour guiado">?</button>
+    </div>
+  </header>
+
+  <ol class="atendimento-track" *ngIf="embedInParceiroShell" aria-hidden="true">
+    <li><span>1</span> Tutor</li>
+    <li><span>2</span> Paciente</li>
+    <li><span>3</span> Consulta</li>
+    <li><span>4</span> Exames</li>
+    <li><span>5</span> Receita</li>
+    <li><span>6</span> Assinar</li>
+  </ol>
 
   <!-- CPF -->
-  <div class="card receita-card">
-    <h3>CPF do Tutor</h3>
+  <article class="card receita-card panel" id="passo-tutor">
+    <div class="panel-head">
+      <span class="panel-step">1</span>
+      <div>
+        <h2 class="panel-title">Quem traz o animal?</h2>
+        <p class="panel-hint">CPF do tutor responsável — o mesmo da recepção ou cadastro na plataforma.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">CPF do tutor</h3>
     <div class="row">
       <input
         id="cpfInput"
@@ -22,11 +48,18 @@
       <button id="buscarBtn" class="btn" (click)="buscarTutor()" [disabled]="carregandoTutor">Buscar</button>
     </div>
     <p *ngIf="carregandoTutor" class="muted">Buscando tutor...</p>
-  </div>
+  </article>
 
   <!-- Tutor encontrado -->
-  <div *ngIf="tutorEncontrado" class="card receita-card" id="dadosTutor">
-    <h3>Dados do Tutor</h3>
+  <article *ngIf="tutorEncontrado" class="card receita-card panel" id="dadosTutor">
+    <div class="panel-head panel-head--compact">
+      <span class="panel-step panel-step--ok" aria-hidden="true">✓</span>
+      <div>
+        <h2 class="panel-title">Cadastro localizado</h2>
+        <p class="panel-hint">Confira nome e contato antes de escolher o paciente.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Dados do tutor</h3>
     <div class="tutor-grid">
       <div><b>Nome:</b> {{ tutorEncontrado.nome }}</div>
       <div><b>CPF:</b> {{ tutorEncontrado.cpf }}</div>
@@ -65,22 +98,36 @@
     <ng-template #semPets>
       <div class="muted">Nenhum pet encontrado para este tutor.</div>
     </ng-template>
-  </div>
+  </article>
 
   <!-- Cadastro manual do tutor -->
-  <div *ngIf="cadastroManualTutor" class="card receita-card">
-    <h3>Cadastro Manual do Tutor</h3>
+  <article *ngIf="cadastroManualTutor" class="card receita-card panel">
+    <div class="panel-head panel-head--compact">
+      <span class="panel-step">1</span>
+      <div>
+        <h2 class="panel-title">Cadastro manual do tutor</h2>
+        <p class="panel-hint">Use quando o CPF ainda não estiver na base — como ficha rápida na recepção.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Dados para cadastro</h3>
     <div class="grid-pet">
       <input [(ngModel)]="novoTutor.nome" placeholder="Nome completo" class="input-busca" />
       <input [(ngModel)]="novoTutor.telefone" placeholder="Telefone" class="input-busca" />
       <input [(ngModel)]="novoTutor.email" placeholder="E-mail" class="input-busca" />
       <input [(ngModel)]="novoTutor.endereco" placeholder="Endereço" class="input-busca" />
     </div>
-  </div>
+  </article>
 
 <!-- Novo Pet -->
-  <div class="card receita-card" id="dadosPet">
-    <h3>Dados do Pet</h3>
+  <article class="card receita-card panel" id="dadosPet">
+    <div class="panel-head">
+      <span class="panel-step">2</span>
+      <div>
+        <h2 class="panel-title">Paciente (animal)</h2>
+        <p class="panel-hint">Selecione um pet já vinculado ou complete a ficha — peso e idade guiam dose e fluidoterapia.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Dados do pet</h3>
     <div class="grid-pet">
         <div class="input-group">
         <label>Nome do Pet</label>
@@ -131,12 +178,19 @@
           </div>
         </div>
     </div>
-    </div>
+    </article>
 
 
   <!-- Prontuário -->
-  <div class="card receita-card">
-    <h3>Prontuário Clínico</h3>
+  <article class="card receita-card panel" id="passo-consulta">
+    <div class="panel-head">
+      <span class="panel-step">3</span>
+      <div>
+        <h2 class="panel-title">Evolução da consulta</h2>
+        <p class="panel-hint">Queixa, anamnese, exame físico, hipótese diagnóstica e conduta — o núcleo do prontuário.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Prontuário clínico</h3>
     <div class="grid-pet">
       <div class="input-group">
         <label>Queixa principal</label>
@@ -159,10 +213,17 @@
         <textarea [(ngModel)]="planoTerapeutico" placeholder="Conduta e orientações clínicas..." class="input-busca"></textarea>
       </div>
     </div>
-  </div>
+  </article>
 
-  <div class="card receita-card">
-    <h3>Exames Solicitados</h3>
+  <article class="card receita-card panel">
+    <div class="panel-head">
+      <span class="panel-step">4</span>
+      <div>
+        <h2 class="panel-title">Exames solicitados</h2>
+        <p class="panel-hint">Laboratorial, imagem ou outros — acompanhe status até o resultado.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Lista de exames</h3>
     <div *ngFor="let exame of examesSolicitados; let i = index" class="grid-pet" style="margin-bottom: 10px;">
       <input [(ngModel)]="exame.nome" placeholder="Nome do exame" class="input-busca" />
       <select [(ngModel)]="exame.status" class="input-busca">
@@ -174,10 +235,17 @@
       <button class="btn-sec" type="button" (click)="removerExameSolicitado(i)">Remover</button>
     </div>
     <button class="btn-toggle" type="button" (click)="adicionarExameSolicitado()">+ Adicionar exame</button>
-  </div>
+  </article>
 
-  <div class="card receita-card">
-    <h3>Fotos do Atendimento</h3>
+  <article class="card receita-card panel">
+    <div class="panel-head panel-head--compact">
+      <span class="panel-step">4</span>
+      <div>
+        <h2 class="panel-title">Registro visual</h2>
+        <p class="panel-hint">Lesões, exames na mesa, RX na tela — anexos que complementam o prontuário.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Fotos do atendimento</h3>
     <div class="row" style="gap: 10px; align-items: center;">
       <input type="file" accept="image/*" (change)="onFotoAtendimentoSelecionada($event)" />
     </div>
@@ -189,17 +257,30 @@
         <button class="btn-sec" type="button" (click)="removerFotoAtendimento(i)">Remover foto</button>
       </div>
     </div>
-  </div>
+  </article>
 
   <!-- Observações -->
-  <div class="card receita-card">
-    <h3>Observações Gerais do Atendimento</h3>
+  <article class="card receita-card panel">
+    <div class="panel-head panel-head--compact">
+      <div>
+        <h2 class="panel-title">Observações gerais</h2>
+        <p class="panel-hint">Retorno, orientações ao tutor ou detalhes que não couberam nos campos anteriores.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Observações do atendimento</h3>
     <textarea [(ngModel)]="observacoes" placeholder="Observações complementares do atendimento..." class="input-busca"></textarea>
-  </div>
+  </article>
 
   <!-- Receita (parte do atendimento) -->
-  <div class="card receita-card" id="ativosCard">
-    <h3>Receita do Atendimento - Selecionar Ativos</h3>
+  <article class="card receita-card panel" id="ativosCard">
+    <div class="panel-head">
+      <span class="panel-step">5</span>
+      <div>
+        <h2 class="panel-title">Prescrição (princípios ativos)</h2>
+        <p class="panel-hint">Monte a receita com o guia; o sistema alerta se houver cruzamento com alergias cadastradas.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Seleção de medicamentos</h3>
     <div class="ativos-controls">
       <input id="ativosSearch" type="text" [(ngModel)]="ativosSearch" (ngModelChange)="onAtivosSearchChange()" placeholder="Pesquisar ativo..." class="input-busca" />
       <div class="muted small">Total: {{ ativos.length }}</div>
@@ -239,11 +320,18 @@
         </div>
       </div>
     </div>
-  </div>
+  </article>
 
   <!-- Assinatura -->
-  <div class="card receita-card" id="assinaturaSec">
-    <h3>Assinatura</h3>
+  <article class="card receita-card panel" id="assinaturaSec">
+    <div class="panel-head">
+      <span class="panel-step">6</span>
+      <div>
+        <h2 class="panel-title">Responsável técnico e assinatura</h2>
+        <p class="panel-hint">Dados do profissional e assinatura manuscrita opcional para o PDF da receita.</p>
+      </div>
+    </div>
+    <h3 class="visually-hidden">Assinatura</h3>
     <div class="assinatura-row">
       <div *ngIf="veterinario" class="card receita-card vet-card">
         <h3>Dados do Veterinário</h3>
@@ -285,12 +373,16 @@
       </div>
     </div>
     <div *ngIf="assinaturaICP" class="muted small">Mock ICP: {{ assinaturaICP }}</div>
-  </div>
+  </article>
 
   <!-- Salvar -->
   <div class="rodape">
-    <button id="salvarReceitaBtn" class="btn" (click)="salvarReceita()">Salvar Prontuário do Atendimento</button>
+    <button id="salvarReceitaBtn" class="btn btn-primary-lg" type="button" (click)="salvarReceita()">
+      Salvar atendimento e receita
+    </button>
+    <p class="rodape-hint muted small">Gera o prontuário e a receita como documento do caso clínico.</p>
   </div>
+</section>
 
   <!-- Modal: Escolha de ação para edição do pet -->
   <div class="modal-backdrop" *ngIf="showPetEditModal" (click)="fecharModalEditarPet()"></div>
@@ -318,7 +410,6 @@
       <button class="btn-sec" (click)="cancelarAlergiaAtivo()">Cancelar</button>
     </div>
   </div>
-</div>
 
 <div #pdfContent class="pdf-container pdf-watermark" style="position: absolute; left: -9999px; top: -9999px;">
 

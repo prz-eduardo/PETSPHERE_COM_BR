@@ -98,7 +98,13 @@
     font-size: 10px;
     color: var(--admin-muted);
     font-variant-numeric: tabular-nums;
-    transform: translateY(-6px);
+    transform: translateY(-4px);
+  }
+
+  /* Primeiro rótulo: sem deslocamento negativo para não invadir o cabeçalho sticky */
+  &:first-child span {
+    transform: none;
+    padding-top: 2px;
   }
 
   &.half { border-bottom-style: dashed; opacity: 0.5; }

@@ -14,6 +14,8 @@ import { ParceiroAuthService } from '../../../../services/parceiro-auth.service'
 import { environment } from '../../../../../environments/environment';
 
 const API_BASE = environment.apiBaseUrl;
+/** Rotas canônicas pet-friendly (aliases no backend para o mesmo controller hotel_*). */
+const PARCEIRO_HOSPEDAGEM = `${API_BASE}/parceiro/hospedagem`;
 
 @Injectable({ providedIn: 'root' })
 export class AgendaApiService {
@@ -581,7 +583,7 @@ export class AgendaApiService {
 
     const response = await lastValueFrom(
       this.http.get<{ reservas: HotelReservaRow[] }>(
-        `${API_BASE}/parceiro/hotel/reservas`,
+        `${PARCEIRO_HOSPEDAGEM}/reservas`,
         { headers: this.getHeaders(), params }
       )
     );
@@ -591,7 +593,7 @@ export class AgendaApiService {
   async getHotelReserva(id: number): Promise<HotelReservaRow | null> {
     const response = await lastValueFrom(
       this.http.get<{ reserva: HotelReservaRow | null }>(
-        `${API_BASE}/parceiro/hotel/reservas/${id}`,
+        `${PARCEIRO_HOSPEDAGEM}/reservas/${id}`,
         { headers: this.getHeaders() }
       )
     );
@@ -609,6 +611,8 @@ export class AgendaApiService {
     status?: HotelReservaStatus;
     valor_total?: number | null;
     observacoes?: string | null;
+    cuidados_especiais?: string | null;
+    alimentacao_obs?: string | null;
   }): Promise<HotelReservaRow | null> {
     const payload: {
       leito_id?: number | null;
@@ -621,6 +625,8 @@ export class AgendaApiService {
       status?: HotelReservaStatus;
       valor_total?: number | null;
       observacoes?: string | null;
+      cuidados_especiais?: string | null;
+      alimentacao_obs?: string | null;
     } = {
       ...body,
       check_in: body.check_in instanceof Date ? body.check_in.toISOString() : body.check_in,
@@ -628,7 +634,7 @@ export class AgendaApiService {
     };
     const response = await lastValueFrom(
       this.http.post<{ reserva: HotelReservaRow | null }>(
-        `${API_BASE}/parceiro/hotel/reservas`,
+        `${PARCEIRO_HOSPEDAGEM}/reservas`,
         payload,
         { headers: this.getHeaders() }
       )
@@ -649,6 +655,8 @@ export class AgendaApiService {
       status: HotelReservaStatus;
       valor_total: number | null;
       observacoes: string | null;
+      cuidados_especiais: string | null;
+      alimentacao_obs: string | null;
     }>
   ): Promise<HotelReservaRow | null> {
     const payload = { ...body };
@@ -656,7 +664,7 @@ export class AgendaApiService {
     if (payload.check_out instanceof Date) payload.check_out = payload.check_out.toISOString();
     const response = await lastValueFrom(
       this.http.put<{ reserva: HotelReservaRow | null }>(
-        `${API_BASE}/parceiro/hotel/reservas/${id}`,
+        `${PARCEIRO_HOSPEDAGEM}/reservas/${id}`,
         payload,
         { headers: this.getHeaders() }
       )
@@ -667,7 +675,7 @@ export class AgendaApiService {
   async listHotelLeitos(): Promise<HotelLeitoRow[]> {
     const response = await lastValueFrom(
       this.http.get<{ leitos: HotelLeitoRow[] }>(
-        `${API_BASE}/parceiro/hotel/leitos`,
+        `${PARCEIRO_HOSPEDAGEM}/leitos`,
         { headers: this.getHeaders() }
       )
     );
@@ -685,7 +693,7 @@ export class AgendaApiService {
   }): Promise<HotelLeitoRow | null> {
     const response = await lastValueFrom(
       this.http.post<{ leito: HotelLeitoRow | null }>(
-        `${API_BASE}/parceiro/hotel/leitos`,
+        `${PARCEIRO_HOSPEDAGEM}/leitos`,
         body,
         { headers: this.getHeaders() }
       )
@@ -707,7 +715,7 @@ export class AgendaApiService {
   ): Promise<HotelLeitoRow | null> {
     const response = await lastValueFrom(
       this.http.put<{ leito: HotelLeitoRow | null }>(
-        `${API_BASE}/parceiro/hotel/leitos/${id}`,
+        `${PARCEIRO_HOSPEDAGEM}/leitos/${id}`,
         body,
         { headers: this.getHeaders() }
       )
@@ -718,7 +726,7 @@ export class AgendaApiService {
   async getHotelResumo(): Promise<HotelResumoRow | null> {
     const response = await lastValueFrom(
       this.http.get<{ resumo: HotelResumoRow | null }>(
-        `${API_BASE}/parceiro/hotel/resumo`,
+        `${PARCEIRO_HOSPEDAGEM}/resumo`,
         { headers: this.getHeaders() }
       )
     );
@@ -779,6 +787,8 @@ export interface HotelReservaRow {
   status: HotelReservaStatus;
   valor_total?: number | null;
   observacoes?: string | null;
+  cuidados_especiais?: string | null;
+  alimentacao_obs?: string | null;
   created_at?: string;
   updated_at?: string;
   leito_nome?: string | null;

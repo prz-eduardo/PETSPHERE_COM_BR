@@ -12,7 +12,7 @@ import { AdminHeaderComponent } from '../../../shared/admin-header/admin-header.
 import { AdminHomeOverviewComponent } from './home-overview/home-overview.component';
 import { MARCA_NOME } from '../../../constants/loja-public';
 
-type SectionKey = 'inteligencia' | 'catalogo' | 'pessoas' | 'operacao';
+type SectionKey = 'inteligencia' | 'catalogo' | 'petshop' | 'pessoas' | 'operacao';
 
 @Component({
   selector: 'app-admin',
@@ -49,13 +49,17 @@ export class AdminComponent implements OnInit, OnDestroy {
   private sectionItems: Record<SectionKey, string[]> = {
     inteligencia: ['dashboard'],
     catalogo: [
-      'cadastrar produto novo',
-      'lista produtos listagem',
       'ativos ingredientes',
       'formulas receitas',
       'marketplace categorias vitrine',
       'marketplace tags vitrine',
       'temas vitrine loja cores',
+    ],
+    petshop: [
+      'cadastrar produto novo',
+      'lista produtos listagem',
+      'cupons desconto',
+      'promocoes ofertas',
     ],
     pessoas: [
       'gerenciar usuarios admins',
@@ -68,8 +72,6 @@ export class AdminComponent implements OnInit, OnDestroy {
     operacao: [
       'banners',
       'pedidos compras',
-      'cupons desconto',
-      'promocoes ofertas',
       'atendimento chat suporte fila',
       'email resend teste ferramenta',
     ],

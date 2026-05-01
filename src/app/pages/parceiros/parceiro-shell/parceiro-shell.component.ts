@@ -16,6 +16,7 @@ export class ParceiroShellComponent implements OnInit {
   colaborador = signal<Colaborador | null>(null);
   showUserMenu = signal(false);
   showVetMenu = signal(false);
+  showClinicaMenu = signal(false);
   showMobileNav = signal(false);
   private currentUrl = '';
 
@@ -34,9 +35,13 @@ export class ParceiroShellComponent implements OnInit {
       this.showUserMenu.set(false);
     }
 
-    const navGroupNode = this.el.nativeElement.querySelector('.nav-group');
-    if (navGroupNode && !navGroupNode.contains(target) && this.showVetMenu()) {
+    const vetNavGroup = this.el.nativeElement.querySelector('.nav-group--vet');
+    if (vetNavGroup && !vetNavGroup.contains(target) && this.showVetMenu()) {
       this.showVetMenu.set(false);
+    }
+    const clinicaNavGroup = this.el.nativeElement.querySelector('.nav-group--clinica');
+    if (clinicaNavGroup && !clinicaNavGroup.contains(target) && this.showClinicaMenu()) {
+      this.showClinicaMenu.set(false);
     }
 
     const mobileNavNode = this.el.nativeElement.querySelector('.mobile-nav');
@@ -55,6 +60,7 @@ export class ParceiroShellComponent implements OnInit {
       .subscribe((e: any) => {
         this.currentUrl = e.urlAfterRedirects || e.url;
         this.showVetMenu.set(false);
+        this.showClinicaMenu.set(false);
         this.showUserMenu.set(false);
         this.showMobileNav.set(false);
       });
@@ -67,14 +73,40 @@ export class ParceiroShellComponent implements OnInit {
            this.currentUrl.includes('/parceiros/pacientes');
   }
 
+  isClinicaFinanceiroActive(): boolean {
+    return (
+      this.currentUrl.includes('/parceiros/gestao-clinica') ||
+      this.currentUrl.includes('/parceiros/financeiro-parceiro')
+    );
+  }
+
+  isHospedagemActive(): boolean {
+    return this.currentUrl.includes('/parceiros/reservas-hotel') ||
+           this.currentUrl.includes('/parceiros/hospedagem');
+  }
+
   toggleUserMenu(val?: boolean): void {
     this.showUserMenu.set(val ?? !this.showUserMenu());
-    if (this.showUserMenu()) this.showVetMenu.set(false);
+    if (this.showUserMenu()) {
+      this.showVetMenu.set(false);
+      this.showClinicaMenu.set(false);
+    }
   }
 
   toggleVetMenu(val?: boolean): void {
     this.showVetMenu.set(val ?? !this.showVetMenu());
-    if (this.showVetMenu()) this.showUserMenu.set(false);
+    if (this.showVetMenu()) {
+      this.showUserMenu.set(false);
+      this.showClinicaMenu.set(false);
+    }
+  }
+
+  toggleClinicaMenu(val?: boolean): void {
+    this.showClinicaMenu.set(val ?? !this.showClinicaMenu());
+    if (this.showClinicaMenu()) {
+      this.showUserMenu.set(false);
+      this.showVetMenu.set(false);
+    }
   }
 
   toggleMobileNav(val?: boolean): void {
@@ -82,6 +114,7 @@ export class ParceiroShellComponent implements OnInit {
     if (this.showMobileNav()) {
       this.showUserMenu.set(false);
       this.showVetMenu.set(false);
+      this.showClinicaMenu.set(false);
     }
   }
 

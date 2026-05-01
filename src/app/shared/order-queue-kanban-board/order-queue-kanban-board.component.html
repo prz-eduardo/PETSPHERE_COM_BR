@@ -1,0 +1,50 @@
+<div class="queue-card">
+  <div class="card-header">
+    <h3>{{ heading }}</h3>
+    <small *ngIf="subheading">{{ subheading }}</small>
+  </div>
+
+  <div class="queue-columns">
+    <div class="queue-col" *ngFor="let col of columns">
+      <div class="col-head">
+        <span class="col-title">{{ col.title }}</span>
+        <span class="col-count">{{ col.orders.length }}</span>
+      </div>
+      <div class="col-body">
+        <div
+          *ngFor="let p of col.orders || []"
+          class="order"
+          (click)="onCardClick(p)"
+        >
+          <div class="top">
+            <strong>#{{ p.id }}</strong>
+            <span class="total">{{ formatCurrency(p.total_liquido) }}</span>
+          </div>
+          <div class="cliente" [title]="p.cliente_nome || ''">
+            {{ p.cliente_nome || 'Cliente ' + (p.cliente_id ?? '') }}
+          </div>
+          <div class="meta">
+            <span class="age"><i class="fa-regular fa-clock"></i> {{ relativeTime(p.created_at) }}</span>
+            <span class="pagto" *ngIf="p.pagamento_forma">{{ p.pagamento_forma }}</span>
+          </div>
+          <div class="actions" *ngIf="showActions">
+            <button
+              type="button"
+              class="btn btn-advance"
+              [disabled]="!nextStatus(p)"
+              (click)="onAdvance(p, $event)"
+              [title]="nextStatus(p) ? 'Avançar para ' + nextStatusLabel(p) : 'Sem próxima etapa'"
+            >
+              <i class="fa-solid fa-forward-step"></i>
+              {{ nextStatus(p) ? nextStatusLabel(p) : '—' }}
+            </button>
+            <button type="button" class="btn btn-cancel" (click)="onCancel(p, $event)" title="Cancelar pedido">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+        <div class="col-empty" *ngIf="!col.orders.length">Sem pedidos aqui.</div>
+      </div>
+    </div>
+  </div>
+</div>

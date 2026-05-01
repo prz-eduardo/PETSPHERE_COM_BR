@@ -1,0 +1,34 @@
+<div class="thread" *ngIf="threadId">
+  <p class="err" *ngIf="err">{{ err }}</p>
+  <div
+    class="log"
+    #logContainer
+    *ngIf="!err || messages.length"
+    aria-live="polite"
+    aria-relevant="additions"
+  >
+    <div
+      *ngFor="let m of messages; trackBy: trackById"
+      class="bubble"
+      [class.bubble--me]="
+        (mode === 'cliente' && m.senderRole === 'cliente') ||
+        (mode === 'parceiro' && m.senderRole === 'parceiro_staff')
+      "
+    >
+      <span class="meta">{{ labelFor(m) }} · {{ m.ts | date : 'short' }}</span>
+      <div class="text">{{ m.text }}</div>
+    </div>
+  </div>
+  <form class="input-row" (ngSubmit)="$event.preventDefault(); send()" *ngIf="!err">
+    <input
+      type="text"
+      class="text-input"
+      name="body"
+      [(ngModel)]="draft"
+      placeholder="Escreva uma mensagem…"
+      maxlength="4000"
+      [disabled]="sending"
+    />
+    <button type="submit" class="send" [disabled]="sending || !draft.trim()">Enviar</button>
+  </form>
+</div>

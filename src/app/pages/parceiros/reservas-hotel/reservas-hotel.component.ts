@@ -25,17 +25,17 @@ export class ReservasHotelComponent implements OnInit {
     { value: 'todos', label: 'Todos os status' },
     { value: 'confirmada', label: 'Confirmada' },
     { value: 'pendente', label: 'Pendente' },
-    { value: 'checkin_hoje', label: 'Check-in hoje' },
-    { value: 'em_hospedagem', label: 'Em hospedagem' },
-    { value: 'checkout_concluido', label: 'Checkout concluido' },
+    { value: 'checkin_hoje', label: 'Chegada prevista hoje' },
+    { value: 'em_hospedagem', label: 'Pet na unidade' },
+    { value: 'checkout_concluido', label: 'Estadia concluída' },
     { value: 'cancelada', label: 'Cancelada' },
   ];
 
   readonly periodOptions: Array<{ value: PeriodoFiltro; label: string }> = [
-    { value: 'todos', label: 'Qualquer periodo' },
+    { value: 'todos', label: 'Qualquer período' },
     { value: 'hoje', label: 'Hoje' },
-    { value: '7dias', label: 'Proximos 7 dias' },
-    { value: '30dias', label: 'Proximos 30 dias' },
+    { value: '7dias', label: 'Próximos 7 dias' },
+    { value: '30dias', label: 'Próximos 30 dias' },
   ];
 
   readonly loading = signal(false);
@@ -63,13 +63,20 @@ export class ReservasHotelComponent implements OnInit {
   readonly draftCheckIn = signal('');
   readonly draftCheckOut = signal('');
   readonly draftObservacoes = signal('');
+  readonly draftCuidadosEspeciais = signal('');
+  readonly draftAlimentacaoObs = signal('');
   readonly formError = signal<string | null>(null);
   readonly draftLeitoNome = signal('');
-  readonly draftLeitoTipo = signal('Standard');
+  readonly draftLeitoTipo = signal('Canil / baia');
   readonly draftLeitoCapacidade = signal(1);
   readonly draftLeitoFotoUrl = signal('');
   readonly draftLeitoExibirVitrine = signal(false);
   readonly draftLeitoPrecoDiaria = signal<number | null>(null);
+
+  /** Rascunho no drawer de detalhes para salvar notas operacionais */
+  readonly detailObservacoes = signal('');
+  readonly detailCuidados = signal('');
+  readonly detailAlimentacao = signal('');
 
   readonly filteredReservas = computed(() => {
     const normalizedQuery = this.normalize(this.searchTerm());
@@ -82,7 +89,9 @@ export class ReservasHotelComponent implements OnInit {
       if (!this.matchesPeriod(reserva.check_in, period, today)) return false;
       if (!normalizedQuery) return true;
 
-      const haystack = this.normalize(`${reserva.id} ${this.getTutorNome(reserva)} ${this.getPetNome(reserva)} ${reserva.leito_nome || ''} ${reserva.status}`);
+      const haystack = this.normalize(
+        `${reserva.id} ${this.getTutorNome(reserva)} ${this.getPetNome(reserva)} ${reserva.leito_nome || ''} ${reserva.status}`
+      );
       return haystack.includes(normalizedQuery);
     });
   });
@@ -123,6 +132,8 @@ export class ReservasHotelComponent implements OnInit {
     this.draftCheckIn.set('');
     this.draftCheckOut.set('');
     this.draftObservacoes.set('');
+    this.draftCuidadosEspeciais.set('');
+    this.draftAlimentacaoObs.set('');
     this.drawerOpen.set(true);
   }
 
@@ -130,7 +141,7 @@ export class ReservasHotelComponent implements OnInit {
     this.drawerMode.set('create-leito');
     this.formError.set(null);
     this.draftLeitoNome.set('');
-    this.draftLeitoTipo.set('Standard');
+    this.draftLeitoTipo.set('Canil / baia');
     this.draftLeitoCapacidade.set(1);
     this.draftLeitoFotoUrl.set('');
     this.draftLeitoExibirVitrine.set(false);
@@ -138,13 +149,22 @@ export class ReservasHotelComponent implements OnInit {
     this.drawerOpen.set(true);
   }
 
+  private syncDetailDraftsFromReserva(r: HotelReservaRow): void {
+    this.detailObservacoes.set(r.observacoes ?? '');
+    this.detailCuidados.set(r.cuidados_especiais ?? '');
+    this.detailAlimentacao.set(r.alimentacao_obs ?? '');
+  }
+
   async openDetailsDrawer(reserva: HotelReservaRow): Promise<void> {
     this.drawerMode.set('details');
     try {
       const full = await this.agendaApi.getHotelReserva(reserva.id);
-      this.selectedReserva.set(full || reserva);
+      const row = full || reserva;
+      this.selectedReserva.set(row);
+      this.syncDetailDraftsFromReserva(row);
     } catch {
       this.selectedReserva.set(reserva);
+      this.syncDetailDraftsFromReserva(reserva);
     }
     this.formError.set(null);
     this.drawerOpen.set(true);
@@ -154,19 +174,70 @@ export class ReservasHotelComponent implements OnInit {
     this.drawerOpen.set(false);
   }
 
-  async saveMockReserva(): Promise<void> {
+  readonly statusAllowsCancel = (s: HotelReservaStatus): boolean =>
+    s === 'pendente' || s === 'confirmada' || s === 'checkin_hoje' || s === 'em_hospedagem';
+
+  async patchReservaStatus(next: HotelReservaStatus): Promise<void> {
+    const r = this.selectedReserva();
+    if (!r) return;
+    try {
+      this.saving.set(true);
+      this.formError.set(null);
+      const updated = await this.agendaApi.updateHotelReserva(r.id, { status: next });
+      if (!updated) {
+        this.formError.set('Não foi possível atualizar o status.');
+        return;
+      }
+      this.selectedReserva.set(updated);
+      this.syncDetailDraftsFromReserva(updated);
+      await this.reload();
+    } catch (err: unknown) {
+      const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao atualizar status';
+      this.formError.set(msg);
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async saveNotasOperacao(): Promise<void> {
+    const r = this.selectedReserva();
+    if (!r) return;
+    try {
+      this.saving.set(true);
+      this.formError.set(null);
+      const updated = await this.agendaApi.updateHotelReserva(r.id, {
+        observacoes: this.detailObservacoes().trim() || null,
+        cuidados_especiais: this.detailCuidados().trim() || null,
+        alimentacao_obs: this.detailAlimentacao().trim() || null,
+      });
+      if (!updated) {
+        this.formError.set('Não foi possível salvar as notas.');
+        return;
+      }
+      this.selectedReserva.set(updated);
+      this.syncDetailDraftsFromReserva(updated);
+      await this.reload();
+    } catch (err: unknown) {
+      const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao salvar notas';
+      this.formError.set(msg);
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async saveReservaRapida(): Promise<void> {
     const tutorNome = this.draftTutor().trim();
     const petNome = this.draftPet().trim();
     const checkIn = this.draftCheckIn();
     const checkOut = this.draftCheckOut();
 
     if (!tutorNome || !petNome || !checkIn || !checkOut) {
-      this.formError.set('Preencha tutor, pet e periodo.');
+      this.formError.set('Preencha tutor, pet e período.');
       return;
     }
 
     if (new Date(checkOut) < new Date(checkIn)) {
-      this.formError.set('Check-out deve ser maior ou igual ao check-in.');
+      this.formError.set('A saída deve ser no mesmo dia ou depois da entrada.');
       return;
     }
 
@@ -183,16 +254,19 @@ export class ReservasHotelComponent implements OnInit {
         status: 'pendente',
         valor_total: nights * 135,
         observacoes: this.draftObservacoes().trim() || null,
+        cuidados_especiais: this.draftCuidadosEspeciais().trim() || null,
+        alimentacao_obs: this.draftAlimentacaoObs().trim() || null,
       });
 
       if (!created) {
-        this.formError.set('Nao foi possivel criar a reserva.');
+        this.formError.set('Não foi possível criar a reserva.');
         return;
       }
 
       await this.reload();
       this.drawerMode.set('details');
       this.selectedReserva.set(created);
+      this.syncDetailDraftsFromReserva(created);
     } catch (err: unknown) {
       const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao salvar reserva';
       this.formError.set(msg);
@@ -203,14 +277,14 @@ export class ReservasHotelComponent implements OnInit {
 
   async saveLeito(): Promise<void> {
     const nome = this.draftLeitoNome().trim();
-    const tipo = this.draftLeitoTipo().trim() || 'Standard';
+    const tipo = this.draftLeitoTipo().trim() || 'Canil / baia';
     const capacidade = Number(this.draftLeitoCapacidade() || 1);
     const fotoUrl = this.draftLeitoFotoUrl().trim();
     const exibir = this.draftLeitoExibirVitrine();
     const preco = this.draftLeitoPrecoDiaria();
 
     if (!nome) {
-      this.formError.set('Informe o nome do leito.');
+      this.formError.set('Informe o nome do espaço de hospedagem.');
       return;
     }
     if (!Number.isFinite(capacidade) || capacidade < 1) {
@@ -218,7 +292,7 @@ export class ReservasHotelComponent implements OnInit {
       return;
     }
     if (exibir && (preco == null || !Number.isFinite(preco) || Number(preco) < 0)) {
-      this.formError.set('Defina um preco_diaria valido para exibir na vitrine.');
+      this.formError.set('Defina um preço de diária válido para exibir na vitrine.');
       return;
     }
 
@@ -234,13 +308,13 @@ export class ReservasHotelComponent implements OnInit {
         preco_diaria: exibir ? Number(preco) : null,
       });
       if (!created) {
-        this.formError.set('Nao foi possivel cadastrar o leito.');
+        this.formError.set('Não foi possível cadastrar o espaço.');
         return;
       }
       await this.reload();
       this.drawerOpen.set(false);
     } catch (err: unknown) {
-      const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao cadastrar leito';
+      const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao cadastrar espaço';
       this.formError.set(msg);
     } finally {
       this.saving.set(false);
@@ -254,11 +328,11 @@ export class ReservasHotelComponent implements OnInit {
       case 'pendente':
         return 'Pendente';
       case 'checkin_hoje':
-        return 'Check-in hoje';
+        return 'Chegada prevista hoje';
       case 'em_hospedagem':
-        return 'Em hospedagem';
+        return 'Pet na unidade';
       case 'checkout_concluido':
-        return 'Checkout concluido';
+        return 'Estadia concluída';
       case 'cancelada':
         return 'Cancelada';
       default:
@@ -278,7 +352,7 @@ export class ReservasHotelComponent implements OnInit {
   }
 
   getTutorNome(reserva: HotelReservaRow): string {
-    return reserva.cliente_nome_snapshot || 'Cliente';
+    return reserva.cliente_nome_snapshot || 'Tutor';
   }
 
   getPetNome(reserva: HotelReservaRow): string {
@@ -287,8 +361,8 @@ export class ReservasHotelComponent implements OnInit {
 
   getAcomodacaoNome(reserva: HotelReservaRow): string {
     if (reserva.leito_nome) return reserva.leito_nome;
-    if (reserva.leito_tipo) return `Leito ${reserva.leito_tipo}`;
-    return 'Nao vinculado';
+    if (reserva.leito_tipo) return `Espaço (${reserva.leito_tipo})`;
+    return 'Sem espaço vinculado';
   }
 
   async reload(): Promise<void> {
@@ -306,8 +380,25 @@ export class ReservasHotelComponent implements OnInit {
       this.checkInHojeCount.set(Number(resumo?.checkins_hoje || 0));
       this.pendentesCount.set(Number(resumo?.reservas_pendentes || 0));
       this.confirmadasCount.set(Number(resumo?.reservas_confirmadas || 0));
+
+      const selId = this.selectedReserva()?.id;
+      if (selId != null && this.drawerMode() === 'details' && this.drawerOpen()) {
+        try {
+          const full = await this.agendaApi.getHotelReserva(selId);
+          if (full) {
+            this.selectedReserva.set(full);
+            this.syncDetailDraftsFromReserva(full);
+          }
+        } catch {
+          const fresh = reservas.find((x) => x.id === selId);
+          if (fresh) {
+            this.selectedReserva.set(fresh);
+            this.syncDetailDraftsFromReserva(fresh);
+          }
+        }
+      }
     } catch {
-      this.loadError.set('Nao foi possivel carregar dados de reservas do hotel.');
+      this.loadError.set('Não foi possível carregar hospedagem e reservas.');
       this.reservas.set([]);
       this.leitos.set([]);
       this.occupancyRate.set(0);

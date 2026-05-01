@@ -247,6 +247,7 @@
             <span>Status: {{ permissao.status }} • Escopo: {{ permissao.escopo }}</span>
           </div>
           <div class="consent-actions" *ngIf="permissao.status === 'concedido'">
+            <a class="btn btn-chat" [routerLink]="['/chat-parceiro', permissao.parceiro_id]">Mensagens</a>
             <button
               class="btn btn-reject"
               type="button"

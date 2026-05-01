@@ -1,0 +1,97 @@
+@use '../../../shared/styles/admin-tokens' as *;
+
+:host {
+  display: block;
+}
+
+.modulo-page {
+  padding: var(--admin-space-4) var(--admin-space-5);
+  max-width: 720px;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--admin-space-4);
+  margin-bottom: var(--admin-space-5);
+  flex-wrap: wrap;
+}
+
+.pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: var(--admin-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: var(--admin-radius-pill);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--admin-warn);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  margin-bottom: var(--admin-space-2);
+}
+
+h1 {
+  margin: 0 0 var(--admin-space-2);
+  font-size: var(--admin-font-size-xl);
+  font-weight: var(--admin-font-weight-bold);
+  color: var(--admin-text-strong);
+}
+
+.lede {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: var(--admin-font-size-sm);
+  line-height: 1.5;
+  max-width: 42rem;
+}
+
+.ghost-link {
+  flex-shrink: 0;
+  font-size: var(--admin-font-size-sm);
+  font-weight: var(--admin-font-weight-medium);
+  color: var(--admin-primary);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: var(--admin-radius-md);
+  border: 1px solid var(--admin-border);
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.card {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  padding: var(--admin-space-5);
+  background: var(--admin-surface-2);
+}
+
+.card h2 {
+  margin: 0 0 var(--admin-space-3);
+  font-size: var(--admin-font-size-md);
+  font-weight: var(--admin-font-weight-semibold);
+  color: var(--admin-text-strong);
+}
+
+.bullets {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--admin-text);
+  font-size: var(--admin-font-size-sm);
+  line-height: 1.6;
+
+  li {
+    margin-bottom: var(--admin-space-2);
+  }
+}
+
+.muted {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: var(--admin-font-size-sm);
+  line-height: 1.55;
+}

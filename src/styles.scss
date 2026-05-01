@@ -1,7 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+/* Inter + Sora (Aurora); Poppins (headers); Pacifico + Montserrat (legado loja/checkout/mapa) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&family=Poppins:wght@400;600;700;900&family=Pacifico&family=Montserrat:wght@400;700&display=swap');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
 @import 'app/shared/styles/form-layout';
 @import 'app/shared/styles/admin-tokens';
@@ -12,7 +11,7 @@ html, body{
     margin: 0;
     padding: 0;
     color-scheme: light;
-    background-color: var(--fp-site-surface, #e8ebf5);
+    background-color: var(--fp-site-surface, #efeae0);
     color: #333;
     max-width: 100vw;
     /* overflow-x removed to avoid content being clipped at the bottom of the body */
@@ -25,9 +24,9 @@ html, body{
     color-scheme: light;
     --nav-height: 64px;
     --pet-photo-feed-ratio: 4 / 5;
-    /* Marca pública: header em navmenu ($navbar-main); superfície do corpo + tab ativa (mesma leitura visual) */
-    --fp-nav-brand: #5161ce;
-    --fp-site-surface: #e8ebf5;
+    /* Marca pública alinhada a Cosmos (Aurora); --ps-* definidos em aurora-tokens importado acima */
+    --fp-nav-brand: var(--ps-cosmos, #0f0b2e);
+    --fp-site-surface: var(--ps-cream-soft, #efeae0);
 }
 
 .app-main{

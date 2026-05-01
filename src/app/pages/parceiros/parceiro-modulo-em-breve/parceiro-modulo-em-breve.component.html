@@ -1,0 +1,20 @@
+<section class="modulo-page">
+  <header class="page-head">
+    <div>
+      <span class="pill">Em breve</span>
+      <h1>{{ title }}</h1>
+      <p class="lede">{{ description }}</p>
+    </div>
+    <a routerLink="/parceiros/painel" class="ghost-link">Voltar ao painel</a>
+  </header>
+
+  <article class="card">
+    <h2>O que vem por aí</h2>
+    <ul class="bullets" *ngIf="bullets.length; else defaultCopy">
+      <li *ngFor="let b of bullets">{{ b }}</li>
+    </ul>
+    <ng-template #defaultCopy>
+      <p class="muted">Estamos preparando este módulo para integrar com o restante do painel do parceiro.</p>
+    </ng-template>
+  </article>
+</section>

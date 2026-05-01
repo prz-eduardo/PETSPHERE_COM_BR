@@ -217,11 +217,19 @@ export class StoreService {
             try { localStorage.setItem('cliente_me', JSON.stringify(res)); } catch {}
           }
           return res;
-        } catch (err: any) {
+        } catch (err: unknown) {
           const inAdminRoute = !!(this.router && typeof this.router.url === 'string' && this.router.url.includes('/restrito'));
-          const status = err?.status;
-          const silentAuth = status === 401;
-          if (this.toast?.error && !inAdminRoute && !silentAuth) {
+          const status = err instanceof HttpErrorResponse ? err.status : (err as { status?: number })?.status;
+          // 401 token inválido/expirado; 404 JWT de outro perfil (ex. vet) ou cliente inexistente; 403 conta inativa etc.
+          const sessionNotCliente = status === 401 || status === 404 || status === 403;
+          if (sessionNotCliente) {
+            try {
+              if (this.isBrowser() && typeof localStorage !== 'undefined') {
+                localStorage.removeItem('cliente_me');
+              }
+            } catch { /* */ }
+            this.invalidateClienteSession();
+          } else if (this.toast?.error && !inAdminRoute) {
             this.toast.error('Não foi possível carregar os dados do cliente.', 'Erro');
           }
           return null;

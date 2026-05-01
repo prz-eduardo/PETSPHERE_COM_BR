@@ -1,0 +1,29 @@
+<div *ngIf="loading" class="vendas-state" role="status">Carregando pedidos da vitrine…</div>
+
+<div *ngIf="!loading && error" class="vendas-state vendas-state--error" role="alert">
+  {{ error }}
+  <button type="button" class="vendas-retry" (click)="load()">Tentar novamente</button>
+</div>
+
+<ng-container *ngIf="!loading && !error">
+  <p class="vendas-hint">
+    Pedidos da sua loja PetSphere (vitrine) — mesmo fluxo de status do painel administrativo, só dos seus clientes.
+  </p>
+
+  <div class="kanban-wrap">
+    <app-order-queue-kanban-board
+      heading="Fila de pedidos"
+      [subheading]="queueSubheading"
+      [columns]="queueKanbanColumns"
+      [showActions]="false"
+      (orderCardClick)="onOrderClick($event)"
+    />
+  </div>
+
+  <div class="chart-card" *ngIf="hasSalesByDay">
+    <div class="chart-wrap">
+      <canvas #salesCanvas aria-label="Gráfico de receita e pedidos nos últimos 7 dias"></canvas>
+    </div>
+  </div>
+  <p *ngIf="!hasSalesByDay" class="vendas-chart-empty">Ainda não há receita registrada nos últimos 7 dias na vitrine.</p>
+</ng-container>

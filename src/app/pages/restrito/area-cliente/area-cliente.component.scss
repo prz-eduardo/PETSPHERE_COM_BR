@@ -375,6 +375,13 @@
   color: #fecaca;
 }
 
+.consent-actions .btn-chat {
+  text-decoration: none;
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #e0f2fe;
+}
+
 .actions-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

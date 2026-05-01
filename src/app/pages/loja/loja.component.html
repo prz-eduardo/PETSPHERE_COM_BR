@@ -37,11 +37,10 @@
           {{ me ? '👤 ' + (me?.nome?.split(' ')[0] || 'Cliente') : (hasBackendToken ? 'Perfil' : 'Login') }}
         </button>
       </div>
-        <button #cartBtn type="button" (click)="onCartClick($event)" class="btn cart-link with-badge" title="Ir para o carrinho" aria-label="Carrinho">
-          <img src="/icones/carrinho.png" class="carrinho-header" width="30" height="30" alt="Carrinho">
-
-        <span class="cart-badge" *ngIf="cartCount > 0" aria-label="Itens no carrinho">{{ cartCount }}</span>
-      </button>
+        <button #cartBtn type="button" (click)="onCartClick($event)" class="btn cart-link with-badge" [class.cart-link--has-summary]="cartCount > 0" title="Ir para o carrinho" [attr.aria-label]="cartCount > 0 ? ('Carrinho: ' + cartSummaryLine) : 'Carrinho'">
+          <img src="/icones/carrinho.png" class="carrinho-header" width="30" height="30" alt="" decoding="async">
+          <span class="cart-summary" *ngIf="cartCount > 0">{{ cartSummaryLine }}</span>
+        </button>
     </div>
   </div>
 

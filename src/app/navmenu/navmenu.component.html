@@ -40,7 +40,7 @@
             </div>
             <ul class="navbar-nav-tabs" aria-label="Navegação principal">
               <li class="nav-tab-item"
-                  *ngFor="let item of visibleNavItems"
+                  *ngFor="let item of visibleNavItems; trackBy: trackByNavItemId"
                   [class.active]="isTabHighlighted(item)"
                   [attr.data-nav-id]="item.id">
                 <a class="nav-tab-link"
@@ -123,7 +123,7 @@
       aria-label="Navegação Petsphere"
     >
       <!-- Concave cutout para o FAB usando SVG mask (top do dock recortado) -->
-      <svg class="ps-dock__cutout" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true">
+      <svg class="ps-dock__cutout" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true" style="border-top-left-radius: 25px; border-top-right-radius: 25px;">
         <defs>
           <linearGradient id="psDockHairline" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stop-color="rgba(255,255,255,0.18)"/>
@@ -146,7 +146,7 @@
       </svg>
 
       <ul class="ps-dock__items">
-        <ng-container *ngFor="let item of activeMobileItems; let i = index">
+        <ng-container *ngFor="let item of activeMobileItems; let i = index; trackBy: trackByNavItemId">
           <!-- Spacer onde fica o FAB (entre item 1 e item 2) -->
           <li class="ps-dock__spacer" *ngIf="i === 2" aria-hidden="true"></li>
 
@@ -164,16 +164,11 @@
               >
                 <span class="ps-dock__label">{{ item.shortLabel || item.label }}</span>
                 <span class="ps-dock__icon">
-                  <ng-container *ngIf="item.id === 'esfera' && userFoto; else psIconTpl">
-                    <img [src]="userFoto" alt="" class="ps-dock__avatar" />
-                  </ng-container>
-                  <ng-template #psIconTpl>
-                    <ps-icon
-                      [name]="item.psIcon || 'person'"
-                      [variant]="isMobileTabHighlighted(item) ? 'filled' : 'outline'"
-                      [size]="22"
-                    ></ps-icon>
-                  </ng-template>
+                  <ps-icon
+                    [name]="item.psIcon || 'person'"
+                    [variant]="isMobileTabHighlighted(item) ? 'filled' : 'outline'"
+                    [size]="22"
+                  ></ps-icon>
                 </span>
                 <span class="ps-dock__pill" aria-hidden="true"></span>
               </button>
@@ -217,15 +212,23 @@
         (keydown.enter)="onFabKeyboardActivate($event)"
         (keydown.space)="onFabKeyboardActivate($event)"
         (pointerdown)="onFabPointerDown($event)"
-        (pointerup)="onFabPointerUp()"
-        (pointerleave)="onFabPointerCancel()"
+        (pointerup)="onFabPointerUp($event)"
         (pointercancel)="onFabPointerCancel()"
+        (touchend)="onFabTouchEnd($event)"
         (contextmenu)="$event.preventDefault()"
         aria-label="Petsphere — ações rápidas"
       >
         <span class="ps-fab__halo" aria-hidden="true"></span>
         <span class="ps-fab__core">
-          <ps-icon name="sphere" variant="filled" [size]="28"></ps-icon>
+          <img
+            src="/imagens/logo-marca.svg"
+            alt=""
+            class="ps-fab__logo"
+            width="128"
+            height="127"
+            aria-hidden="true"
+            decoding="async"
+          />
         </span>
         <span class="ps-fab__pet-ring" *ngIf="userFoto && dockMode === 'cliente'" aria-hidden="true">
           <img [src]="userFoto" alt="" />
@@ -246,7 +249,7 @@
         <p class="ps-sheet__subtitle">Atalhos rápidos do seu ecossistema pet</p>
       </header>
       <ul class="ps-sheet__list">
-        <li *ngFor="let action of sheetActions">
+        <li *ngFor="let action of sheetActions; trackBy: trackByQuickActionId">
           <button
             type="button"
             class="ps-sheet__action"
@@ -277,7 +280,7 @@
     <div class="ps-radial-backdrop" (click)="closeRadial()" aria-hidden="true"></div>
     <div class="ps-radial" role="menu" aria-label="Atalhos favoritos">
       <button
-        *ngFor="let action of radialActions; let i = index"
+        *ngFor="let action of radialActions; let i = index; trackBy: trackByQuickActionId"
         type="button"
         class="ps-radial__btn"
         role="menuitem"

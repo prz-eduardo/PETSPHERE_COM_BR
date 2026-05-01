@@ -1,0 +1,17 @@
+<app-navmenu></app-navmenu>
+<main class="page">
+  <header class="head">
+    <a routerLink="/area-cliente" class="back">← Área do cliente</a>
+    <h1>Chat com a loja</h1>
+    <p class="muted" *ngIf="parceiroNome()">Conversa com <strong>{{ parceiroNome() }}</strong></p>
+  </header>
+
+  <p class="err" *ngIf="loadErr()">{{ loadErr() }}</p>
+  <p class="muted" *ngIf="loading()">Abrindo conversa…</p>
+
+  <app-partner-chat-thread
+    *ngIf="threadId()"
+    [threadId]="threadId()!"
+    mode="cliente"
+  />
+</main>

@@ -1,21 +1,47 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AdminHomeOverviewComponent } from '../../restrito/admin/home-overview/home-overview.component';
+import { ParceiroPainelOperacaoVendasComponent } from './parceiro-painel-operacao-vendas/parceiro-painel-operacao-vendas.component';
+import { ParceiroPainelOperacaoHotelariaComponent } from './parceiro-painel-operacao-hotelaria/parceiro-painel-operacao-hotelaria.component';
 
 type SectionKey = 'operacao' | 'vet' | 'saas' | 'config';
+
+export type ParceiroOperacaoTipo = 'vendas' | 'hotelaria';
+
+const LS_HERO_FLIPPED = 'parceiro_painel_hero_flipped';
+const LS_OPERACAO_TIPO = 'parceiro_painel_operacao_tipo';
 
 @Component({
   selector: 'app-parceiro-painel',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdminHomeOverviewComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    AdminHomeOverviewComponent,
+    ParceiroPainelOperacaoVendasComponent,
+    ParceiroPainelOperacaoHotelariaComponent,
+  ],
   templateUrl: './parceiro-painel.component.html',
   styleUrls: ['./parceiro-painel.component.scss'],
 })
 export class ParceiroPainelComponent implements OnInit, OnDestroy {
+  @ViewChild('flipToggleBtn') private flipToggleBtn?: ElementRef<HTMLButtonElement>;
+  @ViewChild('heroBackFocus') private heroBackFocus?: ElementRef<HTMLElement>;
+
   greeting = 'Olá';
   searchTerm = '';
+
+  heroFlipped = false;
+  operacaoTipo: ParceiroOperacaoTipo = 'vendas';
 
   private collapsed: Record<string, boolean> = {};
 
@@ -25,7 +51,7 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
       'servicos cadastro preço duração banho tosa consulta loja vitrine produtos cupons promocoes',
       'meus clientes loja permissao dados lgpd tutores',
       'telemedicina video atendimento',
-      'reservas hotel creche hospedagem',
+      'reservas hotel creche hospedagem pet baias acomodacoes espacos canil',
       'atendimento chat suporte omnichannel',
     ],
     vet: [
@@ -36,7 +62,7 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
     ],
     saas: [
       'petshop online loja ecommerce',
-      'hotel creche hospedagem pets',
+      'hotel creche hospedagem pets baias pet daycare',
       'adestramento treinamento comportamento',
       'planos assinatura financeiro cobranca',
       'relatorios analytics dados',
@@ -55,7 +81,30 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
     try {
       const raw = typeof window !== 'undefined' ? localStorage.getItem('parceiro_painel_collapsed') : null;
       if (raw) this.collapsed = JSON.parse(raw);
-    } catch {}
+    } catch {
+      /* noop */
+    }
+    if (this.collapsed['welcome']) {
+      delete this.collapsed['welcome'];
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('parceiro_painel_collapsed', JSON.stringify(this.collapsed));
+        }
+      } catch {
+        /* noop */
+      }
+    }
+
+    try {
+      if (typeof window !== 'undefined') {
+        const f = localStorage.getItem(LS_HERO_FLIPPED);
+        if (f !== null) this.heroFlipped = f === 'true';
+        const t = localStorage.getItem(LS_OPERACAO_TIPO);
+        if (t === 'vendas' || t === 'hotelaria') this.operacaoTipo = t;
+      }
+    } catch {
+      /* noop */
+    }
   }
 
   ngOnDestroy(): void {}
@@ -74,7 +123,38 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
     const typing = target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
     if (!typing && ev.key === '/') {
       const input = document.querySelector<HTMLInputElement>('.hero-search input');
-      if (input) { ev.preventDefault(); input.focus(); }
+      if (input) {
+        ev.preventDefault();
+        input.focus();
+      }
+    }
+  }
+
+  toggleHeroFlip(): void {
+    this.heroFlipped = !this.heroFlipped;
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LS_HERO_FLIPPED, JSON.stringify(this.heroFlipped));
+      }
+    } catch {
+      /* noop */
+    }
+
+    const delayMs = 360;
+    if (this.heroFlipped) {
+      setTimeout(() => this.heroBackFocus?.nativeElement?.focus(), delayMs);
+    } else {
+      setTimeout(() => this.flipToggleBtn?.nativeElement?.focus(), delayMs);
+    }
+  }
+
+  onOperacaoTipoChange(): void {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LS_OPERACAO_TIPO, this.operacaoTipo);
+      }
+    } catch {
+      /* noop */
     }
   }
 
@@ -102,7 +182,9 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
     return (Object.keys(this.sectionItems) as SectionKey[]).some((k) => this.sectionHasMatches(k));
   }
 
-  isCollapsed(key: string): boolean { return !!this.collapsed[key]; }
+  isCollapsed(key: string): boolean {
+    return !!this.collapsed[key];
+  }
 
   toggleSection(key: string): void {
     this.collapsed[key] = !this.collapsed[key];
@@ -110,20 +192,46 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
       if (typeof window !== 'undefined') {
         localStorage.setItem('parceiro_painel_collapsed', JSON.stringify(this.collapsed));
       }
-    } catch {}
+    } catch {
+      /* noop */
+    }
   }
 
   // ── Navigation ──────────────────────────────────────────────────────────────
-  goToAgenda(): void         { this.router.navigate(['/parceiros/agenda']); }
-  goToAreaVet(): void        { this.router.navigate(['/parceiros/area-vet']); }
-  goToGerarReceita(): void   { this.router.navigate(['/parceiros/gerar-receita']); }
-  goToHistorico(): void      { this.router.navigate(['/parceiros/historico-receitas']); }
-  goToPacientes(): void      { this.router.navigate(['/parceiros/pacientes']); }
-  goToColaboradores(): void  { this.router.navigate(['/parceiros/colaboradores']); }
-  goToServicos(): void       { this.router.navigate(['/parceiros/servicos']); }
-  goToMeusClientes(): void   { this.router.navigate(['/parceiros/meus-clientes']); }
-  goToReservasHotel(): void  { this.router.navigate(['/parceiros/reservas-hotel']); }
-  goToMinhaLoja(): void      { this.router.navigate(['/parceiros/minha-loja']); }
-  goToComercial(): void      { this.router.navigate(['/parceiros/minha-loja']); }
-  goToTelemedicina(): void { this.router.navigate(['/parceiros/agenda'], { queryParams: { view: 'telemedicina' } }); }
+  goToAgenda(): void {
+    this.router.navigate(['/parceiros/agenda']);
+  }
+  goToAreaVet(): void {
+    this.router.navigate(['/parceiros/area-vet']);
+  }
+  goToGerarReceita(): void {
+    this.router.navigate(['/parceiros/gerar-receita']);
+  }
+  goToHistorico(): void {
+    this.router.navigate(['/parceiros/historico-receitas']);
+  }
+  goToPacientes(): void {
+    this.router.navigate(['/parceiros/pacientes']);
+  }
+  goToColaboradores(): void {
+    this.router.navigate(['/parceiros/colaboradores']);
+  }
+  goToServicos(): void {
+    this.router.navigate(['/parceiros/servicos']);
+  }
+  goToMeusClientes(): void {
+    this.router.navigate(['/parceiros/meus-clientes']);
+  }
+  goToReservasHotel(): void {
+    this.router.navigate(['/parceiros/hospedagem']);
+  }
+  goToMinhaLoja(): void {
+    this.router.navigate(['/parceiros/minha-loja']);
+  }
+  goToComercial(): void {
+    this.router.navigate(['/parceiros/minha-loja']);
+  }
+  goToTelemedicina(): void {
+    this.router.navigate(['/parceiros/agenda'], { queryParams: { view: 'telemedicina' } });
+  }
 }

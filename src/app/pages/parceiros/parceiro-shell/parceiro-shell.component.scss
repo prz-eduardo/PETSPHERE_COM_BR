@@ -19,13 +19,14 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  height: 56px;
+  min-height: 56px;
   background: var(--admin-surface);
   border-bottom: 1px solid var(--admin-border);
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  gap: 20px;
+  flex-wrap: nowrap;
+  padding: 0 16px;
+  gap: 12px;
   box-shadow: var(--admin-shadow-sm);
 }
 
@@ -34,13 +35,19 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  min-width: 0;
 
-  .brand-icon { font-size: 20px; }
+  .brand-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
   .brand-name {
     font-size: 15px;
     font-weight: var(--admin-font-weight-bold);
     color: var(--admin-text-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+
+  .tipo-badge { flex-shrink: 0; }
 }
 
 .tipo-badge {
@@ -79,6 +86,20 @@
       color: var(--admin-primary);
       background: rgba(13, 184, 222, 0.08);
     }
+  }
+
+  .nav-soon {
+    margin-left: 6px;
+    font-size: 9px;
+    font-weight: var(--admin-font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: var(--admin-radius-pill);
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--admin-warn);
+    border: 1px solid rgba(245, 158, 11, 0.22);
+    vertical-align: middle;
   }
 
   /* ── Nav group (dropdown) ── */
@@ -250,22 +271,44 @@
   min-height: 0;
 }
 
-/* Mobile hamburger menu styles */
+/* Mobile hamburger — desktop: oculto */
 .burger-btn {
   display: none;
-  background: none;
-  border: none;
-  color: var(--admin-text);
-  font-size: 20px;
-  padding: 6px;
-  border-radius: var(--admin-radius-sm);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-surface-2);
+  color: var(--admin-text-strong);
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.burger-btn:hover { background: rgba(255,255,255,0.03); }
+
+.burger-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--admin-border-strong);
+}
+
+.burger-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--admin-focus-ring);
+}
 
 @media (max-width: 768px) {
   .header-nav { display: none; }
-  .burger-btn { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* Empurra o hambúrguer para o canto direito do header */
+  .burger-btn {
+    display: inline-flex;
+    margin-left: auto;
+  }
 
   .mobile-nav {
     position: absolute;
@@ -276,46 +319,192 @@
     border-bottom: 1px solid var(--admin-border);
     box-shadow: var(--admin-shadow-md);
     z-index: 150;
-    padding: 10px 12px;
+    padding: 8px 12px 14px;
+    max-height: min(72vh, calc(100dvh - 56px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .mobile-nav nav { display: flex; flex-direction: column; gap: 8px; }
+  .mobile-nav__links {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 4px;
+  }
+
   .mobile-nav a {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    color: var(--admin-text);
+    gap: 12px;
+    padding: 11px 12px;
+    color: var(--admin-muted);
     text-decoration: none;
-    border-radius: var(--admin-radius-sm);
+    border-radius: var(--admin-radius-md);
+    font-size: var(--admin-font-size-sm);
+    font-weight: var(--admin-font-weight-medium);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .mobile-nav a i {
+    width: 20px;
+    text-align: center;
+    color: var(--admin-muted-2);
+    font-size: 14px;
+    transition: color 0.15s ease;
+  }
+
+  .mobile-nav a:hover {
+    color: var(--admin-text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .mobile-nav a:hover i {
+    color: var(--admin-primary);
   }
 
   /* hide desktop user actions on mobile — moved into mobile menu */
   .header-actions { display: none; }
 
-  /* hide inline tipo-badge (keeps visual from overflowing). mobile-brand shows badge */
-  .header-brand .tipo-badge { display: none; }
-
-  .mobile-brand { display:flex; align-items:center; justify-content:space-between; padding: 6px 4px 10px; border-bottom: 1px solid var(--admin-border); }
-  .mobile-brand-left { display:flex; align-items:center; gap:8px; }
-  .mobile-brand .brand-name { font-weight: var(--admin-font-weight-bold); color: var(--admin-text-strong); }
-  .mobile-brand .tipo-badge { font-size: 11px; padding: 4px 8px; }
-
   .mobile-group-btn {
     display: flex;
     align-items: center;
+    width: 100%;
     gap: 8px;
-    background: none;
+    background: transparent;
     border: none;
-    padding: 8px 10px;
-    color: var(--admin-text);
+    padding: 11px 12px;
+    color: var(--admin-muted);
     cursor: pointer;
-    border-radius: var(--admin-radius-sm);
+    border-radius: var(--admin-radius-md);
+    font: inherit;
+    font-size: var(--admin-font-size-sm);
+    font-weight: var(--admin-font-weight-medium);
+    text-align: left;
+    transition: background 0.15s ease, color 0.15s ease;
   }
 
-  .mobile-group-list { display: flex; flex-direction: column; gap: 6px; padding-left: 14px; }
+  .mobile-group-btn__leading {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
 
-  .mobile-user { border-top: 1px solid var(--admin-border); padding-top: 8px; margin-top: 6px; display:flex; flex-direction:column; gap:6px; }
-  .mobile-user button { text-align: left; padding: 8px 10px; border-radius: var(--admin-radius-sm); }
-  .mobile-user-info { font-weight: var(--admin-font-weight-semibold); color: var(--admin-text-strong); }
+  .mobile-group-btn__leading .fa-flask {
+    width: 20px;
+    text-align: center;
+    color: var(--admin-muted-2);
+  }
+
+  .mobile-group-btn__caret {
+    margin-left: auto;
+    font-size: 10px;
+    opacity: 0.85;
+    transition: transform 0.2s ease;
+  }
+
+  .mobile-group.open .mobile-group-btn__caret {
+    transform: rotate(180deg);
+  }
+
+  .mobile-group-btn:hover {
+    color: var(--admin-text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .mobile-group-btn:hover .fa-flask {
+    color: var(--admin-primary);
+  }
+
+  .mobile-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 0 8px 12px;
+    margin-left: 8px;
+    border-left: 1px solid var(--admin-border);
+  }
+
+  .mobile-group-list a {
+    padding: 9px 12px;
+    font-size: var(--admin-font-size-xs);
+  }
+
+  .mobile-nav .nav-soon {
+    margin-left: 6px;
+    font-size: 9px;
+    font-weight: var(--admin-font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: var(--admin-radius-pill);
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--admin-warn);
+    border: 1px solid rgba(245, 158, 11, 0.22);
+    vertical-align: middle;
+  }
+
+  .mobile-user {
+    border-top: 1px solid var(--admin-border);
+    padding-top: 12px;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mobile-user-label {
+    font-size: 10px;
+    font-weight: var(--admin-font-weight-semibold);
+    color: var(--admin-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 12px 2px;
+  }
+
+  .mobile-user-name {
+    font-size: var(--admin-font-size-md);
+    font-weight: var(--admin-font-weight-semibold);
+    color: var(--admin-text-strong);
+    padding: 0 12px 10px;
+    line-height: 1.35;
+  }
+
+  .mobile-user button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    padding: 11px 12px;
+    border-radius: var(--admin-radius-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--admin-muted);
+    font: inherit;
+    font-size: var(--admin-font-size-sm);
+    font-weight: var(--admin-font-weight-medium);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .mobile-user button:hover {
+    color: var(--admin-text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .mobile-user button.danger {
+    color: var(--admin-danger);
+  }
+
+  .mobile-user button.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+  }
+
+  .mobile-user button i {
+    width: 20px;
+    text-align: center;
+    font-size: 14px;
+  }
 }

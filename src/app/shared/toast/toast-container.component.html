@@ -1,13 +1,19 @@
 <div class="toast-root" aria-live="polite" aria-atomic="true">
   <div class="toast-list">
-    <div *ngFor="let t of toasts" [ngClass]="['toast', t.type]" class="toast-item">
-      <div class="toast-content" (click)="dismiss(t.id)">
+    <div
+      *ngFor="let t of toasts"
+      [ngClass]="['toast', t.type]"
+      class="toast-item"
+      [style.--toast-dismiss-ms]="(t.timeout ?? 4000) + 'ms'"
+      role="status"
+    >
+      <div class="toast-content">
         <div class="toast-left">
-          <span class="icon" aria-hidden="true"> 
+          <span class="icon" aria-hidden="true">
             <ng-container [ngSwitch]="t.type">
-              <svg *ngSwitchCase="'success'" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <svg *ngSwitchCase="'error'" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <svg *ngSwitchDefault width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+              <svg *ngSwitchCase="'success'" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg *ngSwitchCase="'error'" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg *ngSwitchDefault width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
             </ng-container>
           </span>
         </div>
@@ -15,8 +21,11 @@
           <div class="toast-title" *ngIf="t.title">{{t.title}}</div>
           <div class="toast-message">{{t.message}}</div>
         </div>
-        <button class="toast-close" aria-label="Fechar" (click)="dismiss(t.id); $event.stopPropagation();">×</button>
+        <button type="button" class="toast-close" aria-label="Fechar" (click)="dismiss(t.id)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
       </div>
+      <div class="toast-progress" aria-hidden="true"></div>
     </div>
   </div>
 </div>

@@ -78,13 +78,6 @@
               <span class="stat-value">Clientes</span>
             </span>
           </button>
-          <button class="stat" (click)="goToLista()">
-            <span class="stat-icon stat-icon--amber"><i class="fa fa-cube"></i></span>
-            <span class="stat-info">
-              <span class="stat-label">Catálogo</span>
-              <span class="stat-value">Produtos</span>
-            </span>
-          </button>
         </div>
       </div>
     </section>
@@ -130,16 +123,6 @@
           <i class="fa fa-chevron-down chevron"></i>
         </header>
         <div class="items" *ngIf="!isCollapsed('catalogo')">
-          <button class="item" *ngIf="matches('cadastrar produto novo')" (click)="goToCadastro()" tabindex="0">
-            <i class="fa fa-plus-circle"></i>
-            <span>Cadastrar Produto</span>
-            <i class="fa fa-arrow-right item-arrow"></i>
-          </button>
-          <button class="item" *ngIf="matches('lista produtos listagem')" [class.disabled]="!hasProducts" (click)="goToLista()" tabindex="0">
-            <i class="fa fa-list"></i>
-            <span>Lista de Produtos</span>
-            <i class="fa fa-arrow-right item-arrow"></i>
-          </button>
           <button class="item" *ngIf="matches('ativos ingredientes')" (click)="goToAtivos()" tabindex="0">
             <i class="fa fa-flask"></i>
             <span>Ativos</span>
@@ -163,6 +146,40 @@
           <button class="item" *ngIf="matches('temas vitrine loja cores')" (click)="goToLojaTemas()" tabindex="0">
             <i class="fa fa-paint-brush"></i>
             <span>Temas da loja</span>
+            <i class="fa fa-arrow-right item-arrow"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- Petshop online (e-commerce) -->
+      <section class="section-card section--green" *ngIf="sectionHasMatches('petshop')" [class.collapsed]="isCollapsed('petshop')">
+        <header class="section-header" role="button" tabindex="0" (click)="toggleSection('petshop')" (keydown.enter)="toggleSection('petshop')" (keydown.space)="toggleSection('petshop')" [attr.aria-expanded]="!isCollapsed('petshop')">
+          <div class="sec-title-wrap">
+            <span class="sec-dot"></span>
+            <h3 class="sec-title">Petshop online</h3>
+            <span class="sec-count">{{ sectionCount('petshop') }}</span>
+          </div>
+          <i class="fa fa-chevron-down chevron"></i>
+        </header>
+        <div class="items" *ngIf="!isCollapsed('petshop')">
+          <button class="item" *ngIf="matches('cadastrar produto novo')" (click)="goToCadastro()" tabindex="0">
+            <i class="fa fa-plus-circle"></i>
+            <span>Cadastrar Produto</span>
+            <i class="fa fa-arrow-right item-arrow"></i>
+          </button>
+          <button class="item" *ngIf="matches('lista produtos listagem')" [class.disabled]="!hasProducts" (click)="goToLista()" tabindex="0">
+            <i class="fa fa-list"></i>
+            <span>Lista de Produtos</span>
+            <i class="fa fa-arrow-right item-arrow"></i>
+          </button>
+          <button class="item" *ngIf="matches('cupons desconto')" (click)="goToCupons()" tabindex="0">
+            <i class="fa fa-ticket"></i>
+            <span>Cupons</span>
+            <i class="fa fa-arrow-right item-arrow"></i>
+          </button>
+          <button class="item" *ngIf="matches('promocoes ofertas')" (click)="goToPromocoes()" tabindex="0">
+            <i class="fa fa-bullhorn"></i>
+            <span>Promoções</span>
             <i class="fa fa-arrow-right item-arrow"></i>
           </button>
         </div>
@@ -236,16 +253,6 @@
           <button class="item" *ngIf="matches('atendimento chat suporte fila')" (click)="goToAtendimento()" tabindex="0">
             <i class="fa fa-comments"></i>
             <span>Atendimento (chat)</span>
-            <i class="fa fa-arrow-right item-arrow"></i>
-          </button>
-          <button class="item" *ngIf="matches('cupons desconto')" (click)="goToCupons()" tabindex="0">
-            <i class="fa fa-ticket"></i>
-            <span>Cupons</span>
-            <i class="fa fa-arrow-right item-arrow"></i>
-          </button>
-          <button class="item" *ngIf="matches('promocoes ofertas')" (click)="goToPromocoes()" tabindex="0">
-            <i class="fa fa-bullhorn"></i>
-            <span>Promoções</span>
             <i class="fa fa-arrow-right item-arrow"></i>
           </button>
           <button class="item" *ngIf="matches('email resend teste ferramenta')" (click)="goToEmailTeste()" tabindex="0">

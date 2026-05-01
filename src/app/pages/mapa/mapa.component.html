@@ -31,19 +31,33 @@
     <div class="hero-top">
       <img src="/icones/mapa-pata.png" alt="" aria-hidden="true" class="hero-icon" />
       <div class="hero-titles">
-        <h1 class="hero-title">
-          Encontre serviços pet <span class="hero-accent">perto de você</span>
-        </h1>
-        <p class="hero-subtitle">
-          Veterinários, dog walkers, petsitters, creches caninas e muito mais — tudo em um só mapa perto de você.
-        </p>
+        <ng-container *ngIf="tenantLoja.isTenantLoja(); else heroTituloMarketplace">
+          <h1 class="hero-title">
+            Encontre <span class="hero-accent">{{ marcaNome }}</span> no mapa
+          </h1>
+          <p class="hero-subtitle">
+            Veja o endereço da loja, centralize no ponto ou trace a rota a partir da sua localização — tudo neste mapa.
+          </p>
+        </ng-container>
+        <ng-template #heroTituloMarketplace>
+          <h1 class="hero-title">
+            Encontre serviços pet <span class="hero-accent">perto de você</span>
+          </h1>
+          <p class="hero-subtitle">
+            Veterinários, dog walkers, petsitters, creches caninas e muito mais — tudo em um só mapa perto de você.
+          </p>
+        </ng-template>
       </div>
     </div>
 
-    <div class="hero-stats" aria-label="Informações da página">
+    <div *ngIf="tenantLoja.isTenantLoja()" class="hero-stats" aria-label="Informações da loja">
+      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span>{{ mapHeroCidadeEstado }}</span>
+      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span>Endereço e rota no mapa</span>
+    </div>
+    <div *ngIf="!tenantLoja.isTenantLoja()" class="hero-stats" aria-label="Informações da página">
       <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span><strong>{{ tabs.length || 0 }}</strong> categorias</span>
       <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span><strong>{{ allPartners.length || 0 }}</strong> parceiros</span>
-      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span>Curitiba - PR</span>
+      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span>{{ mapHeroCidadeEstado }}</span>
     </div>
 
     <section class="farmacia-card" role="region" aria-label="Localização da loja">

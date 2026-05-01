@@ -21,13 +21,17 @@ import {
   STATUS_LABELS,
   ADMIN_QUEUE_STATUSES,
 } from '../../../../constants/order-status.constants';
+import {
+  OrderQueueKanbanBoardComponent,
+  OrderQueueKanbanColumn,
+} from '../../../../shared/order-queue-kanban-board/order-queue-kanban-board.component';
 
 const ADMIN_HOME_OVERVIEW_EXPANDED_KEY = 'admin_home_overview_expanded';
 
 @Component({
   selector: 'app-admin-home-overview',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, OrderQueueKanbanBoardComponent],
   templateUrl: './home-overview.component.html',
   styleUrls: ['./home-overview.component.scss'],
 })
@@ -194,6 +198,13 @@ export class AdminHomeOverviewComponent implements OnInit, OnDestroy, AfterViewI
   /** Sempre 7 colunas, com «Pronto para envio» entre preparo e enviado (não depender de API desatualizada). */
   get statuses(): string[] { return [...ADMIN_QUEUE_STATUSES]; }
   ordersOf(status: string): any[] { return this.data?.queue?.orders?.[status] || []; }
+
+  get queueKanbanColumns(): OrderQueueKanbanColumn[] {
+    return this.statuses.map((s) => ({
+      title: this.statusLabel(s),
+      orders: this.ordersOf(s),
+    }));
+  }
   get alerts() { return this.data?.alerts || []; }
 
   statusLabel(key: string) { return statusLabel(key); }
