@@ -4,6 +4,9 @@
     <a routerLink="/area-cliente" class="back">← Área do cliente</a>
     <h1>Chat com a loja</h1>
     <p class="muted" *ngIf="parceiroNome()">Conversa com <strong>{{ parceiroNome() }}</strong></p>
+    <p class="corrida-ctx" *ngIf="corridaContexto()">
+      Sobre o transporte: corrida <strong>#{{ corridaContexto() }}</strong> — cite este número na mensagem para a loja identificar mais rápido.
+    </p>
   </header>
 
   <p class="err" *ngIf="loadErr()">{{ loadErr() }}</p>

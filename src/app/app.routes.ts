@@ -26,7 +26,7 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/home-hub/home-hub.component').then((m) => m.HomeHubComponent),
     canMatch: [petsphereHubRootCanMatch],
   },
-  { path: 'institucional', loadChildren: () => import('./pages/home/home.module').then(m => m.HomeModule) },
+  { path: 'institucional', redirectTo: 'sobre-nos', pathMatch: 'full' },
   { path: 'sobre-nos', loadComponent: () => import('./pages/sobre-nos/sobre-nos.component').then(m => m.SobreNosComponent) },
   {
     path: 'politica-de-privacidade',
@@ -80,6 +80,13 @@ export const routes: Routes = [
       { path: 'parceiros', loadComponent: async () => (await import('./pages/restrito/admin/parceiros/parceiros.component')).ParceirosAdminComponent, canActivate: [authGuard], data: { title: 'Gerenciar Parceiros' } },
       { path: 'planos', loadComponent: async () => (await import('./pages/restrito/admin/planos/planos.component')).PlanosAdminComponent, canActivate: [authGuard], data: { title: 'Planos SaaS' } },
       { path: 'creditos', loadComponent: async () => (await import('./pages/restrito/admin/creditos/creditos.component')).CreditosAdminComponent, canActivate: [authGuard], data: { title: 'Créditos & consumo' } },
+      {
+        path: 'transporte-pet',
+        loadComponent: () =>
+          import('./pages/restrito/admin/admin-transporte-pet/admin-transporte-pet.component').then((m) => m.AdminTransportePetComponent),
+        canActivate: [authGuard],
+        data: { title: 'Transporte Pet' },
+      },
       {
         path: 'pedidos-pos-venda',
         loadComponent: () =>
@@ -257,6 +264,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/parceiros/reservas-hotel/reservas-hotel.component').then(m => m.ReservasHotelComponent),
         data: { title: 'Hospedagem pet & creche' },
+      },
+      {
+        path: 'transporte-pet',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-transporte-pet/parceiro-transporte-pet.component').then(m => m.ParceiroTransportePetComponent),
+        data: { title: 'Transporte Pet' },
       },
       {
         path: 'configuracoes',

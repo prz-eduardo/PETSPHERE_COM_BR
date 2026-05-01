@@ -61,7 +61,8 @@
   text-align: center;
   color: var(--ac-text);
   margin: 0 0 4px;
-  font-family: 'Pacifico', cursive, 'Montserrat', Arial, sans-serif;
+  font-family: inherit;
+  letter-spacing: 0.02em;
 }
 
 /* Scroll do conteúdo incrustado (perfil / pets / pedidos) dentro do modal */
@@ -79,6 +80,48 @@
 .area-cliente-wrapper.is-modal .titulo {
   font-size: 22px;
   margin-bottom: 8px;
+}
+
+/* Boas-vindas no modal: top alinhado (evita “corte” inferior com overflow + centro vertical); respiro e safe-area */
+.area-cliente-wrapper.is-modal.is-guest-welcome {
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: min-content;
+  padding: 14px 16px calc(28px + env(safe-area-inset-bottom, 0px));
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+/* Dock móvel: mesmo token da navbar (--ps-dock-height); evita cortar CTAs atrás da barra */
+@media (max-width: 767px) {
+  .area-cliente-wrapper.is-modal.is-guest-welcome {
+    padding-bottom: calc(
+      36px + env(safe-area-inset-bottom, 0px) + var(--ps-dock-height, 68px) + 20px
+    );
+  }
+}
+
+.area-cliente-wrapper.is-modal.is-guest-welcome .login-hero {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 28px 22px 36px;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 520px) {
+  .area-cliente-wrapper.is-modal.is-guest-welcome .login-hero {
+    padding: 26px 16px 36px;
+    gap: 14px;
+  }
+
+  .area-cliente-wrapper.is-modal.is-guest-welcome {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
 }
 
 /* ============================================================
@@ -156,11 +199,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  .hero-actions {
-    flex-shrink: 0;
-    margin-inline-end: 4px;
-  }
 }
 
 /* ============================================================
@@ -193,11 +231,12 @@
   }
 
   &__title {
-    margin: 4px 0 0;
+    margin: 0;
     font-size: 22px;
     font-weight: 800;
     color: var(--ac-text);
     letter-spacing: .2px;
+    line-height: 1.25;
   }
 
   &__desc {
@@ -211,7 +250,7 @@
   &__actions {
     display: flex;
     gap: 10px;
-    margin-top: 8px;
+    margin-top: 4px;
     flex-wrap: wrap;
     justify-content: center;
     width: 100%;

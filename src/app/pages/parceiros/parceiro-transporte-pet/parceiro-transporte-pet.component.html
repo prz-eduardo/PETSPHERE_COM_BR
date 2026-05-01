@@ -1,0 +1,239 @@
+<div class="transporte-pet-wrap">
+  <header class="transporte-pet-head">
+    <a routerLink="/parceiros/painel" class="transporte-pet-back">← Voltar ao painel</a>
+    <h1>Transporte pet</h1>
+    <p class="transporte-pet-lead">
+      O tutor paga pela corrida (Mercado Pago). Apenas motoristas cadastrados na sua loja recebem a oferta de aceitar a viagem.
+    </p>
+  </header>
+
+  <!-- Operação do motorista -->
+  <section class="card card--motorista" *ngIf="souMotorista">
+    <h2 class="card__title">Seu painel de motorista</h2>
+    <div class="motorista-toolbar">
+      <div class="motorista-toolbar__status" role="status">
+        <span class="motorista-dot" [class.motorista-dot--on]="souMotorista.online" aria-hidden="true"></span>
+        <span class="motorista-toolbar__label">
+          {{ souMotorista.online ? 'Você está disponível para novas corridas' : 'Você está indisponível — ligue “Disponível” para aparecer no matching' }}
+        </span>
+      </div>
+      <button
+        type="button"
+        class="btn"
+        [class.btn--primary]="!souMotorista.online"
+        [class.btn--ghost]="souMotorista.online"
+        [disabled]="onlineLoading"
+        (click)="toggleOnline(!souMotorista.online)"
+      >
+        {{ onlineLoading ? '…' : souMotorista.online ? 'Ficar indisponível' : 'Ficar disponível' }}
+      </button>
+    </div>
+    <button type="button" class="btn btn--ghost btn--block motorista-gps" (click)="enviarLocalizacao()">
+      Atualizar minha posição no mapa (GPS)
+    </button>
+  </section>
+
+  <!-- Demanda -->
+  <section class="card">
+    <h2 class="card__title">Demanda aberta</h2>
+    <p class="card__sub">Corridas já pagas esperando um motorista. Quem estiver <strong>disponível</strong> pode aceitar.</p>
+    <div *ngIf="loading" class="muted state-loading">Carregando fila…</div>
+    <ul class="ride-list" *ngIf="!loading">
+      <li class="ride-list__item" *ngFor="let c of abertas">
+        <div class="ride-list__main">
+          <div class="ride-list__top">
+            <span class="ride-list__id">#{{ c.id }}</span>
+            <span [class]="classeBadgeStatus(c.status)">{{ rotuloStatus(c.status) }}</span>
+          </div>
+          <p class="ride-list__price">{{ fmtMoney(c.preco_centavos) }}</p>
+          <p class="ride-list__route muted small">{{ c.origem_texto || 'Origem' }} → {{ c.destino_texto || 'Destino' }}</p>
+        </div>
+        <button type="button" class="btn btn--primary ride-list__cta" (click)="aceitar(c)">Aceitar corrida</button>
+      </li>
+      <li *ngIf="!abertas.length" class="ride-list__empty muted">Nenhuma corrida na fila no momento.</li>
+    </ul>
+  </section>
+
+  <!-- Histórico / andamento -->
+  <section class="card">
+    <h2 class="card__title">Corridas da loja</h2>
+    <p class="card__sub muted small">Lista recente; use os botões de etapa quando você for o motorista atribuído.</p>
+    <ul class="ride-list ride-list--compact">
+      <li class="ride-list__item ride-list__item--row" *ngFor="let c of minhas">
+        <div class="ride-list__main">
+          <div class="ride-list__top">
+            <span class="ride-list__id">#{{ c.id }}</span>
+            <span [class]="classeBadgeStatus(c.status)">{{ rotuloStatus(c.status) }}</span>
+          </div>
+          <p class="ride-list__price ride-list__price--inline">{{ fmtMoney(c.preco_centavos) }}</p>
+        </div>
+        <div
+          class="ride-list__actions"
+          *ngIf="c.motorista_id && souMotorista && toNum(c.motorista_id) === toNum(souMotorista.id)"
+        >
+          <button *ngIf="c.status === 'accepted'" type="button" class="btn" (click)="avancar(c, 'start_pickup')">Indo buscar</button>
+          <button *ngIf="c.status === 'on_the_way'" type="button" class="btn" (click)="avancar(c, 'picked_up')">Pet a bordo</button>
+          <button *ngIf="c.status === 'in_progress'" type="button" class="btn btn--primary" (click)="avancar(c, 'complete')">Concluir</button>
+        </div>
+      </li>
+      <li *ngIf="!minhas.length && !loading" class="ride-list__empty muted">Ainda não há corridas registradas.</li>
+    </ul>
+  </section>
+
+  <!-- Configuração master -->
+  <section class="card card--admin" *ngIf="isMaster">
+    <h2 class="card__title">Tarifas cobradas do tutor</h2>
+    <p class="card__sub muted small">
+      Valores em reais (o sistema grava em centavos). Alterações valem para <strong>novas</strong> cotações; corridas já pagas não mudam.
+    </p>
+    <div *ngIf="tarifasLoading" class="muted state-loading">Carregando tarifas…</div>
+    <ng-container *ngIf="!tarifasLoading && tarifasForm">
+      <div class="tarifas-grid tarifas-grid--core">
+        <label class="field">
+          <span class="field__label">Corrida base</span>
+          <span class="field__hint">Taxa fixa inicial</span>
+          <input type="number" step="0.01" min="0" [(ngModel)]="tarifasForm.base_reais" />
+        </label>
+        <label class="field">
+          <span class="field__label">Por km</span>
+          <span class="field__hint">Multiplicada pela distância da rota</span>
+          <input type="number" step="0.01" min="0" [(ngModel)]="tarifasForm.tarifa_km_reais" />
+        </label>
+        <label class="field">
+          <span class="field__label">Taxa porte pequeno</span>
+          <input type="number" step="0.01" min="0" [(ngModel)]="tarifasForm.taxa_pequeno_reais" />
+        </label>
+        <label class="field">
+          <span class="field__label">Taxa porte médio</span>
+          <input type="number" step="0.01" min="0" [(ngModel)]="tarifasForm.taxa_medio_reais" />
+        </label>
+        <label class="field">
+          <span class="field__label">Taxa porte grande</span>
+          <input type="number" step="0.01" min="0" [(ngModel)]="tarifasForm.taxa_grande_reais" />
+        </label>
+        <label class="field">
+          <span class="field__label">Adicional urgência “agora”</span>
+          <span class="field__hint">Quando o tutor escolhe viagem imediata</span>
+          <input type="number" step="0.01" min="0" [(ngModel)]="tarifasForm.urgency_now_reais" />
+        </label>
+      </div>
+
+      <details class="transporte-details">
+        <summary class="transporte-details__summary">Pico, surge, reparte com a plataforma e busca de motoristas</summary>
+        <div class="tarifas-grid tarifas-grid--advanced">
+          <label class="field">
+            <span class="field__label">Multiplicador de horário de pico</span>
+            <input type="number" step="0.01" min="1" [(ngModel)]="tarifasForm.peak_multiplier" />
+          </label>
+          <label class="field">
+            <span class="field__label">Início da janela de pico (hora 0–23)</span>
+            <span class="field__hint">Vazio = sem janela automática</span>
+            <input
+              type="number"
+              step="1"
+              min="0"
+              max="23"
+              [ngModel]="tarifasForm.peak_start_hour"
+              (ngModelChange)="tarifasForm.peak_start_hour = $event === '' || $event === null ? null : +$event"
+            />
+          </label>
+          <label class="field">
+            <span class="field__label">Fim da janela de pico (hora 0–23)</span>
+            <input
+              type="number"
+              step="1"
+              min="0"
+              max="23"
+              [ngModel]="tarifasForm.peak_end_hour"
+              (ngModelChange)="tarifasForm.peak_end_hour = $event === '' || $event === null ? null : +$event"
+            />
+          </label>
+          <label class="field">
+            <span class="field__label">Surge máximo</span>
+            <span class="field__hint">Teto do multiplicador dinâmico</span>
+            <input type="number" step="0.01" min="1" [(ngModel)]="tarifasForm.surge_max" />
+          </label>
+          <label class="field">
+            <span class="field__label">% da plataforma</span>
+            <input type="number" step="0.1" min="0" max="100" [(ngModel)]="tarifasForm.pct_plataforma" />
+          </label>
+          <label class="field">
+            <span class="field__label">Raio inicial de matching (km)</span>
+            <input type="number" step="0.1" min="0.5" [(ngModel)]="tarifasForm.matching_initial_km" />
+          </label>
+          <label class="field">
+            <span class="field__label">Expansão do raio (km)</span>
+            <input type="number" step="0.1" min="0.5" [(ngModel)]="tarifasForm.matching_expand_km" />
+          </label>
+        </div>
+      </details>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn--primary" [disabled]="tarifasSaving" (click)="salvarTarifas()">
+          {{ tarifasSaving ? 'Salvando…' : 'Salvar tarifas' }}
+        </button>
+      </div>
+    </ng-container>
+  </section>
+
+  <section class="card card--admin" *ngIf="isMaster">
+    <h2 class="card__title">Quem pode dirigir</h2>
+    <p class="card__sub muted small">
+      Apenas o <strong>master</strong> vê esta lista. O nível (tier) influencia o repasse ao motorista na plataforma.
+    </p>
+    <div class="tier-bar">
+      <label class="tier-bar__label">
+        <span>Nível para novos motoristas</span>
+        <select [(ngModel)]="novoMotoristaTier" class="tier-bar__select">
+          <option value="free">Free — padrão</option>
+          <option value="pro">Pro</option>
+          <option value="premium">Premium</option>
+        </select>
+      </label>
+    </div>
+    <div *ngIf="colaboradoresLoading" class="muted state-loading">Carregando equipe…</div>
+    <ul class="colab-list" *ngIf="!colaboradoresLoading">
+      <li class="colab-list__item" *ngFor="let c of colaboradores">
+        <div class="colab-list__who">
+          <p class="colab-list__nome">{{ c.nome || '—' }}</p>
+          <p class="colab-list__meta muted small">
+            {{ c.email }} · conta nº {{ c.id }} · {{ rotuloPapel(c.role) }}
+          </p>
+        </div>
+        <div class="colab-list__action">
+          <button
+            *ngIf="!contaJaEhMotorista(c.id)"
+            type="button"
+            class="btn btn--primary btn--sm"
+            (click)="addMotoristaFromColaborador(c.id)"
+          >
+            Adicionar como motorista
+          </button>
+          <span *ngIf="contaJaEhMotorista(c.id)" class="pill pill--ok">
+            Já é motorista
+            <ng-container *ngIf="tierMotoristaDaConta(c.id) as tier"> · {{ rotuloTier(tier) }}</ng-container>
+          </span>
+        </div>
+      </li>
+      <li *ngIf="!colaboradores.length" class="colab-list__empty muted">Nenhum colaborador encontrado.</li>
+    </ul>
+    <p class="muted small footnote" *ngIf="colaboradores.length">
+      Quem já é motorista aparece com o selo ao lado; o tier acima vale só para <strong>novos</strong> cadastros.
+    </p>
+  </section>
+
+  <section class="card card--admin card--collapse" *ngIf="isMaster">
+    <h2 class="card__title">Cadastro por ID (opcional)</h2>
+    <p class="card__sub muted small">Atalho se você já conhece o número da conta (<code>parceiro_accounts.id</code>).</p>
+    <div class="inline-form">
+      <input
+        class="inline-form__input"
+        type="number"
+        [(ngModel)]="novoMotoristaContaId"
+        placeholder="ID da conta"
+        aria-label="ID numérico da conta do colaborador"
+      />
+      <button type="button" class="btn btn--primary" (click)="cadastrarMotorista()">Cadastrar</button>
+    </div>
+  </section>
+</div>

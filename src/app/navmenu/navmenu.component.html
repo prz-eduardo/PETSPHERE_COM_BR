@@ -38,7 +38,16 @@
               <div class="hori-cap hori-cap--left"></div>
               <div class="hori-cap hori-cap--right"></div>
             </div>
-            <ul class="navbar-nav-tabs" aria-label="Navegação principal">
+            <ul
+              class="navbar-nav-tabs"
+              [attr.aria-label]="
+                dockMode === 'parceiro'
+                  ? 'Navegação Prestador'
+                  : dockMode === 'vet'
+                    ? 'Navegação veterinária'
+                    : 'Navegação principal'
+              "
+            >
               <li class="nav-tab-item"
                   *ngFor="let item of visibleNavItems; trackBy: trackByNavItemId"
                   [class.active]="isTabHighlighted(item)"
@@ -54,7 +63,7 @@
               </li>
             </ul>
           </div>
-          <!-- Links secundários (varejo / institucional / negócios) — só tutor logado ou visitante -->
+          <!-- Links secundários — só na lente cliente (na lente Profissionais as abas já cobrem tudo) -->
           <div class="navbar-secondary" *ngIf="showDesktopSecondaryLinks">
             <nav class="navbar-secondary-inner" aria-label="Loja e parceiros">
               <a [routerLink]="lojaHref" class="navbar-secondary-link">Loja</a>
@@ -67,9 +76,51 @@
         </div>
 
         <div class="navbar-actions">
+          <app-notifications-bell
+            *ngIf="showClienteNotifInNavbar"
+            class="navbar-notifs-desktop"
+            audience="cliente"
+            [fullscreenPanel]="true"></app-notifications-bell>
+          <button
+            type="button"
+            class="ps-partner-shell-menu"
+            *ngIf="showPartnerShellMenuLauncher"
+            (click)="openPartnerShellDrawerFromNav()"
+            aria-label="Menu completo — área do prestador"
+            title="Mais menus do prestador"
+          >
+            Mais
+          </button>
+          <div
+            class="ps-view-toggle"
+            *ngIf="showClienteParceiroToggle"
+            role="group"
+            aria-label="Alternar entre experiência cliente e área para profissionais"
+          >
+            <button
+              type="button"
+              class="ps-view-toggle__btn"
+              [class.ps-view-toggle__btn--active]="isClienteLensToggleActive"
+              (click)="navigateToClienteAppHome()"
+              title="Ir para início — app cliente"
+              [attr.aria-current]="isClienteLensToggleActive ? 'page' : null"
+            >
+              Cliente
+            </button>
+            <button
+              type="button"
+              class="ps-view-toggle__btn ps-view-toggle__btn--prof"
+              [class.ps-view-toggle__btn--active]="isParceirosLensToggleActive"
+              (click)="navigateToParceiroPanel()"
+              title="Petsphere Prestador — planos, cadastro e painel para o seu negócio"
+              [attr.aria-current]="isParceirosLensToggleActive ? 'page' : null"
+            >
+              Profissionais
+            </button>
+          </div>
           <button *ngIf="!isAreaVetRoute"
                   #userBtn
-                  class="user-trigger"
+                  class="user-trigger navbar-user-trigger"
                   type="button"
                   (click)="abrirClienteModal()"
                   title="Área do cliente"
@@ -88,8 +139,8 @@
 
   <!-- ═════════════════════════════════════════════════════════════════════
        AURORA DOCK — Mobile (<768px)
-       Layout: Live Ribbon (opcional) + Mini-bag (opcional) + Dock flutuante
-                com 4 abas e FAB central
+       Layout: tutor (Galeria · Mapa · FAB · Notificações · entrar/sair)
+               ou Prestador público/logado — ver `mobileDockItemsProfessional`
        ═════════════════════════════════════════════════════════════════════ -->
   <ng-container *ngIf="showFullMenu">
 
@@ -129,6 +180,7 @@
       class="ps-dock"
       [class.ps-dock--compact]="isCompact"
       [class.ps-dock--professional]="dockMode === 'vet' || dockMode === 'parceiro'"
+      [class.ps-dock--notif-fullscreen-open]="dockNotifFullscreenOpen"
       role="navigation"
       aria-label="Navegação Petsphere"
     >
@@ -156,65 +208,92 @@
       </svg>
 
       <ul class="ps-dock__items">
-        <ng-container *ngFor="let item of activeMobileItems; let i = index; trackBy: trackByNavItemId">
-          <!-- Spacer onde fica o FAB (entre item 1 e item 2) -->
-          <li class="ps-dock__spacer" *ngIf="i === 2" aria-hidden="true"></li>
+        <ng-container *ngFor="let cell of dockGridCells; trackBy: trackDockGridCell">
+          <li *ngIf="cell.kind === 'spacer'" class="ps-dock__spacer" aria-hidden="true"></li>
 
           <li
-            *ngIf="isDockFillItem(item)"
+            *ngIf="cell.kind === 'nav' && isDockFillItem(cell.item)"
             class="ps-dock__item ps-dock__item--fill"
             aria-hidden="true"
           ></li>
 
           <li
-            *ngIf="!isDockFillItem(item)"
+            *ngIf="cell.kind === 'nav' && !isDockFillItem(cell.item)"
             class="ps-dock__item"
-            [class.is-active]="isMobileTabHighlighted(item)"
-            [attr.data-nav-id]="item.id"
+            [class.ps-dock__item--notif]="cell.item.id === 'dock-notificacoes'"
+            [class.is-active]="isMobileTabHighlighted(cell.item)"
+            [attr.data-nav-id]="cell.item.id"
           >
-            <ng-container *ngIf="item.id === 'login'; else linkTpl">
+            <ng-container [ngSwitch]="cell.item.id">
+              <div class="ps-dock__notif-host" *ngSwitchCase="'dock-notificacoes'">
+                <app-notifications-bell
+                  audience="cliente"
+                  [dockEmbed]="true"
+                  [fullscreenPanel]="true"
+                  (openChange)="dockNotifFullscreenOpen = $event"
+                ></app-notifications-bell>
+              </div>
+
               <button
+                *ngSwitchCase="'login'"
                 type="button"
                 class="ps-dock__link"
-                (click)="onMobileItemActivate(item, $event)"
-                [attr.aria-label]="item.label"
+                (click)="onMobileItemActivate(cell.item, $event)"
+                [attr.aria-label]="cell.item.label"
               >
-                <span class="ps-dock__label">{{ item.shortLabel || item.label }}</span>
                 <span class="ps-dock__icon">
                   <ps-icon
-                    [name]="item.psIcon || 'person'"
-                    [variant]="isMobileTabHighlighted(item) ? 'filled' : 'outline'"
+                    name="login"
+                    variant="outline"
                     [size]="22"
                   ></ps-icon>
                 </span>
+                <span class="ps-dock__label">{{ cell.item.shortLabel || cell.item.label }}</span>
                 <span class="ps-dock__pill" aria-hidden="true"></span>
               </button>
-            </ng-container>
 
-            <ng-template #linkTpl>
-              <a
+              <button
+                *ngSwitchCase="'logout'"
+                type="button"
                 class="ps-dock__link"
-                [routerLink]="item.link"
-                (click)="onMobileItemActivate(item, $event)"
-                [attr.aria-label]="item.label"
-                [attr.aria-current]="isMobileTabHighlighted(item) ? 'page' : null"
+                (click)="onMobileItemActivate(cell.item, $event)"
+                [attr.aria-label]="cell.item.label"
               >
-                <span class="ps-dock__label">{{ item.shortLabel || item.label }}</span>
                 <span class="ps-dock__icon">
                   <ps-icon
-                    [name]="item.psIcon || 'home'"
-                    [variant]="isMobileTabHighlighted(item) ? 'filled' : 'outline'"
+                    name="logout"
+                    variant="filled"
+                    [size]="22"
+                  ></ps-icon>
+                </span>
+                <span class="ps-dock__label">{{ cell.item.shortLabel || cell.item.label }}</span>
+                <span class="ps-dock__pill" aria-hidden="true"></span>
+              </button>
+
+              <a
+                *ngSwitchDefault
+                class="ps-dock__link"
+                [routerLink]="cell.item.link"
+                (click)="onMobileItemActivate(cell.item, $event)"
+                [attr.aria-label]="cell.item.label"
+                [attr.aria-current]="isMobileTabHighlighted(cell.item) ? 'page' : null"
+              >
+                <span class="ps-dock__icon">
+                  <ps-icon
+                    [name]="cell.item.psIcon || 'home'"
+                    [variant]="isMobileTabHighlighted(cell.item) ? 'filled' : 'outline'"
                     [size]="22"
                   ></ps-icon>
                   <span
                     class="ps-dock__cart-dot"
-                    *ngIf="item.id === 'galeria' && cartCount > 0 && !showMiniBag"
+                    *ngIf="cell.item.id === 'galeria' && cartCount > 0 && !showMiniBag"
                     aria-hidden="true"
                   ></span>
                 </span>
+                <span class="ps-dock__label">{{ cell.item.shortLabel || cell.item.label }}</span>
                 <span class="ps-dock__pill" aria-hidden="true"></span>
               </a>
-            </ng-template>
+            </ng-container>
           </li>
         </ng-container>
       </ul>
@@ -270,11 +349,12 @@
     <div class="ps-sheet" role="dialog" aria-modal="true" aria-label="Ações rápidas Petsphere">
       <div class="ps-sheet__handle" aria-hidden="true"></div>
       <header class="ps-sheet__header">
-        <h2 class="ps-sheet__title">O que você quer fazer?</h2>
-        <p class="ps-sheet__subtitle">Atalhos rápidos do seu ecossistema pet</p>
+        <h2 class="ps-sheet__title">{{ sheetLeadTitle }}</h2>
+        <p class="ps-sheet__subtitle">{{ sheetLeadSubtitle }}</p>
       </header>
+
       <ul class="ps-sheet__list">
-        <ng-container *ngFor="let row of sheetPanelRows; let rp = index">
+        <ng-container *ngFor="let row of sheetRowsSnapshot; let rp = index; trackBy: trackBySheetRow">
           <li *ngIf="row.sectionLabel" class="ps-sheet__section-label">{{ row.sectionLabel }}</li>
           <li *ngFor="let action of row.actions; let ai = index; trackBy: trackByQuickActionId">
           <button
@@ -332,6 +412,7 @@
   <div class="cliente-overlay" (click)="fecharClienteModal()" aria-hidden="true"></div>
   <div class="cliente-modal" (click)="$event.stopPropagation()">
     <div class="cliente-modal-inner">
+      <button type="button" class="cliente-close" (click)="fecharClienteModal()" aria-label="Fechar">✕</button>
       <div class="cliente-loader" *ngIf="clienteLoading" aria-live="polite" aria-busy="true">
         <div class="spinner"></div>
         <div class="loader-text">Carregando área do cliente…</div>
@@ -340,5 +421,4 @@
       <div class="edge-fade" aria-hidden="true"></div>
     </div>
   </div>
-  <button type="button" class="cliente-close" (click)="fecharClienteModal()" aria-label="Fechar">✕</button>
 </ng-container>

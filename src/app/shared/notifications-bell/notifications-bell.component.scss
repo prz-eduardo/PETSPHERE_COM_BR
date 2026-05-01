@@ -55,6 +55,191 @@
   &:hover { background: rgba(0, 0, 0, 0.12); }
 }
 
+/* Coluna no dock Aurora (ícone + rótulo como as outras abas) */
+:host:has(.bell--dock-slot) {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  align-self: stretch;
+  align-items: stretch;
+}
+
+.bell.bell--dock-slot {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.bell.bell--dock-slot .bell-btn.bell-btn--dock-slot {
+  flex: 1 1 auto;
+  width: auto;
+  height: auto;
+  min-height: 44px;
+  min-width: 0;
+  padding: 4px 4px 6px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.62);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  box-shadow: none;
+  font-family: 'Inter', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition:
+    color 0.28s var(--ps-ease-tap),
+    transform 0.22s var(--ps-ease-spring);
+
+  &:active {
+    transform: scale(0.94);
+    transition-duration: 0.12s;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ps-aurora, #c4d600);
+    outline-offset: 2px;
+  }
+
+  .bell-dock-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    transition:
+      transform 0.32s var(--ps-ease-spring),
+      filter 0.28s var(--ps-ease-tap);
+
+    .badge {
+      position: absolute;
+      top: -5px;
+      right: -6px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      font-size: 9px;
+    }
+  }
+
+  .bell-dock-label {
+    display: block;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-height: 14px;
+    height: 14px;
+    line-height: 14px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    color: var(--ps-cosmos);
+    opacity: 0.88;
+    transform: translateY(0);
+    will-change: opacity, transform;
+    transition:
+      opacity 0.32s var(--ps-ease-tap),
+      transform 0.32s var(--ps-ease-tap);
+  }
+
+  /* Espelho de `.ps-dock__pill` */
+  .bell-dock-pill {
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    transform: translateX(-50%) scaleX(0);
+    width: 22px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--ps-aurora);
+    box-shadow: 0 0 10px rgba(197, 255, 61, 0.6);
+    transition:
+      transform 0.36s var(--ps-ease-spring),
+      opacity 0.24s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bell.bell--dock-slot:not(.bell--dock-open)
+    .bell-btn.bell-btn--dock-slot:hover {
+    color: rgba(255, 255, 255, 0.92);
+
+    .bell-dock-icon-wrap {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+/* Estado “ativo” = painel aberto — espelho de `.ps-dock__item.is-active .ps-dock__link` */
+.bell.bell--dock-slot.bell--dock-open .bell-btn.bell-btn--dock-slot {
+  color: var(--ps-snow);
+
+  .bell-dock-icon-wrap {
+    transform: translateY(-1px) scale(1.04);
+    filter: drop-shadow(0 0 14px rgba(197, 255, 61, 0.55));
+  }
+
+  .bell-dock-label {
+    opacity: 1;
+    color: var(--ps-cosmos);
+    font-weight: 700;
+  }
+
+  .bell-dock-pill {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1);
+  }
+}
+
+/* Dock claro — espelho de `.ps-dock__link` + aba ativa */
+@media (prefers-color-scheme: light) {
+  :host-context(html:not([data-ps-night="true"])) {
+    .bell.bell--dock-slot .bell-btn.bell-btn--dock-slot {
+      color: rgba(15, 11, 46, 0.42);
+
+      .bell-dock-label {
+        color: var(--ps-ink);
+        opacity: 0.82;
+      }
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .bell.bell--dock-slot:not(.bell--dock-open)
+        .bell-btn.bell-btn--dock-slot:hover {
+        color: rgba(15, 11, 46, 0.62);
+      }
+    }
+
+    .bell.bell--dock-slot.bell--dock-open .bell-btn.bell-btn--dock-slot {
+      color: var(--ps-cosmos);
+
+      .bell-dock-label {
+        color: var(--ps-cosmos);
+        opacity: 1;
+      }
+    }
+  }
+}
+
+/* Dock compact (rolagem): mesmo fade/move que `.ps-dock__label`. */
+:host-context(.ps-dock--compact) .bell.bell--dock-slot .bell-btn.bell-btn--dock-slot .bell-dock-label {
+  opacity: 0;
+  transform: translateY(2px);
+}
+
 .panel {
   position: absolute;
   top: calc(100% + 8px);
@@ -86,14 +271,37 @@
   z-index: 2000060;
 }
 
-.panel--embedded-modal {
-  position: absolute;
-  inset: 12px;
-  width: auto;
-  max-height: none;
-  transform: none;
-  border-radius: 16px;
-  animation: fadeDown .15s ease-out;
+/* Tela cheia sobre a app (navbar, sheet FAB, modal cliente) — z acima dos sheets */
+.panel.panel--fullscreen {
+  position: fixed !important;
+  /* Fallback robusto: garante tela cheia mesmo sem suporte completo a env(). */
+  inset: 0 !important;
+  inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  top: env(safe-area-inset-top, 0px) !important;
+  left: env(safe-area-inset-left, 0px) !important;
+  right: env(safe-area-inset-right, 0px) !important;
+  bottom: env(safe-area-inset-bottom, 0px) !important;
+  width: auto !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: none !important;
+  transform: none !important;
+  margin: 0;
+  border-radius: 0;
+  animation: fullscreenPanelIn .22s ease-out both;
+  z-index: 2000089 !important;
+  display: flex;
+  flex-direction: column;
+
+  .list {
+    flex: 1;
+    min-height: 0;
+  }
 }
 
 .panel-backdrop {
@@ -106,25 +314,11 @@
   animation: fadeBackdrop .18s ease-out;
 }
 
-.panel-backdrop--embedded {
-  position: absolute;
-}
-
-/* Celular / modal área do cliente: o host do sino é estreito e ancestrais com
-   transform recalibram o posicionamento; centraliza o painel e equilibra o padding. */
-@media (max-width: 560px) {
-  .panel {
-    position: fixed;
-    top: 50%;
-    right: auto;
-    left: 50%;
-    width: min(420px, calc(100vw - 24px));
-    max-height: min(72vh, calc(100dvh - 48px));
-    transform: translate(-50%, -50%);
-    border-radius: 18px;
-    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.32);
-    animation: fadePanelMobile .2s ease-out;
-  }
+.panel-backdrop--fullscreen {
+  z-index: 2000088;
+  background: rgba(4, 3, 18, 0.65);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
 }
 
 @keyframes fadeDown {
@@ -140,6 +334,26 @@
 @keyframes fadePanelMobile {
   from { opacity: 0; transform: translate(-50%, calc(-50% - 6px)); }
   to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@keyframes fullscreenPanelIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (max-width: 560px) {
+  .panel:not(.panel--fullscreen) {
+    position: fixed;
+    top: 50%;
+    right: auto;
+    left: 50%;
+    width: min(420px, calc(100vw - 24px));
+    max-height: min(72vh, calc(100dvh - 48px));
+    transform: translate(-50%, -50%);
+    border-radius: 18px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.32);
+    animation: fadePanelMobile .2s ease-out;
+  }
 }
 
 .panel-header {
@@ -335,5 +549,14 @@
   .empty {
     padding-left: 20px;
     padding-right: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bell.bell--dock-slot .bell-btn.bell-btn--dock-slot,
+  .bell.bell--dock-slot .bell-btn.bell-btn--dock-slot .bell-dock-label,
+  .bell.bell--dock-slot .bell-btn.bell-btn--dock-slot .bell-dock-icon-wrap,
+  .bell.bell--dock-slot .bell-btn.bell-btn--dock-slot .bell-dock-pill {
+    transition-duration: 0.01ms !important;
   }
 }

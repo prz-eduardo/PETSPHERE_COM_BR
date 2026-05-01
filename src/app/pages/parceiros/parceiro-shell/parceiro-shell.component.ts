@@ -1,9 +1,11 @@
-import { Component, OnInit, HostListener, ElementRef, signal } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef, signal, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { ParceiroCreditsBadgeComponent } from '../../../shared/parceiro-credits-badge/parceiro-credits-badge.component';
 import { filter } from 'rxjs/operators';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
+import { ParceirosMobileShellService } from '../../../services/parceiros-mobile-shell.service';
 import { Colaborador } from '../../../types/agenda.types';
 
 @Component({
@@ -22,6 +24,9 @@ export class ParceiroShellComponent implements OnInit {
   showPosMenu = signal(false);
   showMobileNav = signal(false);
   private currentUrl = '';
+
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly partnerDrawerBridge = inject(ParceirosMobileShellService);
 
   constructor(
     private auth: ParceiroAuthService,
@@ -66,8 +71,13 @@ export class ParceiroShellComponent implements OnInit {
 
     const mobileNavNode = this.el.nativeElement.querySelector('.mobile-nav');
     const burgerNode = this.el.nativeElement.querySelector('.burger-btn');
-    const clickedInMobile = (mobileNavNode && mobileNavNode.contains(target)) || (burgerNode && burgerNode.contains(target));
-    if (!clickedInMobile && this.showMobileNav()) {
+    const clickedInMobile =
+      (mobileNavNode && mobileNavNode.contains(target)) || (burgerNode && burgerNode.contains(target));
+    const globalNav =
+      typeof document !== 'undefined' ? document.querySelector('nav.app-navbar') : null;
+    const clickedInPetsphereNav =
+      !!(target instanceof Node && globalNav && globalNav.contains(target));
+    if (!clickedInMobile && !clickedInPetsphereNav && this.showMobileNav()) {
       this.showMobileNav.set(false);
     }
   }
@@ -75,6 +85,20 @@ export class ParceiroShellComponent implements OnInit {
   ngOnInit(): void {
     this.colaborador.set(this.auth.getCurrentColaborador());
     this.currentUrl = this.router.url;
+    this.partnerDrawerBridge.openPartnerDrawer$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() =>
+        queueMicrotask(() => {
+          if (typeof window === 'undefined') return;
+          try {
+            if (!window.matchMedia('(max-width: 767px)').matches) return;
+          } catch {
+            return;
+          }
+          this.toggleMobileNav(true);
+        }),
+      );
+
     this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe((e: any) => {
@@ -190,5 +214,17 @@ export class ParceiroShellComponent implements OnInit {
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/parceiros/login']);
+  }
+
+  /** Fecha o drawer e pede ao navmenu global que abra o radial de atalhos (mobile parceiro). */
+  openPartnerFabRadialFromMenu(): void {
+    this.toggleMobileNav(false);
+    queueMicrotask(() => this.partnerDrawerBridge.requestOpenPartnerFabRadial());
+  }
+
+  /** Fecha o drawer e pede ao navmenu global que abra o sheet de ações rápidas. */
+  openPartnerFabSheetFromMenu(): void {
+    this.toggleMobileNav(false);
+    queueMicrotask(() => this.partnerDrawerBridge.requestOpenPartnerFabSheet());
   }
 }

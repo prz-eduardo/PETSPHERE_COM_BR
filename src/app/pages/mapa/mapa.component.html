@@ -233,7 +233,7 @@
         </div>
 
         <!-- Abas (desktop) — no mobile o bloco acima renderiza as abas dentro do toprow -->
-        <nav *ngIf="!isMobileMapLayout" class="service-tabs" role="tablist" aria-label="Serviços">
+        <nav *ngIf="!isMobileMapLayout && !transportePetPainelAberto" class="service-tabs" role="tablist" aria-label="Serviços">
           <button *ngFor="let t of tabs"
             (click)="select(t.id)"
             [class.active]="active===t.id"
@@ -248,7 +248,7 @@
 
         <!-- Filtros (só quando existem chips) -->
         <div
-          *ngIf="getFiltersForActive().length"
+          *ngIf="getFiltersForActive().length && !transportePetPainelAberto"
           class="filters"
           [class.map-mobile-filters-card]="isMobileMapLayout"
           role="region"
@@ -378,59 +378,199 @@
     <!-- ======================================================= MAPA -->
     <section class="map-area">
       <div class="map-frame-wrap">
-        <!-- Camadas do mapa: pills (desktop e mobile) -->
-        <div
-          *ngIf="!isMobileMapLayout"
-          class="map-legend map-legend--desktop"
-          role="group"
-          aria-label="Camadas do mapa">
-          <div class="map-legend-pills" role="toolbar">
-            <button
-              type="button"
-              class="map-legend-pill"
-              [class.map-legend-pill--on]="mapCategoryPillsVisible"
-              [attr.aria-pressed]="mapCategoryPillsVisible"
-              (click)="toggleMapCategoryPillsVisibility()">
-              <img src="/icones/pin-pata.svg" alt="" />
-              <span class="map-legend-pill__text">{{ mapLegendReferenceLabel }}</span>
-            </button>
-            <ng-container *ngIf="mapCategoryPillsVisible">
+        <!-- Camadas do mapa + atalho Transporte (fecha chips ao abrir o painel) -->
+        <div *ngIf="!transportePetPainelAberto && !transportePetSelecaoLojaAberta && !isMobileMapLayout" class="map-legend-row map-legend-row--desktop">
+          <button
+            *ngIf="transportePetMostrarBotao"
+            type="button"
+            class="mapa-transporte-trigger"
+            (click)="abrirTransportePetPainel()"
+            aria-label="Pedir transporte pet — escolher loja e cotar corrida">
+            <span class="mapa-transporte-trigger__icon" aria-hidden="true">🚗</span>
+            <span class="mapa-transporte-trigger__text">Transporte</span>
+          </button>
+          <div class="map-legend map-legend--desktop" role="group" aria-label="Camadas do mapa">
+            <div class="map-legend-pills" role="toolbar">
               <button
-                *ngFor="let t of mapTabsForPills(); trackBy: trackTabId"
                 type="button"
-                class="map-legend-pill map-legend-pill--paw"
-                [class.map-legend-pill--on]="isCategoryMapVisible(t.id)"
-                [attr.aria-pressed]="isCategoryMapVisible(t.id)"
-                (click)="toggleMapCategory(t.id)">
-                <img [src]="getTabIcon(t)" alt="" />
-                <span class="map-legend-pill__text">{{ t.label }}</span>
+                class="map-legend-pill"
+                [class.map-legend-pill--on]="mapCategoryPillsVisible"
+                [attr.aria-pressed]="mapCategoryPillsVisible"
+                (click)="toggleMapCategoryPillsVisibility()">
+                <img src="/icones/pin-pata.svg" alt="" />
+                <span class="map-legend-pill__text">{{ mapLegendReferenceLabel }}</span>
               </button>
-            </ng-container>
+              <ng-container *ngIf="mapCategoryPillsVisible">
+                <button
+                  *ngFor="let t of mapTabsForPills(); trackBy: trackTabId"
+                  type="button"
+                  class="map-legend-pill map-legend-pill--paw"
+                  [class.map-legend-pill--on]="isCategoryMapVisible(t.id)"
+                  [attr.aria-pressed]="isCategoryMapVisible(t.id)"
+                  (click)="toggleMapCategory(t.id)">
+                  <img [src]="getTabIcon(t)" alt="" />
+                  <span class="map-legend-pill__text">{{ t.label }}</span>
+                </button>
+              </ng-container>
+            </div>
           </div>
         </div>
-        <div *ngIf="isMobileMapLayout" class="map-legend map-legend--mobile" [class.map-legend--mobile-open]="resultsAccordionOpen" role="group" aria-label="Camadas do mapa">
-          <div class="map-legend-pills" role="toolbar">
-            <button
-              type="button"
-              class="map-legend-pill"
-              [class.map-legend-pill--on]="mapCategoryPillsVisible"
-              [attr.aria-pressed]="mapCategoryPillsVisible"
-              (click)="toggleMapCategoryPillsVisibility()">
-              <img src="/icones/pin-pata.svg" alt="" />
-              <span class="map-legend-pill__text">{{ mapLegendReferenceLabel }}</span>
-            </button>
-            <ng-container *ngIf="mapCategoryPillsVisible">
+        <div
+          *ngIf="!transportePetPainelAberto && !transportePetSelecaoLojaAberta && isMobileMapLayout"
+          class="map-legend-row map-legend-row--mobile"
+          [class.map-legend-row--mobile--accordion-open]="resultsAccordionOpen"
+        >
+          <button
+            *ngIf="transportePetMostrarBotao"
+            type="button"
+            class="mapa-transporte-trigger"
+            (click)="abrirTransportePetPainel()"
+            aria-label="Pedir transporte pet — escolher loja e cotar corrida">
+            <span class="mapa-transporte-trigger__icon" aria-hidden="true">🚗</span>
+            <span class="mapa-transporte-trigger__text">Transporte</span>
+          </button>
+          <div class="map-legend map-legend--mobile" [class.map-legend--mobile-open]="resultsAccordionOpen" role="group" aria-label="Camadas do mapa">
+            <div class="map-legend-pills" role="toolbar">
               <button
-                *ngFor="let t of mapTabsForPills(); trackBy: trackTabId"
                 type="button"
-                class="map-legend-pill map-legend-pill--paw"
-                [class.map-legend-pill--on]="isCategoryMapVisible(t.id)"
-                [attr.aria-pressed]="isCategoryMapVisible(t.id)"
-                (click)="toggleMapCategory(t.id)">
-                <img [src]="getTabIcon(t)" alt="" />
-                <span class="map-legend-pill__text">{{ t.label }}</span>
+                class="map-legend-pill"
+                [class.map-legend-pill--on]="mapCategoryPillsVisible"
+                [attr.aria-pressed]="mapCategoryPillsVisible"
+                (click)="toggleMapCategoryPillsVisibility()">
+                <img src="/icones/pin-pata.svg" alt="" />
+                <span class="map-legend-pill__text">{{ mapLegendReferenceLabel }}</span>
               </button>
-            </ng-container>
+              <ng-container *ngIf="mapCategoryPillsVisible">
+                <button
+                  *ngFor="let t of mapTabsForPills(); trackBy: trackTabId"
+                  type="button"
+                  class="map-legend-pill map-legend-pill--paw"
+                  [class.map-legend-pill--on]="isCategoryMapVisible(t.id)"
+                  [attr.aria-pressed]="isCategoryMapVisible(t.id)"
+                  (click)="toggleMapCategory(t.id)">
+                  <img [src]="getTabIcon(t)" alt="" />
+                  <span class="map-legend-pill__text">{{ t.label }}</span>
+                </button>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="transportePetSelecaoLojaAberta" class="mapa-transporte-overlay">
+          <div class="mapa-transporte-backdrop" (click)="fecharTransporteSelecaoLoja()" aria-hidden="true"></div>
+          <div
+            class="mapa-transporte-sheet mapa-transporte-picker transporte-pet-map-panel transporte-pet-map-panel--sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Escolher loja para transporte pet"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="mapa-transporte-sheet__head mapa-transporte-picker__head">
+              <h2 class="transporte-pet-map-panel__title mapa-transporte-sheet__title">Pedir transporte pet</h2>
+              <button type="button" class="mapa-transporte-sheet__close" (click)="fecharTransporteSelecaoLoja()" aria-label="Fechar">✕</button>
+            </div>
+            <p class="mapa-transporte-picker__lead">
+              Escolha a loja que vai operar o transporte. A cotação e o pagamento ficam vinculados a ela.
+            </p>
+            <p *ngIf="loading" class="mapa-transporte-picker__state muted">Carregando parceiros no mapa…</p>
+            <ul *ngIf="!loading" class="mapa-transporte-picker__list" role="listbox" aria-label="Lojas com vitrine">
+              <li *ngFor="let loja of parceirosParaTransportePet">
+                <button
+                  type="button"
+                  class="mapa-transporte-picker__row"
+                  (click)="escolherLojaParaTransporte(loja.slug, loja.lat, loja.lng)"
+                >
+                  <span class="mapa-transporte-picker__nome">{{ loja.nome }}</span>
+                  <span class="mapa-transporte-picker__slug">{{ loja.slug }}</span>
+                </button>
+              </li>
+            </ul>
+            <p *ngIf="!loading && !parceirosParaTransportePet.length" class="mapa-transporte-picker__empty muted">
+              Nenhuma loja com vitrine apareceu neste mapa ainda. Espere o carregamento, aproxime o zoom ou abra pelo site da loja.
+            </p>
+          </div>
+        </div>
+
+        <div *ngIf="transportePetPainelAberto" class="mapa-transporte-overlay">
+          <div class="mapa-transporte-backdrop" (click)="fecharTransportePetPainel()" aria-hidden="true"></div>
+          <div class="mapa-transporte-sheet transporte-pet-map-panel transporte-pet-map-panel--sheet" role="dialog" aria-modal="true" aria-label="Solicitar transporte pet" [attr.aria-busy]="transportePetBusy || transportePetLocLoading" (click)="$event.stopPropagation()">
+            <div class="mapa-transporte-sheet__head mapa-transporte-sheet__head--split">
+              <h2 class="transporte-pet-map-panel__title mapa-transporte-sheet__title">Transporte pet</h2>
+              <div class="mapa-transporte-sheet__head-actions">
+                <button
+                  *ngIf="transportePetLojaSlugEscolhida && !transporteLojaSlugEfetivo"
+                  type="button"
+                  class="mapa-transporte-sheet__linkish"
+                  (click)="trocarLojaTransporte()"
+                >
+                  Trocar loja
+                </button>
+                <button type="button" class="mapa-transporte-sheet__close" (click)="fecharTransportePetPainel()" aria-label="Fechar">✕</button>
+              </div>
+            </div>
+            <p class="transporte-pet-map-panel__intro">
+              Você está solicitando com a loja <strong class="transporte-pet-map-panel__loja">{{ transporteLojaSlugParaCorrida }}</strong>.
+              Escolha porte e urgência, ajuste a rota e pague com segurança pelo Mercado Pago.
+            </p>
+            <div class="transporte-pet-map-panel__row transporte-pet-map-panel__row--2">
+              <label>Porte do pet
+                <select [(ngModel)]="transportePetPorte">
+                  <option value="pequeno">Pequeno</option>
+                  <option value="medio">Médio</option>
+                  <option value="grande">Grande</option>
+                </select>
+              </label>
+              <label>Quando
+                <select [(ngModel)]="transportePetUrgencia" (ngModelChange)="onTransporteUrgenciaChange()">
+                  <option value="agora">Agora</option>
+                  <option value="agendado">Agendar</option>
+                </select>
+              </label>
+            </div>
+            <label *ngIf="transportePetUrgencia === 'agendado'" class="transporte-pet-map-panel__datetime">
+              Data e horário da coleta
+              <input type="datetime-local" [(ngModel)]="transportePetScheduledAtLocal" />
+            </label>
+
+            <div class="transporte-pet-map-panel__quick" role="group" aria-label="Atalhos de rota">
+              <button type="button" class="transporte-pet-chip" [disabled]="transportePetBusy || transportePetLocLoading" (click)="transportePetUsarMinhaOrigem()">{{ transportePetLocLoading ? 'Localizando…' : 'Minha posição → origem' }}</button>
+              <button type="button" class="transporte-pet-chip" [disabled]="transportePetBusy || transportePetLocLoading" (click)="transportePetUsarLojaComoOrigem()">Loja → origem</button>
+              <button type="button" class="transporte-pet-chip" [disabled]="transportePetBusy || transportePetLocLoading" (click)="transportePetInverterOrigemDestino()">Inverter origem e destino</button>
+            </div>
+
+            <details class="transporte-pet-map-panel__details">
+              <summary class="transporte-pet-map-panel__details-summary">Ajustar coordenadas manualmente (avançado)</summary>
+              <p class="transporte-pet-map-panel__details-hint muted">Use se precisar refinar o ponto exato. A maioria dos tutores só precisa dos atalhos acima e de <strong>Calcular valor</strong>.</p>
+              <div class="transporte-pet-map-panel__grid">
+                <label>Origem · latitude <input type="number" step="0.000001" [(ngModel)]="transportePetOrigemLat" /></label>
+                <label>Origem · longitude <input type="number" step="0.000001" [(ngModel)]="transportePetOrigemLng" /></label>
+                <label>Destino · latitude <input type="number" step="0.000001" [(ngModel)]="transportePetDestLat" /></label>
+                <label>Destino · longitude <input type="number" step="0.000001" [(ngModel)]="transportePetDestLng" /></label>
+              </div>
+            </details>
+
+            <div class="transporte-pet-map-panel__actions">
+              <button type="button" class="transporte-pet-map-panel__btn" [disabled]="transportePetBusy" (click)="transportePetCotar()">
+                {{ transportePetBusy ? '…' : 'Calcular valor' }}
+              </button>
+              <button type="button" class="transporte-pet-map-panel__btn transporte-pet-map-panel__btn--primary" [disabled]="transportePetBusy" (click)="transportePetSolicitar()">
+                {{ transportePetBusy ? 'Abrindo pagamento…' : 'Ir para pagamento' }}
+              </button>
+            </div>
+            <div *ngIf="transportePetQuote" class="transporte-pet-map-panel__quote-box" role="status">
+              <p class="transporte-pet-map-panel__quote-label">Estimativa para esta rota</p>
+              <p class="transporte-pet-map-panel__quote-value">{{ transportePetFmtReais(transportePetQuote.preco_centavos) }}</p>
+              <p class="transporte-pet-map-panel__quote-meta muted">Distância aproximada · {{ transportePetQuote.distancia_km }} km</p>
+            </div>
+            <p *ngIf="transportePetLastCorridaId" class="transporte-pet-map-panel__hint">Última corrida criada neste aparelho: <strong>#{{ transportePetLastCorridaId }}</strong></p>
+            <a
+              *ngIf="transportePetLastParceiroId && transportePetLastCorridaId"
+              class="transporte-pet-map-panel__chat-btn"
+              [routerLink]="['/chat-parceiro', transportePetLastParceiroId]"
+              [queryParams]="{ corrida: transportePetLastCorridaId }"
+            >
+              Mensagem para a loja sobre esta corrida
+            </a>
           </div>
         </div>
 

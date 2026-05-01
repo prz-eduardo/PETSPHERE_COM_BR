@@ -5,7 +5,6 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavmenuComponent } from '../../../navmenu/navmenu.component';
 import { LoginClienteComponent } from './login-cliente/login-cliente.component';
 import { CrieSuaContaClienteComponent } from './crie-sua-conta-cliente/crie-sua-conta-cliente.component';
-import { NotificationsBellComponent } from '../../../shared/notifications-bell/notifications-bell.component';
 import { ClienteSuportePanelComponent } from '../../../features/support-chat/cliente-suporte-panel/cliente-suporte-panel.component';
 import { GaleriaPetComponent } from './galeria-pet/galeria-pet.component';
 import { ToastService } from '../../../services/toast.service';
@@ -44,7 +43,7 @@ interface PermissaoParceiro {
 @Component({
   selector: 'app-area-cliente',
   standalone: true, // <-- importante
-  imports: [CommonModule, FormsModule, RouterModule, NavmenuComponent, LoginClienteComponent, CrieSuaContaClienteComponent, NotificationsBellComponent, ClienteSuportePanelComponent, GaleriaPetComponent], // <-- importa o que usa no template
+  imports: [CommonModule, FormsModule, RouterModule, NavmenuComponent, LoginClienteComponent, CrieSuaContaClienteComponent, ClienteSuportePanelComponent, GaleriaPetComponent], // <-- importa o que usa no template
   templateUrl: './area-cliente.component.html',
   styleUrls: ['./area-cliente.component.scss']
 })

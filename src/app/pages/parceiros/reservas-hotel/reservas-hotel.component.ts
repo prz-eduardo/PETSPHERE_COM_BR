@@ -3,8 +3,10 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AgendaApiService,
+  DiscoveryCandidateRow,
   HotelHospedagemCatalogBundle,
   HotelLeitoRow,
+  PanoramaClientePermitidoPet,
   HotelReservaRow,
   HotelReservaStatus,
 } from '../agenda/services/agenda-api.service';
@@ -24,6 +26,8 @@ type DrawerMode = 'create' | 'details';
   styleUrls: ['./reservas-hotel.component.scss'],
 })
 export class ReservasHotelComponent implements OnInit {
+  private clienteDiscoveryTimer: ReturnType<typeof setTimeout> | null = null;
+
   readonly statusOptions: Array<{ value: HotelReservaStatus | 'todos'; label: string }> = [
     { value: 'todos', label: 'Todos os status' },
     { value: 'confirmada', label: 'Confirmada' },
@@ -68,6 +72,24 @@ export class ReservasHotelComponent implements OnInit {
   readonly draftObservacoes = signal('');
   readonly draftCuidadosEspeciais = signal('');
   readonly draftAlimentacaoObs = signal('');
+  readonly selectedClienteId = signal<number | null>(null);
+  readonly selectedPetId = signal<number | null>(null);
+  readonly clienteSearchTerm = signal('');
+  readonly clienteSearchLoading = signal(false);
+  readonly clienteSearchError = signal<string | null>(null);
+  readonly clienteCandidates = signal<DiscoveryCandidateRow[]>([]);
+  readonly selectedCliente = signal<DiscoveryCandidateRow | null>(null);
+  readonly clientePermissaoStatus = signal<string | null>(null);
+  readonly clientePermissaoEscopo = signal<string | null>(null);
+  readonly clienteConvitePendenteId = signal<number | null>(null);
+  readonly clientePanoramaPets = signal<PanoramaClientePermitidoPet[]>([]);
+  readonly loadingPanoramaPets = signal(false);
+  readonly quickPetNome = signal('');
+  readonly quickPetEspecie = signal('');
+  readonly quickPetRaca = signal('');
+  readonly quickPetPorte = signal('');
+  readonly quickPetError = signal<string | null>(null);
+  readonly quickPetSaving = signal(false);
   readonly formError = signal<string | null>(null);
   readonly hospedagemCatalog = signal<HotelHospedagemCatalogBundle>({ catalog: [], infra: [], acomodacao_tipos: [] });
   readonly espacoWizardOpen = signal(false);
@@ -146,6 +168,21 @@ export class ReservasHotelComponent implements OnInit {
     this.draftObservacoes.set('');
     this.draftCuidadosEspeciais.set('');
     this.draftAlimentacaoObs.set('');
+    this.selectedClienteId.set(null);
+    this.selectedPetId.set(null);
+    this.clienteSearchTerm.set('');
+    this.clienteSearchError.set(null);
+    this.clienteCandidates.set([]);
+    this.selectedCliente.set(null);
+    this.clientePermissaoStatus.set(null);
+    this.clientePermissaoEscopo.set(null);
+    this.clienteConvitePendenteId.set(null);
+    this.clientePanoramaPets.set([]);
+    this.quickPetNome.set('');
+    this.quickPetEspecie.set('');
+    this.quickPetRaca.set('');
+    this.quickPetPorte.set('');
+    this.quickPetError.set(null);
     this.drawerOpen.set(true);
   }
 
@@ -210,6 +247,152 @@ export class ReservasHotelComponent implements OnInit {
     const inf = Array.isArray(leito.infra_slugs) ? leito.infra_slugs.map(String) : [];
     for (const s of inf) out.push(mapInf.get(s) || s);
     return out;
+  }
+
+  onClienteSearchInput(value: string): void {
+    this.clienteSearchTerm.set(value);
+    this.draftTutor.set(value);
+    this.selectedCliente.set(null);
+    this.selectedClienteId.set(null);
+    this.selectedPetId.set(null);
+    this.clientePanoramaPets.set([]);
+    this.clientePermissaoStatus.set(null);
+    this.clientePermissaoEscopo.set(null);
+    this.clienteConvitePendenteId.set(null);
+    this.clienteSearchError.set(null);
+    if (this.clienteDiscoveryTimer) clearTimeout(this.clienteDiscoveryTimer);
+    const q = value.trim();
+    if (q.length < 3) {
+      this.clienteCandidates.set([]);
+      return;
+    }
+    this.clienteDiscoveryTimer = setTimeout(() => void this.searchClientes(q), 260);
+  }
+
+  private async searchClientes(q: string): Promise<void> {
+    try {
+      this.clienteSearchLoading.set(true);
+      const rows = await this.agendaApi.discoverClientes(q);
+      this.clienteCandidates.set(Array.isArray(rows) ? rows : []);
+      this.clienteSearchError.set(null);
+    } catch (err: unknown) {
+      const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao buscar clientes';
+      this.clienteSearchError.set(msg);
+      this.clienteCandidates.set([]);
+    } finally {
+      this.clienteSearchLoading.set(false);
+    }
+  }
+
+  async selectClienteCandidate(c: DiscoveryCandidateRow): Promise<void> {
+    this.selectedCliente.set(c);
+    this.selectedClienteId.set(c.cliente_id);
+    this.draftTutor.set((c.nome || c.nome_masked || '').trim());
+    this.clienteSearchTerm.set(this.draftTutor());
+    this.clienteCandidates.set([]);
+    this.clientePermissaoStatus.set(c.permissao_status || null);
+    this.clientePermissaoEscopo.set(c.permissao_escopo || null);
+    this.clienteConvitePendenteId.set(c.convite_pendente_id ?? null);
+    this.selectedPetId.set(null);
+    this.clientePanoramaPets.set([]);
+    this.quickPetError.set(null);
+
+    if (c.permissao_status === 'concedido') {
+      await this.loadClientePanoramaPets(c.cliente_id);
+    }
+  }
+
+  private async loadClientePanoramaPets(clienteId: number): Promise<void> {
+    try {
+      this.loadingPanoramaPets.set(true);
+      const pan = await this.agendaApi.getClientePanoramaDados(clienteId);
+      this.clientePanoramaPets.set(Array.isArray(pan?.pets) ? pan.pets : []);
+      if (this.clientePanoramaPets().length === 1) {
+        this.selectedPetId.set(this.clientePanoramaPets()[0].id);
+        this.draftPet.set(this.clientePanoramaPets()[0].nome || '');
+      }
+    } catch {
+      this.clientePanoramaPets.set([]);
+    } finally {
+      this.loadingPanoramaPets.set(false);
+    }
+  }
+
+  onSelectPet(petId: number | null): void {
+    this.selectedPetId.set(petId);
+    if (!petId) return;
+    const hit = this.clientePanoramaPets().find((p) => p.id === petId);
+    if (hit) this.draftPet.set(hit.nome || '');
+  }
+
+  async criarPetRapido(): Promise<void> {
+    const clienteId = this.selectedClienteId();
+    const nome = this.quickPetNome().trim();
+    if (!clienteId) {
+      this.quickPetError.set('Selecione um cliente antes de cadastrar pet.');
+      return;
+    }
+    if (!nome) {
+      this.quickPetError.set('Informe o nome do pet.');
+      return;
+    }
+    try {
+      this.quickPetSaving.set(true);
+      this.quickPetError.set(null);
+      const pet = await this.agendaApi.createClientePetQuick(clienteId, {
+        nome,
+        especie: this.quickPetEspecie().trim() || null,
+        raca: this.quickPetRaca().trim() || null,
+        porte: this.quickPetPorte().trim() || null,
+      });
+      if (!pet) {
+        this.quickPetError.set('Não foi possível cadastrar o pet.');
+        return;
+      }
+      const next = [...this.clientePanoramaPets(), pet];
+      this.clientePanoramaPets.set(next);
+      this.selectedPetId.set(pet.id);
+      this.draftPet.set(pet.nome || '');
+      this.quickPetNome.set('');
+      this.quickPetEspecie.set('');
+      this.quickPetRaca.set('');
+      this.quickPetPorte.set('');
+    } catch (err: unknown) {
+      const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao criar pet';
+      this.quickPetError.set(msg);
+    } finally {
+      this.quickPetSaving.set(false);
+    }
+  }
+
+  async solicitarPermissaoCliente(): Promise<void> {
+    const c = this.selectedCliente();
+    if (!c) return;
+    try {
+      this.saving.set(true);
+      this.formError.set(null);
+      const res = await this.agendaApi.postConviteCliente({
+        cliente_id: c.cliente_id,
+        escopo: 'pets',
+        days_valid: 7,
+      });
+      this.clienteConvitePendenteId.set(res?.convite?.id ?? this.clienteConvitePendenteId());
+      this.formError.set('Convite de permissão enviado ao cliente.');
+    } catch (err: unknown) {
+      const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao enviar convite';
+      this.formError.set(msg);
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  clientePermissaoBadge(): string | null {
+    const st = String(this.clientePermissaoStatus() || '').toLowerCase();
+    if (!st) return null;
+    if (st === 'concedido') return 'Permissão concedida';
+    if (st === 'pendente') return 'Permissão pendente';
+    if (st === 'revogado') return 'Permissão revogada';
+    return st;
   }
 
   private syncDetailDraftsFromReserva(r: HotelReservaRow): void {
@@ -293,9 +476,16 @@ export class ReservasHotelComponent implements OnInit {
     const petNome = this.draftPet().trim();
     const checkIn = this.draftCheckIn();
     const checkOut = this.draftCheckOut();
+    const clienteId = this.selectedClienteId();
+    const petId = this.selectedPetId();
+    const permissao = String(this.clientePermissaoStatus() || '').toLowerCase();
 
     if (!tutorNome || !petNome || !checkIn || !checkOut) {
       this.formError.set('Preencha tutor, pet e período.');
+      return;
+    }
+    if (clienteId && permissao === 'concedido' && !petId) {
+      this.formError.set('Selecione um pet do cliente ou cadastre um pet rápido.');
       return;
     }
 
@@ -310,6 +500,8 @@ export class ReservasHotelComponent implements OnInit {
       const nights = Math.max(1, this.diffDays(checkIn, checkOut));
       const created = await this.agendaApi.createHotelReserva({
         leito_id: this.draftLeitoId() || null,
+        cliente_id: clienteId && permissao === 'concedido' ? clienteId : null,
+        pet_id: clienteId && permissao === 'concedido' ? petId || null : null,
         cliente_nome_snapshot: tutorNome,
         pet_nome_snapshot: petNome,
         check_in: `${checkIn}T12:00:00`,

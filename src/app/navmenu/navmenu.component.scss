@@ -275,7 +275,114 @@ nav.app-navbar {
     box-shadow: 0 0 0 1px rgba(15, 11, 46, 0.6), 0 0 10px rgba(197, 255, 61, 0.55);
   }
 
-  .navbar-actions { display: flex; align-items: center; flex-shrink: 0; height: 100%; }
+  .navbar-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    height: 100%;
+    gap: 8px;
+  }
+
+  .navbar-notifs-desktop {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .navbar-notifs-desktop ::ng-deep .bell-btn {
+    width: 36px;
+    height: 36px;
+    i { font-size: 1rem; }
+  }
+
+  @media (max-width: 767px) {
+    .navbar-notifs-desktop {
+      display: none !important;
+    }
+  }
+
+  .ps-partner-shell-menu {
+    flex-shrink: 0;
+    font-family: $font-display;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.92);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: var(--ps-aurora);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--ps-aurora);
+      outline-offset: 2px;
+    }
+  }
+
+  // Segmented tutor / prestador — visível também no telefone na barra do topo (evita depender só do FAB)
+  .ps-view-toggle {
+    display: inline-flex;
+    align-items: stretch;
+    padding: 2px;
+    border-radius: 999px;
+    background: rgba(15, 11, 46, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .ps-view-toggle__btn {
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    margin: 0;
+    cursor: pointer;
+    font-family: $font-display;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    padding: 6px 12px;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.55);
+    background: transparent;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      transform 0.18s var(--ps-ease-spring);
+
+    &:hover:not(:disabled) {
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    &.ps-view-toggle__btn--active {
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--ps-cosmos);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.65) inset,
+        0 4px 14px rgba(15, 11, 46, 0.25);
+    }
+
+    &.ps-view-toggle__btn--prof {
+      max-width: 108px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .ps-view-toggle:focus-within {
+    outline: 2px solid var(--ps-aurora);
+    outline-offset: 2px;
+  }
+
+  .ps-view-toggle__btn:focus-visible {
+    outline: 2px solid var(--ps-aurora);
+    outline-offset: 2px;
+  }
 
   .user-trigger {
     display: inline-flex; align-items: center; justify-content: center;
@@ -300,10 +407,22 @@ nav.app-navbar {
   }
   .user-trigger svg { flex-shrink: 0; }
 
-  /* Mobile: avatar só no FAB; header sem foto (área do cliente continua no dock/sheet) */
+  /* Mobile: avatar só no FAB; troca cliente/prestador fica ao lado do logo no topo */
   @include sm {
-    .navbar-actions {
-      display: none;
+    .navbar-user-trigger {
+      display: none !important;
+    }
+  }
+
+  @include xs {
+    .ps-view-toggle__btn {
+      font-size: 10px;
+      padding: 5px 8px;
+    }
+    .ps-view-toggle__btn--prof {
+      max-width: 84px;
+      padding-left: 5px;
+      padding-right: 5px;
     }
   }
 
@@ -378,7 +497,7 @@ nav.app-navbar {
       z-index: 2;
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 56px minmax(0, 1fr) minmax(0, 1fr);
-      align-items: center;
+      align-items: end;
       flex: 1;
       min-width: 0;
       width: 100%;
@@ -387,6 +506,20 @@ nav.app-navbar {
       list-style: none;
       margin: 0;
       padding: 0;
+    }
+
+    /*
+     * Fullscreen notifications vivem dentro do `ul` (stacking baixo).
+     * O `.ps-fab-host` é irmão com z-index maior — sem este ajuste o FAB cobre o conteúdo.
+     */
+    &.ps-dock--notif-fullscreen-open {
+      .ps-dock__items {
+        z-index: 2000100;
+      }
+
+      .ps-fab-host {
+        z-index: 2000018 !important;
+      }
     }
 
     .ps-dock__spacer {
@@ -405,6 +538,26 @@ nav.app-navbar {
       list-style: none;
     }
 
+    .ps-dock__item--notif {
+      min-width: 0;
+    }
+
+    .ps-dock__notif-host {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+      justify-content: center;
+      align-items: stretch;
+      height: 100%;
+
+      ::ng-deep app-notifications-bell {
+        flex: 1 1 auto;
+        display: flex !important;
+        min-width: 0;
+        align-items: stretch;
+      }
+    }
+
     .ps-dock__item--fill {
       pointer-events: none;
     }
@@ -414,7 +567,7 @@ nav.app-navbar {
       display: inline-flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
       gap: 4px;
       width: 100%;
       min-width: 0;
@@ -1436,9 +1589,11 @@ nav.app-navbar.is-night .ps-dock::after {
   max-height: inherit;
   min-height: 320px;
   min-width: 320px;
-  /* Reserva espaço para .cliente-close fixo evitando overlap com o sino/bade; topo suave contra clip do pai */
-  padding-top: 6px;
-  padding-right: 48px;
+  /* Conteúdo usa largura total; ✕ fecha sobreposta no canto do painel */
+  padding-top: 8px;
+  padding-inline: 12px;
+  /* Evita que o último conteúdo encoste no arco do border-radius / safe area (iOS) */
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
 
@@ -1450,8 +1605,9 @@ nav.app-navbar.is-night .ps-dock::after {
   }
 
   .cliente-modal-inner {
-    padding-right: 48px;
-    padding-top: 6px;
+    padding-inline: 10px;
+    padding-top: 8px;
+    padding-bottom: max(14px, calc(10px + env(safe-area-inset-bottom, 0px)));
   }
 }
 
@@ -1463,10 +1619,10 @@ nav.app-navbar.is-night .ps-dock::after {
 }
 
 .cliente-close {
-  position: fixed;
-  top: 88px;
-  right: calc(50vw - min(46vw, 280px) + 8px);
-  z-index: 2000021;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 30;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   border: 1px solid var(--ps-glass-line);
@@ -1483,13 +1639,8 @@ nav.app-navbar.is-night .ps-dock::after {
   &:active { transform: scale(0.96); }
 }
 
-body.notifications-overlay-open .cliente-close {
-  opacity: 0;
-  pointer-events: none;
-}
-
 @media (max-width: 560px) {
-  .cliente-close { top: 80px; right: 14px; }
+  .cliente-close { top: 8px; right: 8px; }
 }
 
 .cliente-overlay {

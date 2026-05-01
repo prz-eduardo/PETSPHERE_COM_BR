@@ -370,6 +370,56 @@ th {
   border: 1px solid var(--admin-border);
 }
 
+.cliente-candidates {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: -0.1rem;
+}
+
+.cliente-candidate-item {
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--admin-radius-sm);
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  display: grid;
+  gap: 0.1rem;
+  cursor: pointer;
+  color: var(--admin-text);
+
+  small {
+    color: var(--admin-muted);
+  }
+}
+
+.cliente-permissao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.quick-pet-box {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+  padding: 0.55rem;
+  display: grid;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.02);
+
+  h4 {
+    margin: 0;
+    font-size: var(--admin-font-size-sm);
+    color: var(--admin-text-strong);
+  }
+}
+
+.quick-pet-grid {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .empty-state {
   padding: 1.4rem;
   text-align: center;

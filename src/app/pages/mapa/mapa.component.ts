@@ -10,9 +10,10 @@ import {
   ViewChild,
   ElementRef,
 } from '@angular/core';
-import { firstValueFrom, forkJoin, of, Subject } from 'rxjs';
+import { firstValueFrom, forkJoin, of, Subject, combineLatest } from 'rxjs';
 import { filter, take, takeUntil } from 'rxjs/operators';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { SessionService } from '../../services/session.service';
@@ -38,7 +39,7 @@ const DEFAULT_SEARCH_RADIUS_KM = 15;
 @Component({
   selector: 'app-mapa',
   standalone: true,
-  imports: [CommonModule, RouterModule, BannerSlotComponent],
+  imports: [CommonModule, RouterModule, FormsModule, BannerSlotComponent],
   templateUrl: './mapa.component.html',
   styleUrls: ['./mapa.component.scss']
 })
@@ -116,6 +117,73 @@ export class MapaComponent implements OnInit, OnDestroy {
   priceFilterEnabled = false;
   quickSearchIndex = 0;
   quickSearchOrdered: any[] = [];
+
+  /** Transporte Pet — painel manual no mapa; URL `?service=transporte` com `:slug` abre o painel automaticamente. */
+  transportePetAtivo = false;
+  /** Painel inferior / modal com origem, destino, cotação (esconde chips de categoria). */
+  transportePetPainelAberto = false;
+  /** Data/hora local (input datetime-local) quando urgência = agendado. */
+  transportePetScheduledAtLocal = '';
+  transportePetPorte: 'pequeno' | 'medio' | 'grande' ='medio';
+  transportePetUrgencia: 'agora' | 'agendado' = 'agora';
+  transportePetOrigemLat: number | null = null;
+  transportePetOrigemLng: number | null = null;
+  transportePetDestLat: number | null = null;
+  transportePetDestLng: number | null = null;
+  transportePetQuote: { preco_centavos?: number; distancia_km?: number } | null = null;
+  transportePetBusy = false;
+  transportePetLocLoading = false;
+  transportePetLastCorridaId: number | null = null;
+  transportePetLastParceiroId: number | null = null;
+  /** Mapa nacional: loja escolhida para cotação/pagamento (rota ou tenant têm prioridade). */
+  transportePetLojaSlugEscolhida: string | null = null;
+  /** Fluxo: escolher loja antes do painel de cotação. */
+  transportePetSelecaoLojaAberta = false;
+
+  get transporteLojaSlugEfetivo(): string | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    const paramSlug = String(this.route.snapshot.paramMap.get('slug') || '').trim().toLowerCase();
+    if (paramSlug) return paramSlug;
+    const p = this.tenantLoja.profile();
+    const ls = p?.loja_slug != null ? String(p.loja_slug).trim().toLowerCase() : '';
+    return ls || null;
+  }
+
+  /** Slug usado nas APIs de transporte: URL/tenant ou escolha manual no mapa rede. */
+  get transporteLojaSlugParaCorrida(): string | null {
+    const base = this.transporteLojaSlugEfetivo;
+    if (base) return base;
+    const s = this.transportePetLojaSlugEscolhida;
+    return s ? String(s).trim().toLowerCase() : null;
+  }
+
+  /** Botão visível no mapa rede e vitrine — antes só aparecia com slug na URL. */
+  get transportePetMostrarBotao(): boolean {
+    return isPlatformBrowser(this.platformId);
+  }
+
+  /** Lojas com slug de vitrine carregadas no mapa (para pedir corrida sem URL da loja). */
+  get parceirosParaTransportePet(): Array<{ nome: string; slug: string; lat?: number; lng?: number }> {
+    const src = this.allPartners?.length ? this.allPartners : this.partners;
+    const seen = new Set<string>();
+    const out: Array<{ nome: string; slug: string; lat?: number; lng?: number }> = [];
+    for (const p of src || []) {
+      const slug = this.getPartnerStoreSlug(p);
+      if (!slug || seen.has(slug)) continue;
+      seen.add(slug);
+      const lat = Number(p.latitude ?? p.lat ?? p._raw?.latitude);
+      const lng = Number(p.longitude ?? p.lng ?? p._raw?.longitude);
+      const nome = String(p.nome_fantasia ?? p.nome ?? p.nome_parceiro ?? slug).trim() || slug;
+      const row: { nome: string; slug: string; lat?: number; lng?: number } = { nome, slug };
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        row.lat = lat;
+        row.lng = lng;
+      }
+      out.push(row);
+    }
+    out.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    return out;
+  }
 
   toggleResultsAccordion(): void {
     this.resultsAccordionOpen = !this.resultsAccordionOpen;
@@ -812,7 +880,26 @@ export class MapaComponent implements OnInit, OnDestroy {
     // follow the same pattern as other pages: only call API from the browser
     // to avoid SSR network errors.
     if (isPlatformBrowser(this.platformId)) {
-      this.route.paramMap.pipe(takeUntil(this.destroyRoute$)).subscribe(() => {
+      combineLatest([this.route.paramMap, this.route.queryParamMap])
+        .pipe(takeUntil(this.destroyRoute$))
+        .subscribe(() => {
+        const slug = String(this.route.snapshot.paramMap.get('slug') || '').trim().toLowerCase();
+        const svc = String(this.route.snapshot.queryParamMap.get('service') || '').toLowerCase();
+        if (slug) {
+          this.transportePetLojaSlugEscolhida = null;
+        }
+        this.transportePetAtivo = svc === 'transporte';
+        if (svc === 'transporte') {
+          if (this.transporteLojaSlugParaCorrida) {
+            this.transportePetSelecaoLojaAberta = false;
+            this.transportePetPainelAberto = true;
+            this.initTransporteCoordsSeNecessario();
+            this.ensureTransporteScheduledLocal();
+          } else {
+            this.transportePetPainelAberto = false;
+            this.transportePetSelecaoLojaAberta = true;
+          }
+        }
         this.capturePartnerFromRoute();
         try {
           this.resolveRequestedPartnerIdFromLoadedPartners();
@@ -860,6 +947,250 @@ export class MapaComponent implements OnInit, OnDestroy {
     } else {
       this.loading = false;
     }
+  }
+
+  private initTransporteCoordsSeNecessario(): void {
+    if (this.transportePetOrigemLat != null) return;
+    this.transportePetOrigemLat = this.pharmacyCoords?.lat ?? LOJA_MAPA_LAT;
+    this.transportePetOrigemLng = this.pharmacyCoords?.lng ?? LOJA_MAPA_LNG;
+    this.transportePetDestLat = (this.pharmacyCoords?.lat ?? LOJA_MAPA_LAT) + 0.02;
+    this.transportePetDestLng = (this.pharmacyCoords?.lng ?? LOJA_MAPA_LNG) + 0.02;
+  }
+
+  private toDatetimeLocalValue(d: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  private ensureTransporteScheduledLocal(): void {
+    if (this.transportePetUrgencia !== 'agendado') return;
+    if (this.transportePetScheduledAtLocal) return;
+    this.transportePetScheduledAtLocal = this.toDatetimeLocalValue(new Date(Date.now() + 2 * 3600000));
+  }
+
+  private scheduledAtIsoFromLocal(): string | undefined {
+    if (this.transportePetUrgencia !== 'agendado') return undefined;
+    const raw = (this.transportePetScheduledAtLocal || '').trim();
+    if (!raw) return undefined;
+    const dt = new Date(raw);
+    if (Number.isNaN(dt.getTime())) return undefined;
+    return dt.toISOString();
+  }
+
+  abrirTransportePetPainel(): void {
+    this.mapSearchUiOpen = false;
+    this.mapConfigOpen = false;
+    if (this.transporteLojaSlugParaCorrida) {
+      this.transportePetSelecaoLojaAberta = false;
+      this.transportePetPainelAberto = true;
+      this.initTransporteCoordsSeNecessario();
+      this.ensureTransporteScheduledLocal();
+    } else {
+      this.transportePetPainelAberto = false;
+      this.transportePetSelecaoLojaAberta = true;
+      if (!this.parceirosParaTransportePet.length && !this.loading) {
+        this.toast.info('Carregue o mapa ou aproxime a busca: em seguida escolha uma loja para pedir transporte.');
+      }
+    }
+    this.scheduleMapResize();
+  }
+
+  fecharTransportePetPainel(): void {
+    this.transportePetPainelAberto = false;
+    this.scheduleMapResize();
+  }
+
+  fecharTransporteSelecaoLoja(): void {
+    this.transportePetSelecaoLojaAberta = false;
+    this.scheduleMapResize();
+  }
+
+  escolherLojaParaTransporte(slug: string, lat?: number | null, lng?: number | null): void {
+    const s = String(slug || '').trim().toLowerCase();
+    if (!s) return;
+    this.transportePetLojaSlugEscolhida = s;
+    this.transportePetSelecaoLojaAberta = false;
+    this.transportePetPainelAberto = true;
+    const la = lat != null ? Number(lat) : NaN;
+    const ln = lng != null ? Number(lng) : NaN;
+    if (Number.isFinite(la) && Number.isFinite(ln)) {
+      this.transportePetOrigemLat = la;
+      this.transportePetOrigemLng = ln;
+      this.transportePetDestLat = la + 0.02;
+      this.transportePetDestLng = ln + 0.02;
+    } else {
+      this.transportePetOrigemLat = null;
+      this.transportePetOrigemLng = null;
+      this.transportePetDestLat = null;
+      this.transportePetDestLng = null;
+      this.initTransporteCoordsSeNecessario();
+    }
+    this.ensureTransporteScheduledLocal();
+    this.scheduleMapResize();
+  }
+
+  trocarLojaTransporte(): void {
+    if (!this.transportePetLojaSlugEscolhida || this.transporteLojaSlugEfetivo) return;
+    this.transportePetPainelAberto = false;
+    this.transportePetLojaSlugEscolhida = null;
+    this.transportePetQuote = null;
+    this.transportePetSelecaoLojaAberta = true;
+    this.scheduleMapResize();
+  }
+
+  onTransporteUrgenciaChange(): void {
+    this.ensureTransporteScheduledLocal();
+  }
+
+  transportePetCotar(): void {
+    const slug = this.transporteLojaSlugParaCorrida;
+    if (!slug) return;
+    const oLat = Number(this.transportePetOrigemLat);
+    const oLng = Number(this.transportePetOrigemLng);
+    const dLat = Number(this.transportePetDestLat);
+    const dLng = Number(this.transportePetDestLng);
+    if (![oLat, oLng, dLat, dLng].every((x) => Number.isFinite(x))) {
+      this.toast.error('Preencha origem e destino (coordenadas).');
+      return;
+    }
+    this.transportePetBusy = true;
+    this.api
+      .publicTransportePetQuote(slug, {
+        origem_lat: oLat,
+        origem_lng: oLng,
+        destino_lat: dLat,
+        destino_lng: dLng,
+        pet_porte: this.transportePetPorte,
+        urgencia: this.transportePetUrgencia,
+      })
+      .subscribe({
+        next: (q) => {
+          this.transportePetQuote = q;
+          this.transportePetBusy = false;
+          this.toast.success('Cotação atualizada');
+        },
+        error: (e) => {
+          this.transportePetBusy = false;
+          this.toast.error(e?.error?.error || 'Falha na cotação');
+        },
+      });
+  }
+
+  transportePetSolicitar(): void {
+    const slug = this.transporteLojaSlugParaCorrida;
+    if (!slug) return;
+    const tok = this.session.getBackendToken();
+    const dec = this.session.decodeToken(tok || undefined);
+    if (!tok || String(dec?.tipo || '').toLowerCase() !== 'cliente') {
+      this.toast.error('Entre com sua conta de tutor para solicitar.');
+      void this.router.navigate(['/area-cliente'], { queryParams: { returnUrl: this.router.url } });
+      return;
+    }
+    const oLat = Number(this.transportePetOrigemLat);
+    const oLng = Number(this.transportePetOrigemLng);
+    const dLat = Number(this.transportePetDestLat);
+    const dLng = Number(this.transportePetDestLng);
+    if (![oLat, oLng, dLat, dLng].every((x) => Number.isFinite(x))) {
+      this.toast.error('Coordenadas inválidas.');
+      return;
+    }
+    let scheduledIso: string | undefined;
+    if (this.transportePetUrgencia === 'agendado') {
+      scheduledIso = this.scheduledAtIsoFromLocal();
+      if (!scheduledIso) {
+        this.toast.error('Informe data e horário da viagem.');
+        return;
+      }
+    }
+    this.transportePetBusy = true;
+    this.api
+      .createClienteTransportePetCorrida(tok, {
+        loja_slug: slug,
+        origem_lat: oLat,
+        origem_lng: oLng,
+        destino_lng: dLng,
+        destino_lat: dLat,
+        origem_texto: 'Origem (mapa)',
+        destino_texto: 'Destino (mapa)',
+        pet_porte: this.transportePetPorte,
+        urgencia: this.transportePetUrgencia,
+        scheduled_at: scheduledIso,
+      } as any)
+      .subscribe({
+        next: (r) => {
+          const id = Number((r.corrida as any)?.id);
+          const pid = Number((r.corrida as any)?.parceiro_id);
+          this.transportePetLastCorridaId = id;
+          this.transportePetLastParceiroId = Number.isFinite(pid) && pid > 0 ? pid : null;
+          if (!id) {
+            this.transportePetBusy = false;
+            this.toast.error('Resposta inválida');
+            return;
+          }
+          this.api.checkoutClienteTransportePetCorrida(tok, id, slug).subscribe({
+            next: (c) => {
+              this.transportePetBusy = false;
+              if (c.payment_url) window.location.href = c.payment_url;
+              else this.toast.error('URL de pagamento indisponível');
+            },
+            error: (e) => {
+              this.transportePetBusy = false;
+              this.toast.error(e?.error?.error || 'Falha no checkout');
+            },
+          });
+        },
+        error: (e) => {
+          this.transportePetBusy = false;
+          this.toast.error(e?.error?.error || 'Falha ao criar corrida');
+        },
+      });
+  }
+
+  transportePetFmtReais(centavos?: number | null): string {
+    if (centavos == null || !Number.isFinite(Number(centavos))) return '—';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+      Number(centavos) / 100
+    );
+  }
+
+  /** Define origem da corrida na posição atual do dispositivo. */
+  transportePetUsarMinhaOrigem(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    this.transportePetLocLoading = true;
+    this.getUserPosition({ maxAge: 0, timeout: 20000 })
+      .then((pos) => {
+        this.zone.run(() => {
+          this.transportePetOrigemLat = pos.lat;
+          this.transportePetOrigemLng = pos.lng;
+          this.transportePetLocLoading = false;
+          this.toast.success('Origem definida pela sua localização.');
+        });
+      })
+      .catch(() => {
+        this.zone.run(() => {
+          this.transportePetLocLoading = false;
+          this.toast.error('Não foi possível obter sua localização. Verifique permissões do navegador.');
+        });
+      });
+  }
+
+  /** Origem no endereço da loja (pin da farmácia / tenant). */
+  transportePetUsarLojaComoOrigem(): void {
+    const lat = this.pharmacyCoords?.lat ?? LOJA_MAPA_LAT;
+    const lng = this.pharmacyCoords?.lng ?? LOJA_MAPA_LNG;
+    this.transportePetOrigemLat = lat;
+    this.transportePetOrigemLng = lng;
+    this.toast.success('Origem definida no ponto da loja no mapa.');
+  }
+
+  transportePetInverterOrigemDestino(): void {
+    const oLat = this.transportePetOrigemLat;
+    const oLng = this.transportePetOrigemLng;
+    this.transportePetOrigemLat = this.transportePetDestLat;
+    this.transportePetOrigemLng = this.transportePetDestLng;
+    this.transportePetDestLat = oLat;
+    this.transportePetDestLng = oLng;
+    this.toast.success('Origem e destino invertidos.');
   }
 
   ngOnDestroy(): void {

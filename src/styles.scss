@@ -94,24 +94,54 @@ html, body{
     body.mapa-no-topnav .app-navbar .ps-radial {
         pointer-events: auto;
     }
+    /* Só strip com Cliente | Parceiro — mapa ficava sem atalho após mover do FAB */
     body.mapa-no-topnav .app-navbar .menubar.navbar-mainbg {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        pointer-events: auto !important;
+        padding-left: max(12px, env(safe-area-inset-left)) !important;
+        padding-right: max(12px, env(safe-area-inset-right)) !important;
+        padding-bottom: 4px !important;
+    }
+    body.mapa-no-topnav .app-navbar .navbar-brand-link,
+    body.mapa-no-topnav .app-navbar .navbar-tabs-outer {
         display: none !important;
     }
+    body.mapa-no-topnav .navbar-actions {
+        pointer-events: auto !important;
+        margin: 0 !important;
+        width: auto;
+        justify-content: center;
+    }
     body.mapa-no-topnav .app-navbar .nav-menu {
-        height: 0;
-        min-height: 0;
+        height: auto !important;
+        min-height: calc(42px + constant(safe-area-inset-top)) !important;
+        min-height: calc(42px + env(safe-area-inset-top)) !important;
     }
     body.mapa-no-topnav .app-main:not(.no-nav) {
-        padding-top: 0;
-        padding-top: constant(safe-area-inset-top);
-        padding-top: env(safe-area-inset-top);
+        padding-top: calc(constant(safe-area-inset-top) + 42px);
+        padding-top: calc(env(safe-area-inset-top) + 42px);
     }
 
     /* Mapa mobile: ecrã cheio = 100dvh − entalhes − dock; sem reservar 64px do header que já foi ocultado */
     body.mapa-no-topnav app-mapa.host--mobile-map {
         --mapa-mobile-vh: calc(
-            100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 80px
+            100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 132px
         );
+    }
+    /* Dock: rótulos mais curtos para não colidir com o FAB central */
+    body.mapa-no-topnav .app-navbar .ps-dock__link {
+        gap: 2px;
+        padding-left: 3px;
+        padding-right: 3px;
+    }
+    body.mapa-no-topnav .app-navbar .ps-dock__label {
+        font-size: 9px;
+        max-width: 62px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
 
@@ -846,6 +876,20 @@ html.force-light *, body.force-light * {
     color-scheme: light !important;
     forced-color-adjust: none !important;
     filter: none !important;
+}
+
+/* Painel parceiro autenticado: html/body seguem o creme global + force-light;
+   isso vaza no overscroll e atrás da navbar. Mesma cor base do admin (--admin-bg). */
+html.ps-parceiro-shell,
+html.ps-parceiro-shell body,
+body.ps-parceiro-shell {
+    background-color: var(--admin-bg, #0d151f) !important;
+}
+
+html.force-light.ps-parceiro-shell,
+html.force-light.ps-parceiro-shell body,
+body.force-light.ps-parceiro-shell {
+    background-color: var(--admin-bg, #0d151f) !important;
 }
 
 /* -------------------------------------------------------------------------

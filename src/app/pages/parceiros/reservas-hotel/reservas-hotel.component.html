@@ -204,13 +204,65 @@
 
       <div class="drawer-form">
         <label>
-          <span>Tutor</span>
-          <input type="text" [ngModel]="draftTutor()" (ngModelChange)="draftTutor.set($event)" placeholder="Nome do tutor" />
+          <span>Tutor (mini-CRM)</span>
+          <input
+            type="text"
+            [ngModel]="clienteSearchTerm()"
+            (ngModelChange)="onClienteSearchInput($event)"
+            placeholder="Buscar por nome, telefone ou CPF"
+          />
         </label>
+        <div class="cliente-candidates" *ngIf="clienteCandidates().length">
+          <button
+            type="button"
+            class="cliente-candidate-item"
+            *ngFor="let c of clienteCandidates()"
+            (click)="selectClienteCandidate(c)"
+          >
+            <strong>{{ c.nome || c.nome_masked }}</strong>
+            <small>{{ c.telefone_masked || c.email_masked || c.cpf_masked }}</small>
+          </button>
+        </div>
+        <p class="muted" *ngIf="clienteSearchLoading()">Buscando clientes...</p>
+        <p class="error-msg" *ngIf="clienteSearchError()">{{ clienteSearchError() }}</p>
+        <div class="cliente-permissao" *ngIf="selectedCliente()">
+          <span class="status-pill" [attr.data-status]="clientePermissaoStatus() || 'pendente'">{{ clientePermissaoBadge() }}</span>
+          <button
+            type="button"
+            class="btn-link"
+            *ngIf="clientePermissaoStatus() !== 'concedido'"
+            (click)="solicitarPermissaoCliente()"
+          >
+            {{ clienteConvitePendenteId() ? 'Reenviar permissão' : 'Solicitar permissão' }}
+          </button>
+        </div>
         <label>
           <span>Pet</span>
-          <input type="text" [ngModel]="draftPet()" (ngModelChange)="draftPet.set($event)" placeholder="Nome do pet" />
+          <select
+            *ngIf="clientePermissaoStatus() === 'concedido'; else petManualField"
+            [ngModel]="selectedPetId()"
+            (ngModelChange)="onSelectPet($event)"
+          >
+            <option [ngValue]="null">Selecione um pet</option>
+            <option *ngFor="let p of clientePanoramaPets()" [ngValue]="p.id">{{ p.nome }}{{ p.especie ? (' · ' + p.especie) : '' }}</option>
+          </select>
+          <ng-template #petManualField>
+            <input type="text" [ngModel]="draftPet()" (ngModelChange)="draftPet.set($event)" placeholder="Nome do pet" />
+          </ng-template>
         </label>
+        <div class="quick-pet-box" *ngIf="clientePermissaoStatus() === 'concedido'">
+          <h4>Novo pet rápido</h4>
+          <div class="quick-pet-grid">
+            <input type="text" [ngModel]="quickPetNome()" (ngModelChange)="quickPetNome.set($event)" placeholder="Nome do pet" />
+            <input type="text" [ngModel]="quickPetEspecie()" (ngModelChange)="quickPetEspecie.set($event)" placeholder="Espécie" />
+            <input type="text" [ngModel]="quickPetRaca()" (ngModelChange)="quickPetRaca.set($event)" placeholder="Raça" />
+            <input type="text" [ngModel]="quickPetPorte()" (ngModelChange)="quickPetPorte.set($event)" placeholder="Porte" />
+          </div>
+          <button type="button" class="btn-secondary" (click)="criarPetRapido()" [disabled]="quickPetSaving()">
+            {{ quickPetSaving() ? 'Cadastrando...' : 'Cadastrar pet rápido' }}
+          </button>
+          <p class="error-msg" *ngIf="quickPetError()">{{ quickPetError() }}</p>
+        </div>
         <label>
           <span>Espaço de hospedagem</span>
           <select [ngModel]="draftLeitoId()" (ngModelChange)="draftLeitoId.set($event)">

@@ -50,6 +50,48 @@
   .tipo-badge { flex-shrink: 0; }
 }
 
+/* Espelho do switch Cliente | Parceiro do navmenu público — aqui estamos sempre no lado prestador */
+.parceiro-mode-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  flex-shrink: 1;
+  min-width: 0;
+  margin-left: 8px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--admin-border);
+}
+
+.pmt-seg {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-family: inherit;
+  font-weight: var(--admin-font-weight-bold);
+  font-size: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: none;
+  color: var(--admin-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--admin-text-strong);
+  }
+
+  &--active {
+    background: var(--admin-surface-2);
+    color: var(--admin-primary);
+    border: 1px solid rgba(13, 184, 222, 0.35);
+    cursor: default;
+  }
+}
+
 .tipo-badge {
   background: rgba(13, 184, 222, 0.12);
   color: var(--admin-primary);
@@ -337,26 +379,40 @@
   box-shadow: var(--admin-focus-ring);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .header-nav { display: none; }
 
-  /* Empurra o hambúrguer para o canto direito do header */
-  .burger-btn {
-    display: inline-flex;
-    margin-left: auto;
+  /* Barra cosmos global (`app-navmenu`) cobre marca + Cliente|Parceiro + “Mais”; recolhe o chrome duplicado. */
+  .parceiro-header {
+    gap: 0;
+    padding: 0 !important;
+    min-height: 0 !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+
+    > .header-brand,
+    > .parceiro-mode-toggle,
+    > .burger-btn,
+    > .header-nav,
+    > .header-actions {
+      display: none !important;
+    }
   }
 
   .mobile-nav {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    position: fixed;
+    left: 0 !important;
+    right: 0 !important;
+    top: calc(var(--nav-height) + env(safe-area-inset-top, 0px)) !important;
+    z-index: 1999900 !important;
+    max-height: calc(100dvh - var(--nav-height) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12px) !important;
+    border-radius: 0 0 14px 14px;
+    margin: 0 !important;
     background: var(--admin-surface);
     border-bottom: 1px solid var(--admin-border);
     box-shadow: var(--admin-shadow-md);
-    z-index: 150;
     padding: 8px 12px 14px;
-    max-height: min(72vh, calc(100dvh - 56px));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -366,6 +422,63 @@
     flex-direction: column;
     gap: 2px;
     padding-top: 4px;
+  }
+
+  .mobile-fab-shortcuts {
+    margin: 10px 0 6px;
+    padding: 12px 12px 10px;
+    border-radius: var(--admin-radius-md);
+    background: rgba(13, 184, 222, 0.08);
+    border: 1px solid rgba(13, 184, 222, 0.22);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-fab-shortcuts__label {
+    font-size: 10px;
+    font-weight: var(--admin-font-weight-semibold);
+    color: var(--admin-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .mobile-fab-shortcuts__hint {
+    margin: 0;
+    font-size: var(--admin-font-size-xs);
+    line-height: 1.45;
+    color: var(--admin-muted);
+  }
+
+  .mobile-fab-shortcuts__btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: var(--admin-radius-md);
+    border: 1px solid var(--admin-border);
+    background: var(--admin-surface-2);
+    color: var(--admin-text-strong);
+    font: inherit;
+    font-size: var(--admin-font-size-sm);
+    font-weight: var(--admin-font-weight-semibold);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .mobile-fab-shortcuts__btn i {
+    width: 20px;
+    text-align: center;
+    color: var(--admin-primary);
+    font-size: 14px;
+  }
+
+  .mobile-fab-shortcuts__btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(13, 184, 222, 0.35);
+    color: var(--admin-text);
   }
 
   .mobile-nav a {

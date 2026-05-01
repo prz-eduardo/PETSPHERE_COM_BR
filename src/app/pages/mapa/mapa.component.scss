@@ -4,13 +4,15 @@
 
 /* Tokens locais (fallback caso variáveis globais sumam) */
 :host {
-  /* Altura útil: nav (styles.scss) + dock móvel ~80px + safe areas */
-  --mapa-mobile-dock-height: 64px;
+  /* Espaço do dock = token global Aurora (68px); evita sobrepor FAB + barra Resultados */
+  --mapa-mobile-dock-height: var(--ps-dock-height, 68px);
   --mapa-mobile-dock-bottom-gap: 12px;
-  --mapa-mobile-panel-gap: 5px;
+  --mapa-mobile-panel-gap: 6px;
+  --mapa-mobile-results-bar-height: 56px;
   --mapa-mobile-dock-total-offset: calc(
     var(--mapa-mobile-dock-height) + var(--mapa-mobile-dock-bottom-gap) + env(safe-area-inset-bottom, 0px)
   );
+  /* Chips da legenda “solta” (desktop); no mobile a fila usa position:fixed alinhada ao painel */
   --mapa-mobile-results-head-height: -36px;
   --mapa-mobile-results-open-extra: 0px;
   --mapa-mobile-vh: calc(
@@ -816,6 +818,209 @@
   pointer-events: auto;
 }
 
+/* Atalho Transporte + fila com legenda (desktop/mobile) */
+.map-legend-row--desktop {
+  position: absolute;
+  z-index: 5;
+  top: clamp(16px, 2.2vh, 24px);
+  left: clamp(12px, 1.6vw, 20px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: min(680px, calc(100% - 28px));
+  pointer-events: none;
+}
+.map-legend-row--desktop > * {
+  pointer-events: auto;
+}
+.map-legend-row--desktop .map-legend--desktop {
+  position: static;
+  top: auto;
+  left: auto;
+  max-width: none;
+  flex: 1;
+  min-width: 0;
+  transform: none;
+}
+
+.mapa-transporte-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font: 700 11px/1.2 'Poppins', 'Montserrat', system-ui, sans-serif;
+  color: #fff;
+  background: linear-gradient(135deg, #0ea5e9 0%, #059669 100%);
+  box-shadow: 0 2px 14px rgba(14, 165, 233, 0.42);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.mapa-transporte-trigger:active {
+  transform: scale(0.98);
+}
+.mapa-transporte-trigger__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+.mapa-transporte-trigger__text {
+  letter-spacing: 0.02em;
+}
+
+.mapa-transporte-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+.mapa-transporte-overlay .mapa-transporte-backdrop,
+.mapa-transporte-overlay .mapa-transporte-sheet {
+  pointer-events: auto;
+}
+.mapa-transporte-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(2px);
+}
+.mapa-transporte-sheet {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  max-height: min(82vh, 560px);
+  overflow: auto;
+  margin: 0;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  -webkit-overflow-scrolling: touch;
+}
+.mapa-transporte-sheet__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.mapa-transporte-sheet__head--split {
+  align-items: center;
+}
+.mapa-transporte-sheet__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.mapa-transporte-sheet__linkish {
+  border: none;
+  background: none;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #0369a1;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mapa-transporte-picker__lead {
+  margin: 0 0 0.75rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--fp-ink-soft, #475569);
+}
+.mapa-transporte-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(48vh, 360px);
+  overflow: auto;
+}
+.mapa-transporte-picker__row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.35rem;
+  border: 1px solid var(--fp-border, rgba(15, 23, 42, 0.12));
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  text-align: left;
+}
+.mapa-transporte-picker__row:active {
+  transform: scale(0.99);
+}
+.mapa-transporte-picker__nome {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--fp-ink, #0f172a);
+}
+.mapa-transporte-picker__slug {
+  font-size: 0.76rem;
+  color: #64748b;
+}
+.mapa-transporte-picker__empty,
+.mapa-transporte-picker__state {
+  margin: 0.5rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+.mapa-transporte-sheet__title {
+  margin: 0;
+  flex: 1;
+}
+.mapa-transporte-sheet__close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.22);
+  color: var(--fp-ink, #0f172a);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.transporte-pet-map-panel--sheet {
+  margin: 0;
+  max-width: none;
+  border-radius: 20px 20px 0 0;
+}
+.transporte-pet-map-panel__datetime {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  margin-bottom: 0.65rem;
+}
+.transporte-pet-map-panel__datetime input {
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--fp-border);
+}
+
+@media (min-width: 861px) {
+  .mapa-transporte-overlay {
+    align-items: center;
+    padding: 16px;
+  }
+  .mapa-transporte-sheet {
+    border-radius: 20px;
+    max-height: min(88vh, 620px);
+  }
+  .transporte-pet-map-panel--sheet {
+    border-radius: 20px;
+  }
+}
+
 /* Desktop: mesmas pills da legenda mobile (clicáveis) */
 .map-legend--desktop {
   pointer-events: auto;
@@ -955,6 +1160,41 @@
   .gmap {
     min-height: 0;
     border-radius: 0;
+  }
+
+  .map-legend-row--mobile {
+    position: fixed;
+    z-index: 6;
+    left: 10px;
+    right: 10px;
+    bottom: calc(
+      var(--mapa-mobile-dock-total-offset) + var(--mapa-mobile-results-bar-height) + 10px
+    );
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: none;
+    width: auto;
+    box-sizing: border-box;
+    pointer-events: none;
+    transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .map-legend-row--mobile.map-legend-row--mobile--accordion-open {
+    bottom: calc(
+      var(--mapa-mobile-dock-total-offset) + var(--mapa-mobile-results-bar-height) + min(40vh, 320px) + 10px
+    );
+  }
+  .map-legend-row--mobile > * {
+    pointer-events: auto;
+  }
+  .map-legend-row--mobile .map-legend--mobile {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    flex: 1;
+    min-width: 0;
   }
 
   /* Legenda acima da faixa “Resultados” + dock */
@@ -1294,7 +1534,7 @@
     right: 8px;
     width: auto;
     bottom: calc(var(--mapa-mobile-dock-total-offset) + var(--mapa-mobile-panel-gap));
-    z-index: 5;
+    z-index: 7;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -1654,6 +1894,207 @@
     font-weight: 500;
     opacity: 0.75;
   }
+}
+
+/* Transporte Pet painel (mapa com slug + ?service=transporte) */
+.transporte-pet-map-panel {
+  margin: 0.75rem 1rem 0;
+  padding: 1rem 1.1rem 55px;
+  border-radius: var(--fp-radius, 16px);
+  background: linear-gradient(135deg, #ecfeff 0%, #f0fdf4 100%);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  box-shadow: var(--fp-shadow-sm);
+  max-width: 720px;
+}
+
+.transporte-pet-map-panel__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.transporte-pet-map-panel__intro {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--fp-ink-soft);
+}
+
+.transporte-pet-map-panel__loja {
+  color: var(--fp-ink, #0f172a);
+  word-break: break-word;
+}
+
+.transporte-pet-map-panel__row--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.transporte-pet-map-panel__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.transporte-pet-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(14, 165, 233, 0.4);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #0369a1;
+  cursor: pointer;
+}
+
+.transporte-pet-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transporte-pet-map-panel__details {
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(14, 165, 233, 0.35);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.transporte-pet-map-panel__details-summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: #0369a1;
+  list-style: none;
+}
+
+.transporte-pet-map-panel__details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.transporte-pet-map-panel__details-summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 0.12s ease;
+}
+
+.transporte-pet-map-panel__details[open] .transporte-pet-map-panel__details-summary::before {
+  transform: rotate(90deg);
+}
+
+.transporte-pet-map-panel__details-hint {
+  margin: 0.5rem 0 0.6rem;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.transporte-pet-map-panel__hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  color: var(--fp-ink-soft);
+}
+
+.transporte-pet-map-panel__quote-box {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(5, 150, 105, 0.28);
+}
+
+.transporte-pet-map-panel__quote-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #047857;
+}
+
+.transporte-pet-map-panel__quote-value {
+  margin: 0.2rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f766e;
+  letter-spacing: -0.02em;
+}
+
+.transporte-pet-map-panel__quote-meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+}
+
+.transporte-pet-map-panel__chat-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(3, 105, 161, 0.35);
+  background: #fff;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: #0369a1;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.transporte-pet-map-panel__chat-btn:hover {
+  background: #f0f9ff;
+  border-color: #0284c7;
+}
+
+.transporte-pet-map-panel__row,
+.transporte-pet-map-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.transporte-pet-map-panel label {
+  font-size: 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.transporte-pet-map-panel input,
+.transporte-pet-map-panel select {
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid var(--fp-border);
+}
+
+.transporte-pet-map-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.transporte-pet-map-panel__btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(14, 165, 233, 0.45);
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.transporte-pet-map-panel__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.transporte-pet-map-panel__btn--primary {
+  background: #0ea5e9;
+  color: #fff;
+  border-color: #0284c7;
 }
 
 /* ==========================================================================

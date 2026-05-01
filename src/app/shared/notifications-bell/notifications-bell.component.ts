@@ -2,10 +2,12 @@ import { CommonModule } from '@angular/common';
 import {
   Component,
   ElementRef,
+  EventEmitter,
   HostListener,
   Input,
   OnDestroy,
   OnInit,
+  Output,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -13,21 +15,28 @@ import {
   NotificationItem,
   NotificationsService,
 } from '../../services/notifications.service';
+import { PsIconComponent } from '../icons/ps-icon.component';
 
 @Component({
   selector: 'app-notifications-bell',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PsIconComponent],
   templateUrl: './notifications-bell.component.html',
   styleUrls: ['./notifications-bell.component.scss'],
 })
 export class NotificationsBellComponent implements OnInit, OnDestroy {
   @Input() audience: 'admin' | 'cliente' = 'cliente';
   @Input() compact = false;
+  /** Painel em tela inteira (ex.: pela navbar ou sheet), não limitado ao host estreito. */
+  @Input() fullscreenPanel = false;
+  /** Encaixa no dock mobile (mesma hierarquia visual: ícone + rótulo). */
+  @Input() dockEmbed = false;
+
+  /** Só usado no dock + fullscreen: o nav ajusta z-index do FAB vs painel. */
+  @Output() openChange = new EventEmitter<boolean>();
 
   open = false;
   mobileLayout = false;
-  insideClienteModal = false;
   filter: 'all' | 'unread' = 'all';
 
   notifications: NotificationItem[] = [];
@@ -43,7 +52,6 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.insideClienteModal = !!this.host.nativeElement.closest('.cliente-modal-inner');
     this.syncViewportMode();
     this.subs.push(this.svc.notifications$.subscribe(list => {
       this.notifications = (list || []).filter(n => n.audience === this.audience);
@@ -54,16 +62,14 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.updateClienteModalCloseState(false);
     this.subs.forEach(s => s.unsubscribe());
+    if (this.dockEmbed && this.fullscreenPanel && this.open) {
+      this.openChange.emit(false);
+    }
   }
 
   get overlayLayout(): boolean {
-    return this.mobileLayout || this.insideClienteModal;
-  }
-
-  get modalEmbeddedLayout(): boolean {
-    return this.insideClienteModal && !this.mobileLayout;
+    return !!(this.fullscreenPanel && this.open) || this.mobileLayout;
   }
 
   get visible(): NotificationItem[] {
@@ -81,14 +87,20 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
     if (ev) ev.stopPropagation();
     this.syncViewportMode();
     this.open = !this.open;
-    this.updateClienteModalCloseState(this.open);
     if (this.open) this.svc.refreshUnread();
+    this.emitDockOpenChange();
   }
 
   close(ev?: MouseEvent) {
     if (ev) ev.stopPropagation();
     this.open = false;
-    this.updateClienteModalCloseState(false);
+    this.emitDockOpenChange();
+  }
+
+  private emitDockOpenChange() {
+    if (this.dockEmbed && this.fullscreenPanel) {
+      this.openChange.emit(this.open);
+    }
   }
 
   handleClick(n: NotificationItem, ev?: MouseEvent) {
@@ -179,9 +191,4 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEsc() { this.close(); }
-
-  private updateClienteModalCloseState(isOpen: boolean) {
-    if (!this.insideClienteModal || typeof document === 'undefined') return;
-    document.body.classList.toggle('notifications-overlay-open', isOpen);
-  }
 }

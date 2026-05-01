@@ -1,21 +1,39 @@
-<div class="bell" [class.compact]="compact">
+<div
+  class="bell"
+  [class.compact]="compact"
+  [class.bell--dock-slot]="dockEmbed"
+  [class.bell--dock-open]="dockEmbed && open"
+>
   <button
     type="button"
     class="bell-btn"
+    [class.bell-btn--dock-slot]="dockEmbed"
     [attr.aria-label]="'Notificações'"
     [attr.aria-expanded]="open"
     (click)="toggle($event)"
   >
-    <i class="fa-solid fa-bell"></i>
-    <span class="badge" *ngIf="unread > 0" [attr.aria-label]="unread + ' não lidas'">
-      {{ unread > 99 ? '99+' : unread }}
+    <span class="bell-dock-icon-wrap">
+      <ng-container *ngIf="dockEmbed">
+        <ps-icon
+          name="bell"
+          [variant]="open ? 'filled' : 'outline'"
+          [size]="22"
+          [ariaHidden]="true"
+        ></ps-icon>
+      </ng-container>
+      <i class="fa-solid fa-bell" *ngIf="!dockEmbed"></i>
+      <span class="badge" *ngIf="unread > 0" [attr.aria-label]="unread + ' não lidas'">
+        {{ unread > 99 ? '99+' : unread }}
+      </span>
     </span>
+    <span class="bell-dock-label" *ngIf="dockEmbed">Notificações</span>
+    <span class="bell-dock-pill" *ngIf="dockEmbed" aria-hidden="true"></span>
   </button>
 
   <div
     class="panel-backdrop"
     *ngIf="open && overlayLayout"
-    [class.panel-backdrop--embedded]="modalEmbeddedLayout"
+    [class.panel-backdrop--fullscreen]="fullscreenPanel"
     (click)="close($event)"
     aria-hidden="true"
   ></div>
@@ -23,9 +41,9 @@
   <div
     class="panel"
     *ngIf="open"
-    [class.panel--mobile]="mobileLayout"
+    [class.panel--mobile]="mobileLayout && !fullscreenPanel"
     [class.panel--overlay]="overlayLayout"
-    [class.panel--embedded-modal]="modalEmbeddedLayout"
+    [class.panel--fullscreen]="fullscreenPanel"
     (click)="$event.stopPropagation()"
     [attr.aria-modal]="overlayLayout ? 'true' : null"
     [attr.role]="overlayLayout ? 'dialog' : null"

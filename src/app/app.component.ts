@@ -49,6 +49,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.syncShellVisibility();
     this.syncMapaNoTopnavBodyClass();
   };
+  /** Área Prestador (/parceiros/*): em desktop/tablet só o shell; em celular também mostra nav global Petsphere. */
+  private parceirosDockedNavMql: MediaQueryList | null = null;
+  private readonly parceirosDockedNavMqlHandler = () => {
+    this.zone.run(() => this.syncShellVisibility());
+  };
   showLoginModal = false;
   private openLoginHandler?: EventListenerOrEventListenerObject;
   private cookiePreferencesSub?: Subscription;
@@ -99,14 +104,26 @@ export class AppComponent implements OnInit, OnDestroy {
         } catch (e) {
           /* ignore */
         }
+        this.parceirosDockedNavMql = window.matchMedia('(max-width: 767px)');
+        try {
+          if (this.parceirosDockedNavMql.addEventListener) {
+            this.parceirosDockedNavMql.addEventListener('change', this.parceirosDockedNavMqlHandler);
+          } else {
+            (this.parceirosDockedNavMql as any).addListener(this.parceirosDockedNavMqlHandler);
+          }
+        } catch (e2) {
+          /* ignore */
+        }
       }
       const current = (this.router && (this.router.url || '')) as string;
       this.syncShellVisibility(current);
       this.syncMapaNoTopnavBodyClass();
+      this.syncParceiroShellBodyClass(current);
       this.routerSub = this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((ev: any) => {
         const u = ev.urlAfterRedirects || ev.url || '';
         this.syncShellVisibility(u);
         this.syncMapaNoTopnavBodyClass();
+        this.syncParceiroShellBodyClass(u);
       });
     } catch (e) {}
     try {
@@ -136,6 +153,12 @@ export class AppComponent implements OnInit, OnDestroy {
         } catch (e) {
           /* */
         }
+        try {
+          document.documentElement.classList.remove('ps-parceiro-shell');
+          document.body.classList.remove('ps-parceiro-shell');
+        } catch {
+          /* */
+        }
         if (this.mapaTopNavMql) {
           try {
             if (this.mapaTopNavMql.removeEventListener) {
@@ -147,6 +170,18 @@ export class AppComponent implements OnInit, OnDestroy {
             /* */
           }
           this.mapaTopNavMql = null;
+        }
+        if (this.parceirosDockedNavMql) {
+          try {
+            if (this.parceirosDockedNavMql.removeEventListener) {
+              this.parceirosDockedNavMql.removeEventListener('change', this.parceirosDockedNavMqlHandler);
+            } else {
+              (this.parceirosDockedNavMql as any).removeListener(this.parceirosDockedNavMqlHandler);
+            }
+          } catch {
+            /* ignore */
+          }
+          this.parceirosDockedNavMql = null;
         }
       }
     } catch (e) {}
@@ -198,6 +233,40 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Rotas do shell autenticado (/parceiros/* com guard): fundo do documento deve ser escuro
+   * para overscroll e áreas atrás do conteúdo não mostrarem o creme global + force-light.
+   */
+  private syncParceiroShellBodyClass(url?: string): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    try {
+      const raw = url ?? this.router.url ?? '';
+      const path = (raw.split('?')[0] || '').split('#')[0] || '';
+      const isPublicParceiroRoute =
+        path.startsWith('/parceiros/login') ||
+        path.startsWith('/parceiros/recuperar-senha') ||
+        path.startsWith('/parceiros/convite/');
+      const isShell = path.startsWith('/parceiros/') && !isPublicParceiroRoute;
+      this.zone.run(() => {
+        try {
+          if (isShell) {
+            document.documentElement.classList.add('ps-parceiro-shell');
+            document.body.classList.add('ps-parceiro-shell');
+          } else {
+            document.documentElement.classList.remove('ps-parceiro-shell');
+            document.body.classList.remove('ps-parceiro-shell');
+          }
+        } catch {
+          /* */
+        }
+      });
+    } catch {
+      /* */
+    }
+  }
+
+  /**
    * Em /mapa no telefone (≤767px, igual ao `sm` do navmenu) remove só a faixa do topo (logo + área do cliente);
    * o dock inferior continua a ser o `app-navmenu` completo.
    */
@@ -237,16 +306,17 @@ export class AppComponent implements OnInit, OnDestroy {
       path === '/pacientes' ||
       path.startsWith('/pacientes/') ||
       path === '/panorama-atendimento';
-    /** Toda a área de parceiros (login, convite, painel) usa só o layout da feature — sem navbar/footer do site. */
-    const isParceirosAuthArea = path.startsWith('/parceiros/');
+    /** Desktop parceiros só com shell; celular mostra esta barra junto do shell (header do shell fica recolhido via CSS). */
+    const isParceirosPath = path.startsWith('/parceiros/');
+    const parceirosShowGlobalDockNav = isParceirosPath && (this.parceirosDockedNavMql?.matches ?? false);
     const hide =
       current.startsWith('/restrito/admin') ||
       current.startsWith('/restrito/produto') ||
       isLegacyVetArea ||
-      isParceirosAuthArea;
+      (isParceirosPath && !parceirosShowGlobalDockNav);
     const hideFooterMapa = path === '/mapa' && (this.mapaTopNavMql?.matches ?? false);
 
-    this.showFooter = !hide && !hideFooterMapa;
+    this.showFooter = !hide && !hideFooterMapa && !isParceirosPath;
     this.showNav = !hide;
   }
 

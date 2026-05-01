@@ -4,8 +4,8 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { Router, NavigationEnd, NavigationStart, NavigationCancel, NavigationError, RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { Subscription, merge } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
 import { StoreService } from '../services/store.service';
 import { AuthService } from '../services/auth.service';
 import { gsap } from 'gsap';
@@ -14,6 +14,9 @@ import { HapticsService } from '../services/haptics.service';
 import { DockContextService, DockMode, DockActionId } from '../services/dock-context.service';
 import { PsIconComponent, PsIconName } from '../shared/icons/ps-icon.component';
 import { TenantLojaService } from '../services/tenant-loja.service';
+import { ParceirosMobileShellService } from '../services/parceiros-mobile-shell.service';
+import { ParceiroAuthService } from '../services/parceiro-auth.service';
+import { NotificationsBellComponent } from '../shared/notifications-bell/notifications-bell.component';
 
 export interface NavMainItem {
   id: string;
@@ -38,10 +41,13 @@ export interface SheetPanelRow {
   actions: QuickAction[];
 }
 
+/** Uma célula do grid do dock mobile — sempre um único `<li>` (evita desalinhamento). */
+export type DockGridCell = { kind: 'spacer' } | { kind: 'nav'; item: NavMainItem };
+
 @Component({
   selector: 'app-navmenu',
   standalone: true,
-  imports: [RouterLink, CommonModule, PsIconComponent],
+  imports: [RouterLink, CommonModule, PsIconComponent, NotificationsBellComponent],
   templateUrl: './navmenu.component.html',
   styleUrls: ['./navmenu.component.scss']
 })
@@ -76,8 +82,14 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   isNight = false;
   /** Bottom sheet de ações rápidas (tap no FAB). */
   isSheetOpen = false;
-  /** Radial menu (long-press no FAB) */
+  /** Radial menu (long-press no FAB). */
   isRadialOpen = false;
+  /** Dock: painel fullscreen de notificações aberto — sobe a lista sobre o FAB (stacking). */
+  dockNotifFullscreenOpen = false;
+  /** Snapshot ao abrir o sheet — evita *ngFor a recriar o DOM a cada CD (pisca). */
+  sheetRowsSnapshot: SheetPanelRow[] = [];
+  sheetLeadTitle = 'O que você quer fazer?';
+  sheetLeadSubtitle = 'Atalhos rápidos do seu ecossistema pet';
   /** Ações do radial — top 4 mais usadas (aprende com o tempo). */
   radialActions: QuickAction[] = [];
   /** Live Context Ribbon — visível quando há mensagem contextual relevante. */
@@ -88,27 +100,9 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   // ─── Items: dock móvel = motor tutor (Galeria + Mapa) + FAB ────────────────
   /** Desktop / dock — apenas galeria e mapa (loja/sobre/planos ficam FAB + linha secundária). */
   readonly mainNavItems: NavMainItem[] = [
-    { id: 'galeria', label: 'Galeria', shortLabel: 'Início', link: '/galeria', icon: 'fas fa-fw fa-images', psIcon: 'home' },
+    { id: 'galeria', label: 'Galeria', shortLabel: 'Galeria', link: '/galeria', icon: 'fas fa-fw fa-images', psIcon: 'home' },
     { id: 'mapa',    label: 'Mapa',    shortLabel: 'Mapa',   link: '/mapa',    icon: 'fas fa-fw fa-map-location-dot', psIcon: 'map' },
   ];
-
-  /** Placeholders de grid quando só há Galeria + Mapa (+ opcional Login) no dock. */
-  private readonly dockFillA: NavMainItem = {
-    id: '__dock-fill-a',
-    label: '',
-    shortLabel: '',
-    link: '#',
-    icon: 'fas fa-fw',
-    psIcon: 'home',
-  };
-  private readonly dockFillB: NavMainItem = {
-    id: '__dock-fill-b',
-    label: '',
-    shortLabel: '',
-    link: '#',
-    icon: 'fas fa-fw',
-    psIcon: 'home',
-  };
 
   private readonly carrinhoNavItem: NavMainItem = {
     id: 'carrinho', label: 'Carrinho', shortLabel: 'Carrinho', link: '/carrinho',
@@ -116,31 +110,138 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   };
 
   /**
-   * Mobile dock tutor — Galeria + Mapa + FAB + (guest: Entrar · cliente: preenchimento neutro da grade).
-   * Loja / sobre / prestador: FAB e linha desktop secundária.
+   * Mobile dock tutor — Galeria, Mapa, FAB (Petsphere), Notificações, Entrar|Sair.
    */
   get mobileDockItems(): NavMainItem[] {
+    const galeriaLink = this.tenantLoja.isTenantLoja() ? '/' : '/galeria';
     const left: NavMainItem[] = [
-      { id: 'galeria', label: 'Início', shortLabel: 'Início', link: '/galeria', icon: 'fas fa-fw fa-house', psIcon: 'home' },
-      { id: 'mapa', label: 'Mapa', shortLabel: 'Mapa', link: '/mapa', icon: 'fas fa-fw fa-map-location-dot', psIcon: 'map' },
+      {
+        id: 'galeria',
+        label: 'Galeria',
+        shortLabel: 'Galeria',
+        link: galeriaLink,
+        icon: 'fas fa-fw fa-images',
+        psIcon: 'home',
+      },
+      {
+        id: 'mapa',
+        label: 'Mapa',
+        shortLabel: 'Mapa',
+        link: '/mapa',
+        icon: 'fas fa-fw fa-map-location-dot',
+        psIcon: 'map',
+      },
     ];
-    if (this.dockMode === 'guest') {
-      return [...left, { id: 'login', label: 'Entrar', shortLabel: 'Entrar', link: '#', icon: 'fas fa-fw fa-right-to-bracket', psIcon: 'login' }, this.dockFillB];
-    }
-    return [...left, this.dockFillA, this.dockFillB];
+    const notif: NavMainItem = {
+      id: 'dock-notificacoes',
+      label: 'Notificações',
+      shortLabel: 'Notificações',
+      link: '#',
+      icon: 'fas fa-fw fa-bell',
+      psIcon: 'bell',
+    };
+    const authItem: NavMainItem =
+      this.dockMode === 'guest'
+        ? {
+          id: 'login',
+          label: 'Entrar',
+          shortLabel: 'Entrar',
+          link: '#',
+          icon: 'fas fa-fw fa-right-to-bracket',
+          psIcon: 'login',
+        }
+        : {
+          id: 'logout',
+          label: 'Sair',
+          shortLabel: 'Sair',
+          link: '#',
+          icon: 'fas fa-fw fa-right-from-bracket',
+          psIcon: 'logout',
+        };
+    return [...left, notif, authItem];
   }
 
-  /** Dock para vet/parceiro — variante profissional, mesma linguagem visual. */
-  get mobileDockItemsProfessional(): NavMainItem[] {
+  /** Rotas UI clínica já servidas dentro de `/parceiros/…`. */
+  private vetClinicalBase(): string {
+    const path = (this.currentRoute || '').split('?')[0] || '';
+    if (
+      path.startsWith('/parceiros/area-vet') ||
+      path.startsWith('/parceiros/gerar-receita') ||
+      path.startsWith('/parceiros/historico-receitas') ||
+      path.startsWith('/parceiros/pacientes') ||
+      path.startsWith('/parceiros/panorama-atendimento')
+    ) {
+      return '/parceiros';
+    }
+    return '';
+  }
+
+  /**
+   * Prefixa `/pacientes`, `/historico-receitas`, etc. com `/parceiros` dentro do portal;
+   * deixa `mapa`, `sobre-nos`, etc. inalterados.
+   */
+  private vetClinicalHref(pathWithQuery: string): string {
+    const [pathname, qs] = pathWithQuery.split('?', 2);
+    const publicRoots = ['/pacientes', '/historico-receitas', '/gerar-receita', '/panorama-atendimento'];
+    const isClinical = publicRoots.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+    if (!isClinical) return pathWithQuery;
+    const base = this.vetClinicalBase();
+    const pathOut = base ? `${base}${pathname}` : pathname;
+    return qs !== undefined ? `${pathOut}?${qs}` : pathOut;
+  }
+
+  /**
+   * Abas primárias da lente atual — compartilhadas entre dock móvel (Profissionais/Vet)
+   * e barra desktop, para manter a mesma navegação em ambos.
+   */
+  private get primaryNavItemsForProfissionalLens(): NavMainItem[] | null {
     if (this.dockMode === 'vet') {
+      const h = (p: string): string => this.vetClinicalHref(p);
       return [
-        { id: 'pacientes', label: 'Pacientes', shortLabel: 'Pacientes', link: '/pacientes', icon: 'fas fa-fw fa-paw', psIcon: 'paw' },
-        { id: 'receitas', label: 'Receitas', shortLabel: 'Receitas', link: '/historico-receitas', icon: 'fas fa-fw fa-file-prescription', psIcon: 'sparkle' },
-        { id: 'gerar', label: 'Nova', shortLabel: 'Nova', link: '/gerar-receita', icon: 'fas fa-fw fa-plus', psIcon: 'sparkle' },
-        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: '/sobre-nos', icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
+        { id: 'pacientes', label: 'Pacientes', shortLabel: 'Pacientes', link: h('/pacientes'), icon: 'fas fa-fw fa-paw', psIcon: 'paw' },
+        { id: 'receitas', label: 'Receitas', shortLabel: 'Receitas', link: h('/historico-receitas'), icon: 'fas fa-fw fa-file-prescription', psIcon: 'sparkle' },
+        { id: 'gerar', label: 'Nova', shortLabel: 'Nova', link: h('/gerar-receita'), icon: 'fas fa-fw fa-plus', psIcon: 'sparkle' },
+        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: h('/sobre-nos'), icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
       ];
     }
     if (this.dockMode === 'parceiro') {
+      if (!this.parceiroAuth.isLoggedIn()) {
+        const loja = this.lojaHref;
+        return [
+          {
+            id: 'sobre',
+            label: 'Sobre nós',
+            shortLabel: 'Sobre',
+            link: '/sobre-nos',
+            icon: 'fas fa-fw fa-circle-info',
+            psIcon: 'sparkle',
+          },
+          {
+            id: 'planos-dock',
+            label: 'Planos',
+            shortLabel: 'Planos',
+            link: '/parceiro/planos',
+            icon: 'fas fa-fw fa-layer-group',
+            psIcon: 'sparkle',
+          },
+          {
+            id: 'cadastro-parc',
+            label: 'Seja parceiro',
+            shortLabel: 'Cadastro',
+            link: '/parceiro/cadastrar',
+            icon: 'fas fa-fw fa-handshake',
+            psIcon: 'person',
+          },
+          {
+            id: 'loja',
+            label: 'Vitrine (demonstração)',
+            shortLabel: 'Vitrine',
+            link: loja,
+            icon: 'fas fa-fw fa-desktop',
+            psIcon: 'sparkle',
+          },
+        ];
+      }
       return [
         { id: 'painel', label: 'Painel', shortLabel: 'Painel', link: '/parceiros/painel', icon: 'fas fa-fw fa-gauge', psIcon: 'home' },
         { id: 'agenda', label: 'Agenda', shortLabel: 'Agenda', link: '/parceiros/agenda', icon: 'fas fa-fw fa-calendar', psIcon: 'calendar' },
@@ -148,7 +249,12 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: '/sobre-nos', icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
       ];
     }
-    return this.mobileDockItems;
+    return null;
+  }
+
+  /** Dock para vet/parceiro — variante profissional, mesma linguagem visual. */
+  get mobileDockItemsProfessional(): NavMainItem[] {
+    return this.primaryNavItemsForProfissionalLens ?? this.mobileDockItems;
   }
 
   get activeMobileItems(): NavMainItem[] {
@@ -157,11 +263,33 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       : this.mobileDockItems;
   }
 
+  /** Grid do dock com slot do FAB: 5 células, um `<li>` por célula. */
+  get dockGridCells(): DockGridCell[] {
+    const items = this.activeMobileItems;
+    const out: DockGridCell[] = [];
+    const n = items.length;
+    for (let i = 0; i < n; i++) {
+      if (n >= 4 && i === 2) out.push({ kind: 'spacer' });
+      out.push({ kind: 'nav', item: items[i] });
+    }
+    return out;
+  }
+
+  /**
+   * Incluir `dockMode` evita reuso Ivy de `<li>` entre lentes Cliente vs Profissionais/Vet —
+   * o mesmo índice com ids diferentes chegava a deixar “fantasmas” sobrepostos ao mudar modo.
+   */
+  trackDockGridCell(_index: number, cell: DockGridCell): string {
+    const m = this.dockMode;
+    return cell.kind === 'spacer' ? `${m}::__fab-slot` : `${m}::${cell.item.id}`;
+  }
+
   // ─── Quick actions catalog (FAB sheet + radial) ─────────────────────────────
   readonly quickActionCatalog: Record<DockActionId, QuickAction> = {
     'agendar':      { id: 'agendar',      label: 'Agendar',         caption: 'Consulta com vet',          link: '/mapa?service=consulta', icon: 'calendar', tone: 'aqua' },
     'telemedicina': { id: 'telemedicina', label: 'Telemedicina',    caption: 'Consulta online agora',     link: '/mapa?service=telemedicina', icon: 'video', tone: 'aqua' },
     'buscar-vet':   { id: 'buscar-vet',   label: 'Buscar vet',      caption: 'Veterinários próximos',     link: '/mapa', icon: 'stethoscope', tone: 'aqua' },
+    'transporte-pet': { id: 'transporte-pet', label: 'Transporte pet', caption: 'Pedir corrida no mapa', link: '/mapa?service=transporte', icon: 'map', tone: 'aqua' },
     'comprar':      { id: 'comprar',      label: 'Comprar',         caption: 'Loja Petsphere',            link: '/loja', icon: 'shop', tone: 'aurora' },
     'hospedagem':   { id: 'hospedagem',   label: 'Hospedagem',      caption: 'Hotéis pet near you',       link: '/mapa?service=hospedagem', icon: 'bed', tone: 'aurora' },
     'meus-pets':    { id: 'meus-pets',    label: 'Meus pets',       caption: 'Cadastros e carteirinhas',  link: '/meus-pets', icon: 'paw', tone: 'aurora' },
@@ -173,34 +301,104 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     'parceiro-painel':   { id: 'parceiro-painel',   label: 'Painel',     caption: 'Resumo da loja',       link: '/parceiros/painel', icon: 'home', tone: 'neutral' },
     'parceiro-agenda':   { id: 'parceiro-agenda',   label: 'Agenda',     caption: 'Compromissos',         link: '/parceiros/agenda', icon: 'calendar', tone: 'neutral' },
     'parceiro-equipe':   { id: 'parceiro-equipe',   label: 'Equipe',     caption: 'Colaboradores',        link: '/parceiros/colaboradores', icon: 'person', tone: 'neutral' },
+    'parceiro-cadastro': {
+      id: 'parceiro-cadastro',
+      label: 'Seja parceiro',
+      caption: 'Cadastrar seu negócio',
+      link: '/parceiro/cadastrar',
+      icon: 'person',
+      tone: 'neutral',
+    },
     'sobre-nos':         { id: 'sobre-nos',       label: 'Quem somos',   caption: 'Institucional Petsphere', link: '/sobre-nos', icon: 'sparkle', tone: 'neutral' },
     'planos-parceiro':   { id: 'planos-parceiro', label: 'Planos Petsphere', caption: 'Créditos e negócio', link: '/parceiro/planos', icon: 'sparkle', tone: 'neutral' },
-    'prestador-login':   { id: 'prestador-login', label: 'Área do prestador', caption: 'Login parceiros', link: '/parceiros/painel', icon: 'person', tone: 'neutral' },
+    'prestador-login':   { id: 'prestador-login', label: 'Entrar na área Prestador', caption: 'Login e painel', link: '/parceiros/login', icon: 'person', tone: 'neutral' },
   };
 
-  /** Painéis da bottom sheet — tutores ganham agrupamentos; vet/parceiro uma lista compacta. */
-  get sheetPanelRows(): SheetPanelRow[] {
+  /**
+   * Ajusta atalhos “Comprar” na lente Prestador: mesmo destino que a vitrine (`lojaHref`),
+   * texto de vitrine/demo para quem está deslogado do painel parceiro.
+   */
+  private mapParceiroQuickActionCopy(id: DockActionId, src: QuickAction): QuickAction {
+    if (id !== 'comprar' || this.dockMode !== 'parceiro') return src;
+    const next = { ...src, link: this.lojaHref };
+    if (!this.parceiroAuth.isLoggedIn()) {
+      next.label = 'Vitrine';
+      next.caption = 'Demonstração na mesma experiência da vitrine — exemplos de painel e ferramentas SaaS.';
+    }
+    return next;
+  }
+
+  /** Painéis da bottom sheet — conteúdo depende só do modo do dock ao abrir (snapshot em openSheet). */
+  private computeSheetPanels(): SheetPanelRow[] {
     const c = this.quickActionCatalog;
     if (this.dockMode === 'vet') {
       const ids: DockActionId[] = ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'vet-panorama', 'telemedicina'];
-      return [{ sectionLabel: null, actions: ids.map(id => c[id]) }];
+      return [
+        {
+          sectionLabel: null,
+          actions: ids.map((id) => ({
+            ...c[id],
+            link: this.vetClinicalHref(c[id].link),
+          })),
+        },
+      ];
     }
     if (this.dockMode === 'parceiro') {
-      const ids: DockActionId[] = ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar', 'buscar-vet'];
-      return [{ sectionLabel: null, actions: ids.map(id => c[id]) }];
+      const ids: DockActionId[] = !this.parceiroAuth.isLoggedIn()
+        ? ['sobre-nos', 'planos-parceiro', 'parceiro-cadastro', 'comprar', 'prestador-login']
+        : ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar', 'buscar-vet'];
+      return [{
+        sectionLabel: null,
+        actions: ids.map((id) => this.mapParceiroQuickActionCopy(id, { ...c[id] })),
+      }];
     }
     return this.buildConsumerSheetPanels();
   }
 
-  get sheetActions(): QuickAction[] {
-    return this.sheetPanelRows.flatMap(row => row.actions);
+  /** Lente tutor (app cliente/guest/vet-legado FAB se guest). */
+  get isClienteLensToggleActive(): boolean {
+    return this.dockMode !== 'parceiro';
+  }
+
+  get isParceirosLensToggleActive(): boolean {
+    return this.dockMode === 'parceiro';
+  }
+
+  /** Só há shell com drawer após entrada na área autenticada (não login/convite). */
+  get showPartnerShellMenuLauncher(): boolean {
+    const r = this.currentRoute || '';
+    if (!r.startsWith('/parceiros/')) return false;
+    if (
+      r === '/parceiros/login' ||
+      r.startsWith('/parceiros/recuperar-senha') ||
+      /^\/parceiros\/convite\//.test(r)
+    ) {
+      return false;
+    }
+    return this.isViewportMax767();
+  }
+
+  private isViewportMax767(): boolean {
+    if (!isPlatformBrowser(this.platformId)) return false;
+    try {
+      return !!(typeof window.matchMedia !== 'undefined' && window.matchMedia('(max-width: 767px)').matches);
+    } catch {
+      return false;
+    }
+  }
+
+  openPartnerShellDrawerFromNav(): void {
+    this.closeSheet();
+    this.closeRadial();
+    this.haptics.medium();
+    this.parceirosMobileShell.requestOpenPartnerDrawer();
   }
 
   private buildConsumerSheetPanels(): SheetPanelRow[] {
     const cat = this.quickActionCatalog;
     let coreIds: DockActionId[] = this.isCliente
-      ? ['agendar', 'telemedicina', 'buscar-vet', 'hospedagem']
-      : ['buscar-vet', 'agendar', 'telemedicina', 'hospedagem'];
+      ? ['transporte-pet', 'agendar', 'telemedicina', 'buscar-vet', 'hospedagem']
+      : ['transporte-pet', 'buscar-vet', 'agendar', 'telemedicina', 'hospedagem'];
 
     let lojaPanel: DockActionId[] = ['comprar'];
     if (this.isShoppingRoute) {
@@ -215,7 +413,8 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     if (lojaPanel.length > 0) {
       rows.push({ sectionLabel: 'Loja oficial Petsphere', actions: lojaPanel.map((id) => cat[id]) });
     }
-    const institucionalIds: DockActionId[] = ['sobre-nos', 'planos-parceiro', 'prestador-login'];
+    /** Parceiro: toggle na navbar superior (ver `Cliente | Parceiro`) — não no sheet central. */
+    const institucionalIds: DockActionId[] = ['sobre-nos', 'planos-parceiro'];
     rows.push({
       sectionLabel: 'Institucional e parceiros',
       actions: institucionalIds.map((id) => cat[id]),
@@ -238,8 +437,41 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.tenantLoja.isTenantLoja() ? '/' : '/loja';
   }
 
+  /** Linha secundária só na lente cliente (no Profissionais/Vet as abas primárias já cobrem o fluxo). */
   get showDesktopSecondaryLinks(): boolean {
     return !!this.showFullMenu && (this.dockMode === 'guest' || this.dockMode === 'cliente');
+  }
+
+  /**
+   * Alternância app tutor ↔ prestador sem abrir o bottom sheet do FAB (melhor no mobile).
+   */
+  get showClienteParceiroToggle(): boolean {
+    if (!this.showFullMenu || this.isAreaVetRoute) return false;
+    return this.dockMode !== 'vet';
+  }
+
+  /** Desktop e tablet largo: sino na barra superior; no celular só no dock inferior. */
+  get showClienteNotifInNavbar(): boolean {
+    return !!(this.isCliente && !this.isAreaVetRoute && !this.isViewportMax767());
+  }
+
+  /**
+   * Navega para o hub do app cliente (vitrine tenant usa `/`; caso contrário `/galeria`).
+   */
+  navigateToClienteAppHome(): void {
+    this.haptics.light();
+    this.dockCtx.setNavLensPreference('cliente');
+    this.router.navigateByUrl(this.tenantLoja.isTenantLoja() ? '/' : '/galeria');
+  }
+
+  navigateToParceiroPanel(): void {
+    this.haptics.light();
+    this.dockCtx.setNavLensPreference('parceiro');
+    if (this.parceiroAuth.isLoggedIn()) {
+      this.router.navigateByUrl('/parceiros/painel');
+      return;
+    }
+    this.router.navigateByUrl('/parceiro/planos');
   }
 
   isDockFillItem(item: NavMainItem): boolean {
@@ -251,9 +483,11 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       return ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'vet-panorama'];
     }
     if (this.dockMode === 'parceiro') {
-      return ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar'];
+      return !this.parceiroAuth.isLoggedIn()
+        ? ['planos-parceiro', 'parceiro-cadastro', 'comprar', 'prestador-login']
+        : ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar'];
     }
-    return ['agendar', 'telemedicina', 'buscar-vet', 'comprar'];
+    return ['transporte-pet', 'buscar-vet', 'agendar', 'comprar'];
   }
 
   // ─── Mini-bag (carrinho contextual flutuante) ───────────────────────────────
@@ -293,6 +527,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   private liveRibbonCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private cartCountSeenFromStore = false;
   private clienteModalOpenSub?: Subscription;
+  private partnerFabBridgeSub?: Subscription;
   private nightSub?: Subscription;
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private longPressFired = false;
@@ -320,6 +555,8 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     private haptics: HapticsService,
     private dockCtx: DockContextService,
     private tenantLoja: TenantLojaService,
+    private parceirosMobileShell: ParceirosMobileShellService,
+    private parceiroAuth: ParceiroAuthService,
   ) {}
 
   ngOnInit(): void {
@@ -395,6 +632,23 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     this.radialActions = this.dockCtx
       .topActions(4, this.fabRadialDefaultIds())
       .map(id => this.quickActionCatalog[id]);
+
+    this.partnerFabBridgeSub = merge(
+      this.parceirosMobileShell.openPartnerFabRadial$.pipe(map(() => 'radial' as const)),
+      this.parceirosMobileShell.openPartnerFabSheet$.pipe(map(() => 'sheet' as const)),
+    ).subscribe(kind => {
+      if (!isPlatformBrowser(this.platformId)) return;
+      if (this.dockMode !== 'parceiro') return;
+      if (!this.isViewportMax767()) return;
+      this.haptics.medium();
+      if (kind === 'radial') {
+        this.closeSheet();
+        this.openRadial();
+      } else {
+        this.closeRadial();
+        this.openSheet();
+      }
+    });
   }
 
   // ─── User load helpers ──────────────────────────────────────────────────────
@@ -460,6 +714,9 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   // ─── Mode resolution ────────────────────────────────────────────────────────
   private refreshDockMode(): void {
     const next = this.dockCtx.resolveModeFromRoute(this.currentRoute, this.isCliente);
+    if (next === 'parceiro') {
+      this.dockCtx.setNavLensPreference('parceiro');
+    }
     if (next !== this.dockMode) {
       this.dockMode = next;
       this.dockCtx.setMode(next);
@@ -583,9 +840,18 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     return action.id;
   }
 
-  /** Item especial: Login (guest). Não navega — abre modal. */
+  trackBySheetRow(_index: number, row: SheetPanelRow): string {
+    const head = row.sectionLabel ?? '∅';
+    return `${head}|${row.actions.map(a => a.id).join(',')}`;
+  }
+
+  /** Login / logout / slot de notificações (painel no template). */
   onMobileItemActivate(item: NavMainItem, ev?: Event): void {
     if (this.isDockFillItem(item)) {
+      ev?.preventDefault();
+      return;
+    }
+    if (item.id === 'dock-notificacoes') {
       ev?.preventDefault();
       return;
     }
@@ -595,11 +861,27 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       this.abrirClienteModal();
       return;
     }
+    if (item.id === 'logout') {
+      ev?.preventDefault();
+      this.haptics.medium();
+      this.dockLogoutCliente();
+      return;
+    }
     this.onMainTabClick(item.id);
   }
 
+  private dockLogoutCliente(): void {
+    this.fecharClienteModal();
+    try { this.auth.logout(); } catch {}
+    try {
+      this.router.navigateByUrl('/');
+    } catch {
+      if (typeof window !== 'undefined') window.location.href = '/';
+    }
+  }
+
   isMobileTabHighlighted(item: NavMainItem): boolean {
-    if (item.id === 'login') return false;
+    if (item.id === 'login' || item.id === 'logout' || item.id === 'dock-notificacoes') return false;
     if (this.isDockFillItem(item)) return false;
     return this.isTabHighlighted(item);
   }
@@ -626,28 +908,42 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       );
       case 'sobre':      return path.startsWith('/sobre-nos');
       case 'mapa':       return path.startsWith('/mapa');
-      case 'galeria':    return path.startsWith('/galeria');
+      case 'galeria':
+        return (
+          path.startsWith('/galeria') ||
+          (this.tenantLoja.isTenantLoja() && path === '/')
+        );
       case 'carrinho':   return path.startsWith('/carrinho');
-      case 'pacientes':  return path.startsWith('/pacientes');
-      case 'receitas':   return path.startsWith('/historico-receitas');
-      case 'gerar':      return path.startsWith('/gerar-receita');
+      case 'pacientes':  return path.includes('/pacientes');
+      case 'receitas':   return path.includes('/historico-receitas');
+      case 'gerar':      return path.includes('/gerar-receita');
       case 'painel':     return path.startsWith('/parceiros/painel');
       case 'agenda':     return path.startsWith('/parceiros/agenda');
       case 'colab':      return path.startsWith('/parceiros/colaboradores');
+      case 'planos-dock': return path.startsWith('/parceiro/planos');
+      case 'cadastro-parc': return path.startsWith('/parceiro/cadastrar');
       default: return false;
     }
   }
 
   /**
-   * Mantido para compatibilidade com top-bar desktop. Carrinho ainda aparece lá
-   * para clientes logados (entre Loja e Sobre).
+   * Top-bar desktop: mesma lente que o dock móvel (cliente = Galeria/Mapa[+carrinho];
+   * Profissionais = marketing ou painel; Vet = rotas clínicas).
    */
   get visibleNavItems(): NavMainItem[] {
+    const prof = this.primaryNavItemsForProfissionalLens;
+    if (prof) return prof;
+
+    const galeriaLink = this.tenantLoja.isTenantLoja() ? '/' : '/galeria';
+    const base: NavMainItem[] = [
+      { ...this.mainNavItems[0], link: galeriaLink },
+      { ...this.mainNavItems[1] },
+    ];
     if (this.isCliente) {
-      const i = this.mainNavItems.findIndex(x => x.id === 'mapa') + 1;
-      return [...this.mainNavItems.slice(0, i), this.carrinhoNavItem, ...this.mainNavItems.slice(i)];
+      const i = base.findIndex(x => x.id === 'mapa') + 1;
+      return [...base.slice(0, i), this.carrinhoNavItem, ...base.slice(i)];
     }
-    return this.mainNavItems;
+    return base;
   }
 
   // ─── FAB: tap → bottom sheet, long-press → radial menu ──────────────────────
@@ -727,6 +1023,22 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
   openSheet(): void {
     if (this.isSheetOpen) return;
+    this.sheetRowsSnapshot = this.computeSheetPanels();
+    if (this.dockMode === 'parceiro') {
+      if (!this.parceiroAuth.isLoggedIn()) {
+        this.sheetLeadTitle = 'Para o seu negócio';
+        this.sheetLeadSubtitle = 'Planos, cadastro, vitrine de demonstrações e entrada no painel';
+      } else {
+        this.sheetLeadTitle = 'Prestador Petsphere';
+        this.sheetLeadSubtitle = 'Atalhos do painel e do app cliente';
+      }
+    } else if (this.dockMode === 'vet') {
+      this.sheetLeadTitle = 'Área veterinária';
+      this.sheetLeadSubtitle = 'Prescrição e atendimento';
+    } else {
+      this.sheetLeadTitle = 'O que você quer fazer?';
+      this.sheetLeadSubtitle = 'Atalhos rápidos do seu ecossistema pet';
+    }
     this.haptics.medium();
     this.isSheetOpen = true;
     this.applyBodyScrollLock();
@@ -736,6 +1048,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   closeSheet(): void {
     if (!this.isSheetOpen) return;
     this.isSheetOpen = false;
+    this.sheetRowsSnapshot = [];
     this.releaseBodyScrollLock();
     this.cdr.detectChanges();
   }
@@ -745,7 +1058,13 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     this.haptics.heavy();
     this.radialActions = this.dockCtx
       .topActions(4, this.fabRadialDefaultIds())
-      .map(id => this.quickActionCatalog[id]);
+      .map((id) => {
+        const src = this.quickActionCatalog[id];
+        if (this.dockMode === 'vet') {
+          return { ...src, link: this.vetClinicalHref(src.link) };
+        }
+        return this.mapParceiroQuickActionCopy(id, { ...src });
+      });
     this.isRadialOpen = true;
     this.cdr.detectChanges();
   }
@@ -1053,6 +1372,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     try { this.clienteModalOpenSub?.unsubscribe(); } catch {}
+    try { this.partnerFabBridgeSub?.unsubscribe(); } catch {}
     try { this.nightSub?.unsubscribe(); } catch {}
     if (this.idleTimer) clearTimeout(this.idleTimer);
     if (this.pillLayoutDebounce) clearTimeout(this.pillLayoutDebounce);

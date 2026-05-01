@@ -1,0 +1,34 @@
+<div class="wrap">
+  <a routerLink="/restrito/admin/dashboard" class="back">← Admin</a>
+  <h1>Transporte Pet</h1>
+  <p class="muted">Visão agregada de corridas e receita estimada (hoje).</p>
+
+  <section *ngIf="stats" class="stats">
+    <div class="stat"><span>Corridas ativas</span><strong>{{ stats.corridas_ativas }}</strong></div>
+    <div class="stat"><span>Concluídas hoje</span><strong>{{ stats.hoje_completas }}</strong></div>
+    <div class="stat"><span>Receita hoje</span><strong>{{ fmtBrl(stats.hoje_receita_centavos) }}</strong></div>
+    <div class="stat"><span>Comissão plataforma (est.)</span><strong>{{ fmtBrl(stats.hoje_plataforma_centavos_estimado) }}</strong></div>
+  </section>
+
+  <div class="filtro">
+    <label>Filtrar parceiro_id <input type="number" [(ngModel)]="filtroParceiro" placeholder="opcional" /></label>
+    <button type="button" (click)="load()">Atualizar</button>
+  </div>
+
+  <table *ngIf="!loading" class="tbl">
+    <thead>
+      <tr><th>ID</th><th>Parceiro</th><th>Cliente</th><th>Status</th><th>Valor</th><th>Atualizado</th></tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of corridas">
+        <td>{{ c.id }}</td>
+        <td>{{ c.parceiro_id }}</td>
+        <td>{{ c.cliente_id }}</td>
+        <td>{{ c.status }}</td>
+        <td>{{ fmtBrl(c.preco_centavos) }}</td>
+        <td>{{ c.updated_at }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p *ngIf="loading">Carregando…</p>
+</div>

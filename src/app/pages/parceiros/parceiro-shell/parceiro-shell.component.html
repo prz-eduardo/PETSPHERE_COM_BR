@@ -6,6 +6,11 @@
       <span class="tipo-badge">Prestador</span>
     </div>
 
+    <div class="parceiro-mode-toggle" role="group" aria-label="Alternar entre app cliente e painel do parceiro">
+      <a routerLink="/galeria" class="pmt-seg">Cliente</a>
+      <span class="pmt-seg pmt-seg--active" aria-current="page">Parceiro</span>
+    </div>
+
     <button class="burger-btn" (click)="toggleMobileNav()" aria-label="Abrir menu">
       <i class="fa fa-bars" aria-hidden="true"></i>
     </button>
@@ -28,6 +33,9 @@
       </a>
       <a routerLink="/parceiros/hospedagem" [class.active]="isHospedagemActive()">
         <i class="fa fa-home"></i> Hospedagem pet
+      </a>
+      <a routerLink="/parceiros/transporte-pet" routerLinkActive="active">
+        <i class="fa fa-car"></i> Transporte Pet
       </a>
       <a routerLink="/parceiros/colaboradores" routerLinkActive="active">
         <i class="fa fa-users"></i> Colaboradores
@@ -147,7 +155,28 @@
         <a routerLink="/parceiros/meus-clientes" (click)="toggleMobileNav(false)"><i class="fa fa-address-book-o"></i> Meus clientes</a>
         <a routerLink="/parceiros/mensagens" (click)="toggleMobileNav(false)"><i class="fa fa-comments"></i> Mensagens</a>
         <a routerLink="/parceiros/hospedagem" (click)="toggleMobileNav(false)" [class.active]="isHospedagemActive()"><i class="fa fa-home"></i> Hospedagem pet</a>
+        <a routerLink="/parceiros/transporte-pet" routerLinkActive="active" (click)="toggleMobileNav(false)"><i class="fa fa-car"></i> Transporte Pet</a>
         <a routerLink="/parceiros/colaboradores" (click)="toggleMobileNav(false)"><i class="fa fa-users"></i> Colaboradores</a>
+
+        <div
+          class="mobile-fab-shortcuts"
+          role="group"
+          aria-label="Atalhos da barra inferior Petsphere"
+        >
+          <div class="mobile-fab-shortcuts__label">Barra inferior Petsphere</div>
+          <p class="mobile-fab-shortcuts__hint">
+            Os quatro atalhos em volta do logo adaptam-se ao que você usa com mais frequência. Você também pode
+            manter o logo pressionado para abrir os favoritos.
+          </p>
+          <button type="button" class="mobile-fab-shortcuts__btn" (click)="openPartnerFabRadialFromMenu()">
+            <i class="fa fa-star" aria-hidden="true"></i>
+            Ver atalhos favoritos
+          </button>
+          <button type="button" class="mobile-fab-shortcuts__btn" (click)="openPartnerFabSheetFromMenu()">
+            <i class="fa fa-bolt" aria-hidden="true"></i>
+            Todas as ações rápidas
+          </button>
+        </div>
 
         <div class="mobile-group mobile-group--petshop" [class.open]="showPetshopMenu()">
           <button type="button" class="mobile-group-btn" (click)="togglePetshopMenu(); $event.stopPropagation()">

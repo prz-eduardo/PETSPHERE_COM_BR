@@ -19,6 +19,7 @@ export type DockActionId =
   | 'agendar'
   | 'telemedicina'
   | 'buscar-vet'
+  | 'transporte-pet'
   | 'comprar'
   | 'hospedagem'
   | 'meus-pets'
@@ -34,9 +35,15 @@ export type DockActionId =
   /** Atalhos FAB — modo parceiro */
   | 'parceiro-painel'
   | 'parceiro-agenda'
-  | 'parceiro-equipe';
+  | 'parceiro-equipe'
+  /** Cadastro público Prestador (/parceiro/cadastrar) */
+  | 'parceiro-cadastro';
 
 const FREQ_KEY = 'ps_dock_action_freq_v1';
+/** sessionStorage: última lente escolhida na pill Cliente | Profissionais (só no browser). */
+const NAV_LENS_KEY = 'ps_nav_lens';
+const NAV_LENS_PARCEIRO = 'parceiro';
+const NAV_LENS_CLIENTE = 'cliente';
 const NIGHT_HOUR = 19;
 const DAY_HOUR = 6;
 
@@ -71,14 +78,62 @@ export class DockContextService implements OnDestroy {
   }
   get mode(): DockMode { return this.modeSubject.value; }
 
+  /** Pill “Profissionais” / rotas Prestador — para manter dock em páginas partilhadas (ex.: /sobre-nos). */
+  setNavLensPreference(lens: 'cliente' | 'parceiro'): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      sessionStorage.setItem(NAV_LENS_KEY, lens === NAV_LENS_PARCEIRO ? NAV_LENS_PARCEIRO : NAV_LENS_CLIENTE);
+    } catch {}
+  }
+
+  prefersParceiroNavLens(): boolean {
+    if (!isPlatformBrowser(this.platformId)) return false;
+    try {
+      return sessionStorage.getItem(NAV_LENS_KEY) === NAV_LENS_PARCEIRO;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Páginas que podem usar o dock Prestador quando a lente Profissionais está ativa. */
+  private isParceiroLensNeutralPath(path: string): boolean {
+    const p = path.split('?')[0] || '';
+    if (p === '/sobre-nos' || p.startsWith('/sobre-nos/')) return true;
+    if (p === '/institucional' || p.startsWith('/institucional/')) return true;
+    if (p === '/loja' || p.startsWith('/loja/')) return true;
+    if (p.startsWith('/produto/')) return true;
+    if (p === '/favoritos' || p.startsWith('/favoritos/')) return true;
+    if (p.startsWith('/checkout') || p.startsWith('/carrinho')) return true;
+    // Vitrine tenant: link “Vitrine” no dock Prestador pode ser `/`.
+    if (p === '/') return true;
+    return false;
+  }
+
   /**
-   * Helper para o navmenu: deduz o modo a partir da rota + flag de cliente logado.
-   * Rotas /area-vet → 'vet', /parceiros/* → 'parceiro', cliente logado → 'cliente',
-   * caso contrário 'guest'.
+   * Deduz modo do dock: rota, cliente logado e preferência de lente (`sessionStorage` —
+   * páginas neutras mantêm Prestador até o usuário voltar a “Cliente”).
+   * Prestador por rota: `/parceiro/*`, `/parceiros/*`, convites; clínico: `vet`.
    */
   resolveModeFromRoute(route: string, isCliente: boolean): DockMode {
     const r = (route || '').split('?')[0] || '';
-    if (r.startsWith('/parceiros/') || r === '/parceiros') return 'parceiro';
+    /** Hub marketing Prestador (/parceiro/planos, /parceiro/cadastrar) — não confundir com /parceiros/*. */
+    if (r.startsWith('/parceiro/')) return 'parceiro';
+    if (r.startsWith('/convite-dados/')) return 'parceiro';
+
+    /**
+     * Rotas clínicas dentro do shell parceiro — antes do catch-all /parceiros/*,
+     * para o dock ficar igual ao mobile (Pacientes · Receitas · …), não abas Prestador.
+     */
+    const isPartnerShellVetRoute =
+      r.startsWith('/parceiros/area-vet') ||
+      r.startsWith('/parceiros/gerar-receita') ||
+      r.startsWith('/parceiros/historico-receitas') ||
+      r.startsWith('/parceiros/pacientes') ||
+      r.startsWith('/parceiros/panorama-atendimento');
+    if (isPartnerShellVetRoute) return 'vet';
+
+    if (r === '/parceiros' || r.startsWith('/parceiros/')) return 'parceiro';
+
     if (
       r.includes('/area-vet') ||
       r.startsWith('/gerar-receita') ||
@@ -87,6 +142,17 @@ export class DockContextService implements OnDestroy {
       r.startsWith('/panorama-atendimento')
     )
       return 'vet';
+
+    /**
+     * Prestador/fornecedor institucional: se o utilizador escolheu a lente "Profissionais"
+     * (sessionStorage), manter esse dock mesmo em páginas partilhadas com tutores —
+     * inclui cliente tutor logado em `/`, `/sobre-nos`, `/loja`, carrinho, etc.
+     * Isto deve vir antes de `isCliente`, senão tutor logado regressava sempre à vista cliente.
+     */
+    if (this.prefersParceiroNavLens() && this.isParceiroLensNeutralPath(r)) {
+      return 'parceiro';
+    }
+
     if (isCliente) return 'cliente';
     return 'guest';
   }
@@ -127,7 +193,7 @@ export class DockContextService implements OnDestroy {
   }
 
   /** Top N ações mais usadas; preenche com defaults se não houver histórico. */
-  topActions(n: number = 4, defaults: DockActionId[] = ['agendar', 'telemedicina', 'buscar-vet', 'comprar']): DockActionId[] {
+  topActions(n: number = 4, defaults: DockActionId[] = ['transporte-pet', 'buscar-vet', 'agendar', 'comprar']): DockActionId[] {
     const entries = Object.entries(this.freq) as [DockActionId, number][];
     if (entries.length === 0) return defaults.slice(0, n);
     const sorted = entries.sort((a, b) => b[1] - a[1]).map(([id]) => id);

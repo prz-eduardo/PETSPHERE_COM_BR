@@ -550,6 +550,27 @@ export class AgendaApiService {
     return response.candidates || [];
   }
 
+  async createClientePetQuick(
+    clienteId: number,
+    body: {
+      nome: string;
+      especie?: string | null;
+      raca?: string | null;
+      porte?: string | null;
+      sexo?: string | null;
+      observacoes?: string | null;
+    }
+  ): Promise<PanoramaClientePermitidoPet | null> {
+    const response = await lastValueFrom(
+      this.http.post<{ pet: PanoramaClientePermitidoPet | null }>(
+        `${API_BASE}/parceiro/clientes/${encodeURIComponent(String(clienteId))}/pets-quick`,
+        body,
+        { headers: this.getHeaders() }
+      )
+    );
+    return response.pet || null;
+  }
+
   async postConviteCliente(body: {
     cliente_id?: number;
     cliente_email?: string;
@@ -815,6 +836,10 @@ export interface ConviteClienteRow {
 
 export interface DiscoveryCandidateRow {
   cliente_id: number;
+  nome?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  cpf?: string | null;
   nome_masked: string;
   email_masked?: string | null;
   telefone_masked?: string | null;

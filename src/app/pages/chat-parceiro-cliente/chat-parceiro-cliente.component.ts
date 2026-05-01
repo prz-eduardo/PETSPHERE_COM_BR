@@ -21,6 +21,8 @@ export class ChatParceiroClienteComponent implements OnInit {
   readonly loading = signal(true);
   readonly loadErr = signal<string | null>(null);
   readonly parceiroNome = signal<string | null>(null);
+  /** Contexto opcional vindo da query (?corrida=) após transporte pet. */
+  readonly corridaContexto = signal<number | null>(null);
 
   constructor(
     private route: ActivatedRoute,
@@ -32,6 +34,9 @@ export class ChatParceiroClienteComponent implements OnInit {
   ngOnInit(): void {
     const raw = this.route.snapshot.paramMap.get('parceiroId');
     const parceiroId = Number(raw);
+    const qCorrida = this.route.snapshot.queryParamMap.get('corrida');
+    const cid = qCorrida != null ? Number(qCorrida) : NaN;
+    if (Number.isFinite(cid) && cid > 0) this.corridaContexto.set(cid);
     if (!Number.isFinite(parceiroId) || parceiroId < 1) {
       this.loadErr.set('Parceiro inválido');
       this.loading.set(false);

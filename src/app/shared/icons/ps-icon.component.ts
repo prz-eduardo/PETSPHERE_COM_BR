@@ -29,7 +29,8 @@ export type PsIconName =
   | 'bed'
   | 'sparkle'
   | 'bell'
-  | 'login';
+  | 'login'
+  | 'logout';
 
 export type PsIconVariant = 'outline' | 'filled';
 
@@ -203,6 +204,12 @@ export type PsIconVariant = 'outline' | 'filled';
         <g *ngSwitchCase="'login'">
           <path d="M11 4.5h6.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           <path d="M14 12H4.5m0 0 3.2-3.2M4.5 12l3.2 3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" [attr.fill]="variant === 'filled' ? 'currentColor' : 'none'"/>
+        </g>
+
+        <!-- LOGOUT — sair -->
+        <g *ngSwitchCase="'logout'">
+          <path d="M13 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M10 12h9.5m0 0-3.2-3.2M19.5 12l-3.2 3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" [attr.fill]="variant === 'filled' ? 'currentColor' : 'none'"/>
         </g>
       </ng-container>
     </svg>

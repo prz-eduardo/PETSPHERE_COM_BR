@@ -709,6 +709,148 @@ export class ApiService {
     );
   }
 
+  /** Cotação pública Transporte Pet (requer loja_slug). */
+  publicTransportePetQuote(lojaSlug: string, params: Record<string, string | number | undefined>) {
+    const q: Record<string, string> = { loja_slug: lojaSlug };
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) q[k] = String(v);
+    }
+    return this.http.get<{
+      distancia_km: number;
+      duracao_min: number;
+      preco_centavos: number;
+      surge_multiplier: number;
+      pct_plataforma: number;
+      pct_motorista: number;
+      breakdown: Record<string, unknown>;
+    }>(`${this.baseUrl}/public/transporte-pet/quote`, { params: q });
+  }
+
+  createClienteTransportePetCorrida(
+    token: string,
+    body: Record<string, unknown> & { loja_slug: string }
+  ) {
+    return this.http.post<{ corrida: Record<string, unknown> }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/corridas`,
+      body,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  checkoutClienteTransportePetCorrida(token: string, corridaId: number, lojaSlug: string) {
+    return this.http.post<{ preference_id?: string; payment_url?: string | null; amount?: number }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/corridas/${encodeURIComponent(String(corridaId))}/checkout`,
+      { loja_slug: lojaSlug },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  listClienteTransportePetCorridas(token: string, lojaSlug: string) {
+    return this.http.get<{ corridas: unknown[] }>(`${this.baseUrl}/clientes/me/transporte-pet/corridas`, {
+      params: { loja_slug: lojaSlug },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  listParceiroTransportePetCorridas(headers: { Authorization: string }, status?: string) {
+    let params: Record<string, string> | undefined;
+    if (status) params = { status };
+    return this.http.get<{ corridas: any[] }>(`${this.baseUrl}/parceiro/transporte-pet/corridas`, {
+      headers,
+      params,
+    });
+  }
+
+  listParceiroTransportePetCorridasAbertas(headers: { Authorization: string }) {
+    return this.http.get<{ corridas: any[] }>(`${this.baseUrl}/parceiro/transporte-pet/corridas/abertas`, {
+      headers,
+    });
+  }
+
+  acceptParceiroTransportePetCorrida(headers: { Authorization: string }, corridaId: number) {
+    return this.http.post<{ corrida: any }>(
+      `${this.baseUrl}/parceiro/transporte-pet/corridas/${encodeURIComponent(String(corridaId))}/accept`,
+      {},
+      { headers }
+    );
+  }
+
+  advanceParceiroTransportePetStatus(
+    headers: { Authorization: string },
+    corridaId: number,
+    action: 'start_pickup' | 'picked_up' | 'complete'
+  ) {
+    return this.http.post<{ corrida: any }>(
+      `${this.baseUrl}/parceiro/transporte-pet/corridas/${encodeURIComponent(String(corridaId))}/status`,
+      { action },
+      { headers }
+    );
+  }
+
+  setParceiroTransportePetMotoristaOnline(headers: { Authorization: string }, online: boolean) {
+    return this.http.post<{ motorista: any }>(
+      `${this.baseUrl}/parceiro/transporte-pet/motoristas/me/online`,
+      { online },
+      { headers }
+    );
+  }
+
+  setParceiroTransportePetMotoristaLocation(headers: { Authorization: string }, lat: number, lng: number) {
+    return this.http.post<{ ok?: boolean }>(
+      `${this.baseUrl}/parceiro/transporte-pet/motoristas/me/location`,
+      { lat, lng },
+      { headers }
+    );
+  }
+
+  listParceiroTransportePetMotoristas(headers: { Authorization: string }) {
+    return this.http.get<{ motoristas: any[] }>(`${this.baseUrl}/parceiro/transporte-pet/motoristas`, { headers });
+  }
+
+  listParceiroColaboradores(headers: { Authorization: string }) {
+    return this.http.get<{ colaboradores: any[] }>(`${this.baseUrl}/parceiro/colaboradores`, { headers });
+  }
+
+  getParceiroTransportePetTarifas(headers: { Authorization: string }) {
+    return this.http.get<{ tarifas: Record<string, unknown> }>(`${this.baseUrl}/parceiro/transporte-pet/tarifas`, {
+      headers,
+    });
+  }
+
+  putParceiroTransportePetTarifas(headers: { Authorization: string }, body: Record<string, unknown>) {
+    return this.http.put<{ tarifas: Record<string, unknown> }>(`${this.baseUrl}/parceiro/transporte-pet/tarifas`, body, {
+      headers,
+    });
+  }
+
+  createParceiroTransportePetMotorista(
+    headers: { Authorization: string },
+    body: { parceiro_account_id: number; tier?: string }
+  ) {
+    return this.http.post<{ motorista: any }>(`${this.baseUrl}/parceiro/transporte-pet/motoristas`, body, { headers });
+  }
+
+  getAdminTransportePetStats(token: string) {
+    return this.http.get<{
+      corridas_ativas: number;
+      hoje_completas: number;
+      hoje_receita_centavos: number;
+      hoje_plataforma_centavos_estimado: number;
+    }>(`${this.baseUrl}/admin/transporte-pet/stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  listAdminTransportePetCorridas(token: string, opts?: { parceiro_id?: number; limit?: number }) {
+    const params: Record<string, string> = {};
+    if (opts?.parceiro_id != null) params['parceiro_id'] = String(opts.parceiro_id);
+    if (opts?.limit != null) params['limit'] = String(opts.limit);
+    return this.http.get<{ corridas: any[] }>(`${this.baseUrl}/admin/transporte-pet/corridas`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params,
+    });
+  }
+
   private mapMinhaGaleriaFotosFromPets(pets: any[] | null | undefined): ClienteGaleriaFoto[] {
     const fotos = new Map<number, ClienteGaleriaFoto>();
 

@@ -1,0 +1,483 @@
+.transporte-pet-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.transporte-pet-head {
+  margin-bottom: 0.25rem;
+}
+
+.transporte-pet-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #0369a1;
+  text-decoration: none;
+}
+
+.transporte-pet-back:hover {
+  text-decoration: underline;
+}
+
+.transporte-pet-head h1 {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.35rem, 3.5vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ps-ink, #0f172a);
+}
+
+.transporte-pet-lead {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--ps-muted, #64748b);
+  max-width: 52ch;
+}
+
+.muted {
+  color: var(--ps-muted, #64748b);
+}
+
+.muted.small {
+  font-size: 0.85rem;
+}
+
+.card {
+  background: var(--ps-card, #fff);
+  border: 1px solid var(--ps-border, #e2e8f0);
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem;
+  margin-top: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.card--motorista {
+  border-color: rgba(14, 165, 233, 0.35);
+  background: linear-gradient(165deg, #f0f9ff 0%, #fff 55%);
+}
+
+.card--admin {
+  border-color: rgba(100, 116, 139, 0.25);
+}
+
+.card--collapse {
+  opacity: 0.97;
+}
+
+.card__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--ps-ink, #0f172a);
+}
+
+.card__sub {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ps-muted, #64748b);
+}
+
+.card__sub:last-child {
+  margin-bottom: 0;
+}
+
+.state-loading {
+  padding: 0.5rem 0;
+}
+
+.motorista-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.motorista-toolbar__status {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
+}
+
+.motorista-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #cbd5e1;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
+}
+
+.motorista-dot--on {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35);
+}
+
+.motorista-toolbar__label {
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ps-ink, #334155);
+}
+
+.motorista-gps {
+  margin-top: 0.25rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--ps-border, #cbd5e1);
+  background: #f8fafc;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ps-ink, #1e293b);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: #0ea5e9;
+  border-color: #0284c7;
+  color: #fff;
+}
+
+.btn--ghost {
+  background: rgba(248, 250, 252, 0.6);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
+.ride-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ride-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--ps-border, #f1f5f9);
+}
+
+.ride-list__item--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+@media (min-width: 520px) {
+  .ride-list__item:not(.ride-list__item--row) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.ride-list__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.ride-list__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.ride-list__id {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ps-ink, #0f172a);
+}
+
+.ride-list__price {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.ride-list__price--inline {
+  font-size: 1rem;
+  margin-top: 0.2rem;
+}
+
+.ride-list__route {
+  margin: 0.35rem 0 0;
+  line-height: 1.4;
+}
+
+.ride-list__cta {
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+@media (min-width: 520px) {
+  .ride-list__cta {
+    align-self: center;
+  }
+}
+
+.ride-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+@media (min-width: 520px) {
+  .ride-list__item--row .ride-list__actions {
+    width: auto;
+    margin-top: 0;
+    justify-content: flex-end;
+  }
+}
+
+.ride-list__empty,
+.colab-list__empty {
+  padding: 1rem 0;
+  text-align: center;
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: none;
+  border-radius: 6px;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge--muted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.badge--urgent {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.badge--progress {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.tarifas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.tarifas-grid--core {
+  margin-bottom: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.field__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ps-ink, #334155);
+}
+
+.field__hint {
+  font-size: 0.75rem;
+  color: var(--ps-muted, #94a3b8);
+  line-height: 1.3;
+}
+
+.field input {
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--ps-border, #cbd5e1);
+  font-size: 0.95rem;
+}
+
+.transporte-details {
+  margin: 0.75rem 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1px dashed var(--ps-border, #cbd5e1);
+  background: #fafafa;
+}
+
+.transporte-details__summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #0369a1;
+  list-style: none;
+}
+
+.transporte-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.transporte-details__summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.transporte-details[open] .transporte-details__summary::before {
+  transform: rotate(90deg);
+}
+
+.transporte-details .tarifas-grid--advanced {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ps-border, #e2e8f0);
+}
+
+.form-actions {
+  margin-top: 1rem;
+}
+
+.tier-bar {
+  margin-bottom: 1rem;
+}
+
+.tier-bar__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ps-ink, #475569);
+}
+
+.tier-bar__select {
+  max-width: 280px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--ps-border, #cbd5e1);
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.colab-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.colab-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--ps-border, #f1f5f9);
+}
+
+@media (min-width: 540px) {
+  .colab-list__item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.colab-list__who {
+  min-width: 0;
+}
+
+.colab-list__nome {
+  margin: 0 0 0.2rem;
+  font-weight: 650;
+  font-size: 0.95rem;
+}
+
+.colab-list__meta {
+  margin: 0;
+  word-break: break-word;
+}
+
+.colab-list__action {
+  flex-shrink: 0;
+}
+
+.pill {
+  display: inline-block;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.pill--ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.footnote {
+  margin: 0.75rem 0 0;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inline-form__input {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--ps-border, #cbd5e1);
+}
+
+.row input,
+.row select {
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--ps-border, #cbd5e1);
+}
