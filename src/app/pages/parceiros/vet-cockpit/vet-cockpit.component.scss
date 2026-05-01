@@ -1,0 +1,358 @@
+:host {
+  display: block;
+}
+
+.cockpit {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* ── Hero ── */
+.cockpit__hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.cockpit__kicker {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--parceiro-muted, #64748b);
+  margin-bottom: 0.25rem;
+}
+
+.cockpit__title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--parceiro-text, #0f172a);
+  margin: 0 0 0.25rem;
+}
+
+.cockpit__lede {
+  color: var(--parceiro-muted, #64748b);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.cockpit__hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ── Banner sessão ativa ── */
+.cockpit__banner-sessao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.banner-sessao__info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+  color: #1e40af;
+}
+
+.banner-sessao__dot {
+  color: #3b82f6;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.banner-sessao__label {
+  font-weight: 600;
+}
+
+.banner-sessao__sep {
+  opacity: 0.5;
+}
+
+.banner-sessao__step {
+  background: #dbeafe;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.banner-sessao__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ── Grid ── */
+.cockpit__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ── Card ── */
+.cockpit__card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,.09);
+  }
+}
+
+.cockpit__card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 1rem 0.6rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cockpit__card-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+
+  &--tele {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+}
+
+.cockpit__card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  flex: 1;
+}
+
+.cockpit__card-link {
+  font-size: 0.8rem;
+  color: var(--parceiro-link, #2563eb);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover { text-decoration: underline; }
+}
+
+.cockpit__card-body {
+  padding: 0.75rem 1rem;
+  flex: 1;
+
+  &--center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+.cockpit__card-footer {
+  padding: 0.6rem 1rem 0.9rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ── States ── */
+.cockpit__empty,
+.cockpit__loading {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.cockpit__error {
+  font-size: 0.88rem;
+  color: #dc2626;
+  margin: 0;
+}
+
+.cockpit__tele-desc {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── List ── */
+.cockpit__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cockpit__list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.87rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f8fafc;
+
+  &:last-child { border-bottom: none; }
+}
+
+.list-item__nome {
+  color: #0f172a;
+  font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-item__hora {
+  color: #64748b;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.list-item__badge {
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--status {
+    background: #fef9c3;
+    color: #854d0e;
+    text-transform: capitalize;
+  }
+}
+
+/* ── Quick nav ── */
+.cockpit__quick-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.quick-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+
+  i { font-size: 1.1rem; color: #2563eb; }
+
+  &:hover {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+  }
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover { background: #1d4ed8; }
+
+  &.btn-lg {
+    padding: 0.7rem 1.4rem;
+    font-size: 1rem;
+  }
+
+  &.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+  }
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover { background: #f9fafb; }
+
+  &.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+  }
+}
+
+.link {
+  color: var(--parceiro-link, #2563eb);
+  text-decoration: underline;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .cockpit__hero {
+    flex-direction: column;
+  }
+
+  .cockpit__grid {
+    grid-template-columns: 1fr;
+  }
+}

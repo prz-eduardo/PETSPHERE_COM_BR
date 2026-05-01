@@ -26,12 +26,11 @@
   margin: 0;
 }
 
-// Pet Selector
 .pet-selector {
   margin-bottom: 24px;
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 
@@ -40,21 +39,42 @@
   font-size: 14px;
 }
 
-.pet-selector__select {
-  flex: 1 1 200px;
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--np-border);
-  background: rgba(6, 10, 18, 0.55);
-  color: var(--np-text);
-  font-size: 14px;
-  font-weight: 600;
+.pet-selector__avatars {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 
-  &:focus {
-    outline: none;
-    border-color: rgba(196, 214, 0, 0.46);
+.pet-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--np-text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s ease, transform 0.16s ease;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(196, 214, 0, 0.5);
+  }
+}
+
+.pet-avatar--active {
+  border-color: rgba(196, 214, 0, 0.92);
+  box-shadow: 0 0 0 2px rgba(196, 214, 0, 0.18);
 }
 
 // Gallery Container
@@ -144,6 +164,30 @@
   font-size: 12px;
   line-height: 1.45;
   color: var(--np-text-dim);
+}
+
+.collection-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.collection-tab {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--np-text);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.collection-tab--active {
+  border-color: rgba(196, 214, 0, 0.62);
+  background: rgba(196, 214, 0, 0.16);
+  color: #e9f9a2;
 }
 
 // Collection Box
@@ -259,6 +303,13 @@
   color: var(--np-text-dim);
 }
 
+.gallery-item-card__pet {
+  font-size: 11px;
+  color: #d8e979;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .gallery-item-card__meta {
   font-size: 12px;
   line-height: 1.45;
@@ -288,6 +339,16 @@
   border: 1px dashed rgba(255, 255, 255, 0.12);
   color: var(--np-text-dim);
   text-align: center;
+}
+
+.gallery-empty--upload {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: rgba(196, 214, 0, 0.4);
+    background: rgba(196, 214, 0, 0.05);
+  }
 }
 
 // Badge
@@ -538,20 +599,6 @@
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(196, 214, 0, 0.4);
-  }
-}
-
-.file-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(196, 214, 0, 0.14);
-  color: var(--np-accent);
-  border-color: rgba(196, 214, 0, 0.34);
-
-  &:hover:not(:disabled) {
-    background: rgba(196, 214, 0, 0.2);
-    border-color: rgba(196, 214, 0, 0.46);
   }
 }
 

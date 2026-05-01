@@ -11,6 +11,7 @@ import { vetGuard } from './guards/vet.guard';
 import { parceiroGuard } from './guards/parceiro.guard';
 import { parceiroVetGuard } from './guards/parceiro-vet.guard';
 import { petsphereHubRootCanMatch, tenantLojaRootCanMatch } from './guards/tenant-root-can-match.guard';
+import { tenantBlockPetsphereMarketingGuard } from './guards/tenant-block-petsphere-marketing.guard';
 
 export const routes: Routes = [
   /** Vitrine do parceiro: raiz `/` só quando há tenant (subdomínio / host). */
@@ -26,7 +27,24 @@ export const routes: Routes = [
     canMatch: [petsphereHubRootCanMatch],
   },
   { path: 'institucional', redirectTo: 'sobre-nos', pathMatch: 'full' },
-  { path: 'sobre-nos', loadComponent: () => import('./pages/sobre-nos/sobre-nos.component').then(m => m.SobreNosComponent) },
+  {
+    path: 'sobre-nos',
+    canActivate: [tenantBlockPetsphereMarketingGuard],
+    loadComponent: () => import('./pages/sobre-nos/sobre-nos.component').then(m => m.SobreNosComponent),
+  },
+  {
+    path: 'adestramentos',
+    canActivate: [tenantBlockPetsphereMarketingGuard],
+    loadComponent: () => import('./pages/adestramentos/adestramentos.component').then((m) => m.AdestramentosComponent),
+    data: { title: 'Adestramento e comportamento' },
+  },
+  {
+    path: 'passeadores',
+    canActivate: [tenantBlockPetsphereMarketingGuard],
+    loadComponent: () =>
+      import('./pages/passeadores-showcase/passeadores-showcase.component').then((m) => m.PasseadoresShowcaseComponent),
+    data: { title: 'Passeio com seu pet' },
+  },
   {
     path: 'politica-de-privacidade',
     loadComponent: () =>
@@ -45,8 +63,33 @@ export const routes: Routes = [
   },
     { path: 'mapa', loadComponent: () => import('./pages/mapa/mapa.component').then(m => m.MapaComponent) },
     { path: 'mapa/:slug', loadComponent: () => import('./pages/mapa/mapa.component').then(m => m.MapaComponent) },
-    { path: 'parceiro/cadastrar', loadComponent: () => import('./pages/parceiro-cadastro/parceiro-cadastro.component').then(m => m.ParceiroCadastroComponent) },
-    { path: 'parceiro/planos', loadComponent: () => import('./pages/parceiro-planos/parceiro-planos.component').then(m => m.ParceiroPlanosComponent), data: { title: 'Planos & créditos PetSphere' } },
+    {
+      path: 'parceiro/cadastrar',
+      canActivate: [tenantBlockPetsphereMarketingGuard],
+      loadComponent: () => import('./pages/parceiro-cadastro/parceiro-cadastro.component').then(m => m.ParceiroCadastroComponent),
+    },
+    {
+      path: 'parceiro/planos',
+      canActivate: [tenantBlockPetsphereMarketingGuard],
+      loadComponent: () => import('./pages/parceiro-planos/parceiro-planos.component').then(m => m.ParceiroPlanosComponent),
+      data: { title: 'Planos & créditos PetSphere' },
+    },
+    {
+      path: 'parceiro/veterinarios',
+      canActivate: [tenantBlockPetsphereMarketingGuard],
+      loadComponent: () =>
+        import('./pages/parceiro-veterinarios/parceiro-veterinarios.component').then(m => m.ParceiroVeterinariosComponent),
+      data: { title: 'Veterinários e clínicas PetSphere' },
+    },
+    {
+      path: 'parceiro/hotel-e-creche',
+      canActivate: [tenantBlockPetsphereMarketingGuard],
+      loadComponent: () =>
+        import('./pages/parceiro-hotel-creche/parceiro-hotel-creche.component').then(m => m.ParceiroHotelCrecheComponent),
+      data: { title: 'Hotel, creche e day use PetSphere' },
+    },
+    { path: 'veterinarios', redirectTo: 'parceiro/veterinarios', pathMatch: 'full' },
+    { path: 'hotel-creche', redirectTo: 'parceiro/hotel-e-creche', pathMatch: 'full' },
   { path: 'restrito', redirectTo: 'restrito/login', pathMatch: 'full' },
   { path: 'restrito/login', component: LoginComponent },
   {
@@ -140,6 +183,19 @@ export const routes: Routes = [
   { path: 'editar-pet/:id', loadComponent: () => import('./pages/novo-pet/novo-pet.component').then(m => m.NovoPetComponent) },
   { path: 'area-vet', loadComponent: () => import('./pages/restrito/area-vet/area-vet.component').then(m => m.AreaVetComponent)},
   { path: 'gerar-receita', loadComponent: () => import('./pages/restrito/area-vet/gerar-receita/gerar-receita.component').then(m => m.GerarReceitaComponent), canActivate: [vetGuard] },
+  {
+    path: 'atendimento/clinico',
+    redirectTo: 'gerar-receita',
+    pathMatch: 'full',
+  },
+  {
+    path: 'vet-atendimento-ia/:atendimentoId',
+    loadComponent: () =>
+      import('./pages/restrito/area-vet/vet-atendimento-ia/vet-atendimento-ia.component').then(
+        (m) => m.VetAtendimentoIaComponent
+      ),
+    canActivate: [vetGuard],
+  },
   { path: 'historico-receitas', loadComponent: () => import('./pages/restrito/area-vet/historico-receitas/historico-receitas.component').then(m => m.HistoricoReceitasComponent), canActivate: [vetGuard] },
   { path: 'historico-receitas/:id', loadComponent: () => import('./pages/restrito/area-vet/receita-detalhe/receita-detalhe.component').then(m => m.ReceitaDetalheComponent), canActivate: [vetGuard] },
   { path: 'pacientes', loadComponent: () => import('./pages/restrito/area-vet/pacientes/pacientes.component').then(m => m.PacientesComponent), canActivate: [vetGuard] },
@@ -194,6 +250,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/convite-dados-parceiro/convite-dados-parceiro.component').then(m => m.ConviteDadosParceiroComponent),
   },
   {
+    path: 'agendar-notificacao',
+    loadComponent: () =>
+      import('./pages/agendar-notificacao/agendar-notificacao.component').then((m) => m.AgendarNotificacaoComponent),
+  },
+  {
     path: 'parceiros',
     loadComponent: () => import('./pages/parceiros/parceiro-shell/parceiro-shell.component').then(m => m.ParceiroShellComponent),
     canActivate: [parceiroGuard],
@@ -230,6 +291,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/parceiros/meus-clientes/meus-clientes.component').then(m => m.MeusClientesComponent),
         data: { title: 'Meus clientes' },
+      },
+      {
+        path: 'gestao-tutores-aulas',
+        loadComponent: () =>
+          import('./pages/parceiros/gestao-tutores-aulas/gestao-tutores-aulas.component').then(
+            (m) => m.ParceiroGestaoTutoresAulasComponent
+          ),
+        data: { title: 'Tutores, turmas & aulas' },
       },
       {
         path: 'mensagens',
@@ -348,6 +417,14 @@ export const routes: Routes = [
           ],
         },
       },
+      {
+        path: 'planos-assinatura',
+        loadComponent: () =>
+          import('./pages/parceiros/planos-assinatura/planos-assinatura.component').then(
+            (m) => m.PlanosAssinaturaComponent
+          ),
+        data: { title: 'Plano, saldo e créditos' },
+      },
       // ── Área Vet centralizada no painel parceiro ─────────────────────────
       {
         path: 'area-vet',
@@ -357,6 +434,11 @@ export const routes: Routes = [
         path: 'gerar-receita',
         loadComponent: () => import('./pages/restrito/area-vet/gerar-receita/gerar-receita.component').then(m => m.GerarReceitaComponent),
         canActivate: [parceiroVetGuard],
+      },
+      {
+        path: 'atendimento/clinico',
+        redirectTo: 'gerar-receita',
+        pathMatch: 'full',
       },
       {
         path: 'historico-receitas',
@@ -385,6 +467,33 @@ export const routes: Routes = [
             (m) => m.PanoramaAtendimentoComponent
           ),
         canActivate: [parceiroVetGuard],
+      },
+      {
+        path: 'vet-atendimento-ia/:atendimentoId',
+        loadComponent: () =>
+          import('./pages/restrito/area-vet/vet-atendimento-ia/vet-atendimento-ia.component').then(
+            (m) => m.VetAtendimentoIaComponent
+          ),
+        canActivate: [parceiroVetGuard],
+      },
+      // ── Modo Vet — Painel único + Wizard de atendimento ──────────────────
+      {
+        path: 'vet-cockpit',
+        loadComponent: () =>
+          import('./pages/parceiros/vet-cockpit/vet-cockpit.component').then(
+            (m) => m.VetCockpitComponent
+          ),
+        canActivate: [parceiroVetGuard],
+        data: { title: 'Painel Vet' },
+      },
+      {
+        path: 'atendimento-wizard',
+        loadComponent: () =>
+          import('./pages/parceiros/atendimento-wizard/atendimento-wizard.component').then(
+            (m) => m.AtendimentoWizardComponent
+          ),
+        canActivate: [parceiroVetGuard],
+        data: { title: 'Atendimento' },
       },
       { path: '', redirectTo: 'painel', pathMatch: 'full' },
     ],

@@ -1,0 +1,363 @@
+<section class="wizard">
+
+  <header class="wizard__header">
+    <a routerLink="/parceiros/vet-cockpit" class="wizard__back">
+      <i class="fa fa-arrow-left"></i> Painel Vet
+    </a>
+    <h1 class="wizard__title">Atendimento</h1>
+    <span class="wizard__subtitle" *ngIf="session()?.petNome">
+      {{ session()!.petNome }} · {{ session()!.tutorNome }}
+    </span>
+  </header>
+
+  <!-- Barra de progresso -->
+  <nav class="wizard__progress" aria-label="Etapas do atendimento">
+    <div
+      class="wizard__step"
+      *ngFor="let s of steps; let i = index"
+      [attr.data-state]="stepState(s.id)"
+    >
+      <div class="step__bubble">
+        <i class="fa fa-check" *ngIf="stepState(s.id) === 'done'"></i>
+        <span *ngIf="stepState(s.id) !== 'done'">{{ i + 1 }}</span>
+      </div>
+      <span class="step__label">{{ s.label }}</span>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- Etapa 1 — Identificação (mesma lógica de busca do Consultório) -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="wizard__body wizard-ident" *ngIf="currentStep === 'identificacao'">
+    <header class="wizard-ident__hero">
+      <p class="wizard-ident__kicker">Consultório</p>
+      <h2 class="wizard-ident__title">Identificação do atendimento</h2>
+      <p class="wizard-ident__lede">
+        Busque o tutor pelo CPF — igual em Consulta, prontuário e receita — e escolha o paciente.
+      </p>
+    </header>
+
+    <article class="card receita-card panel">
+      <div class="panel-head">
+        <span class="panel-step">1</span>
+        <div>
+          <h3 class="panel-title">Quem traz o animal?</h3>
+          <p class="panel-hint">CPF do tutor responsável — o mesmo da recepção ou cadastro na plataforma.</p>
+        </div>
+      </div>
+      <div class="row">
+        <input
+          id="wizardCpfInput"
+          type="text"
+          name="cpf"
+          [(ngModel)]="cpf"
+          placeholder="000.000.000-00"
+          mask="000.000.000-00"
+          class="input-busca wizard-ident__cpf"
+          (input)="onCpfInput()"
+        />
+        <button type="button" class="btn" (click)="buscarTutor()" [disabled]="carregandoTutor">Buscar</button>
+      </div>
+      <p *ngIf="carregandoTutor" class="muted">Buscando tutor...</p>
+    </article>
+
+    <article class="card receita-card panel" *ngIf="tutorEncontrado">
+      <div class="panel-head panel-head--compact">
+        <span class="panel-step panel-step--ok" aria-hidden="true">✓</span>
+        <div>
+          <h3 class="panel-title">Cadastro localizado</h3>
+          <p class="panel-hint">Confira nome e contato; em seguida escolha o paciente deste atendimento.</p>
+        </div>
+      </div>
+      <div class="tutor-grid">
+        <div><b>Nome:</b> {{ tutorEncontrado.nome }}</div>
+        <div><b>CPF:</b> {{ tutorEncontrado.cpf }}</div>
+        <div><b>Telefone:</b> {{ tutorEncontrado.telefone }}</div>
+        <div><b>Email:</b> {{ tutorEncontrado.email }}</div>
+        <div class="full"><b>Endereço:</b> {{ tutorEncontrado.endereco }}</div>
+      </div>
+
+      <h4 class="subtitulo">Pets cadastrados</h4>
+      <div class="cards-da-letra" *ngIf="tutorEncontrado.pets?.length; else semPetsWizard">
+        <div
+          *ngFor="let pet of tutorEncontrado.pets; trackBy: trackByPet"
+          class="pet-card"
+          [class.pet-card--has-photo]="getPetPrimaryPhotoUrl(pet)"
+          [class.selected]="petSelecionado === pet"
+          (click)="selecionarPet(pet)"
+        >
+          <ng-container *ngIf="getPetPrimaryPhotoUrl(pet)">
+            <div
+              class="pet-card__photo"
+              [style.background-image]="petCardBackgroundImage(pet)!"
+              role="img"
+              [attr.aria-label]="'Foto de ' + pet.nome"
+            ></div>
+            <div class="pet-card__overlay" aria-hidden="true"></div>
+          </ng-container>
+          <div class="pet-card__body">
+            <div class="ativo-header">
+              {{ pet.nome }} <small class="muted">({{ pet.sexo }})</small>
+              <span class="pet-status" *ngIf="isPetPendente(pet)">Pendente de aceitação</span>
+            </div>
+            <div class="ativo-details">
+              Idade: {{ pet.idade }} anos<br />
+              Peso: {{ pet.peso }} kg<br />
+              Raça: {{ pet.raca }}<br />
+              Espécie: {{ pet.especie }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <ng-template #semPetsWizard>
+        <p class="muted">Nenhum pet cadastrado para este tutor ainda. Informe o nome do paciente deste atendimento.</p>
+        <input
+          [(ngModel)]="form.petNomeManual"
+          placeholder="Nome do pet *"
+          class="input-busca wizard-ident__pet-novo"
+        />
+      </ng-template>
+
+      <p class="wizard-ident__rebusca" *ngIf="tutorEncontrado">
+        <button type="button" class="btn-ghost btn-ghost--inline" (click)="limparBuscaTutor()">Buscar outro CPF</button>
+      </p>
+    </article>
+
+    <article class="card receita-card panel" *ngIf="cadastroManualTutor">
+      <div class="panel-head panel-head--compact">
+        <span class="panel-step">1</span>
+        <div>
+          <h3 class="panel-title">Cadastro manual do tutor</h3>
+          <p class="panel-hint">Use quando o CPF ainda não estiver na base — como ficha rápida na recepção.</p>
+        </div>
+      </div>
+      <div class="grid-pet">
+        <input [(ngModel)]="novoTutor.nome" placeholder="Nome completo" class="input-busca" />
+        <input [(ngModel)]="novoTutor.telefone" placeholder="Telefone" class="input-busca" />
+        <input [(ngModel)]="novoTutor.email" placeholder="E-mail" class="input-busca" />
+        <input [(ngModel)]="novoTutor.endereco" placeholder="Endereço" class="input-busca" />
+        <input [(ngModel)]="form.petNomeManual" placeholder="Nome do pet *" class="input-busca" />
+      </div>
+    </article>
+
+    <article class="card receita-card panel wizard-ident__tipo">
+      <div class="panel-head panel-head--compact">
+        <span class="panel-step panel-step--muted">+</span>
+        <div>
+          <h3 class="panel-title">Tipo de atendimento</h3>
+          <p class="panel-hint">Como este caso está sendo conduzido hoje.</p>
+        </div>
+      </div>
+      <select class="input-busca wizard-ident__select" [(ngModel)]="form.tipoAtendimento">
+        <option value="presencial">Presencial</option>
+        <option value="telemedicina">Telemedicina</option>
+        <option value="domicilio">Domicílio</option>
+      </select>
+    </article>
+
+    <div class="wizard__actions wizard-ident__actions">
+      <button
+        type="button"
+        class="btn"
+        [disabled]="!podeIniciarAtendimento"
+        (click)="submitIdentificacao()"
+      >
+        Iniciar atendimento <i class="fa fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- Etapa 2 — Clínica (bridge) -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="wizard__body" *ngIf="currentStep === 'clinica'">
+    <div class="wizard__card wizard__card--bridge">
+      <h2 class="wizard__card-title">
+        <span class="step-badge step-badge--teal">2</span> Fase clínica
+      </h2>
+      <p class="wizard__card-desc">
+        Registre anamnese, exame físico, hipótese diagnóstica e prescrição.<br>
+        O sistema abrirá a tela de Consulta &amp; Receita. Volte aqui quando concluir.
+      </p>
+
+      <div class="bridge__summary" *ngIf="session()">
+        <span class="bridge__tag">{{ session()!.petNome }}</span>
+        <span class="bridge__tag bridge__tag--muted">{{ session()!.tutorNome }}</span>
+        <span class="bridge__tag bridge__tag--type">{{ session()!.tipoAtendimento }}</span>
+      </div>
+
+      <div class="wizard__actions wizard__actions--row">
+        <a [routerLink]="gerarReceitaLink.split('?')[0]" [queryParams]="{ wizardReturn: 1 }" class="btn-primary">
+          <i class="fa fa-stethoscope"></i> Abrir Consulta &amp; Receita
+        </a>
+        <button type="button" class="btn-ghost" (click)="clinicaConcluida()">
+          Já realizei a consulta <i class="fa fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- Etapa 3 — Finalização clínica -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="wizard__body" *ngIf="currentStep === 'finalizacao-clinica'">
+    <div class="wizard__card">
+      <h2 class="wizard__card-title">
+        <span class="step-badge step-badge--teal">3</span> Finalização clínica
+      </h2>
+      <p class="wizard__card-desc">Confirme o que foi registrado antes de prosseguir.</p>
+
+      <div class="checklist">
+        <label class="checklist__item">
+          <input type="checkbox" [(ngModel)]="checklist.anamnese" />
+          <span>Anamnese e exame físico registrados</span>
+        </label>
+        <label class="checklist__item">
+          <input type="checkbox" [(ngModel)]="checklist.diagnostico" />
+          <span>Hipótese diagnóstica / diagnóstico definido</span>
+        </label>
+        <label class="checklist__item">
+          <input type="checkbox" [(ngModel)]="checklist.receita" />
+          <span>Receita emitida (se aplicável)</span>
+        </label>
+      </div>
+
+      <div class="wizard__actions">
+        <button
+          type="button"
+          class="btn-primary"
+          [disabled]="!checklistOk"
+          (click)="submitFinalizacao()"
+        >
+          Confirmar e definir próximo passo <i class="fa fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- Etapa 4 — Decisão operacional -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="wizard__body" *ngIf="currentStep === 'decisao'">
+    <div class="wizard__card">
+      <h2 class="wizard__card-title">
+        <span class="step-badge step-badge--amber">4</span> O que acontece agora?
+      </h2>
+      <p class="wizard__card-desc">Escolha o próximo passo para este atendimento.</p>
+
+      <div class="decisao-grid">
+        <label class="decisao__option" [class.decisao__option--selected]="decisao === 'telemedicina'">
+          <input type="radio" name="decisao" value="telemedicina" [(ngModel)]="decisao" hidden />
+          <i class="fa fa-video decisao__icon"></i>
+          <span class="decisao__label">Telemedicina</span>
+          <span class="decisao__desc">Continuidade via videochamada</span>
+        </label>
+        <label class="decisao__option" [class.decisao__option--selected]="decisao === 'domicilio'">
+          <input type="radio" name="decisao" value="domicilio" [(ngModel)]="decisao" hidden />
+          <i class="fa fa-house-medical decisao__icon"></i>
+          <span class="decisao__label">Domicílio</span>
+          <span class="decisao__desc">Atendimento no local do tutor</span>
+        </label>
+        <label class="decisao__option" [class.decisao__option--selected]="decisao === 'retorno'">
+          <input type="radio" name="decisao" value="retorno" [(ngModel)]="decisao" hidden />
+          <i class="fa fa-calendar-check decisao__icon"></i>
+          <span class="decisao__label">Retorno</span>
+          <span class="decisao__desc">Agendar consulta de retorno</span>
+        </label>
+        <label class="decisao__option" [class.decisao__option--selected]="decisao === 'encerrar'">
+          <input type="radio" name="decisao" value="encerrar" [(ngModel)]="decisao" hidden />
+          <i class="fa fa-circle-check decisao__icon"></i>
+          <span class="decisao__label">Encerrar</span>
+          <span class="decisao__desc">Atendimento finalizado</span>
+        </label>
+      </div>
+
+      <div class="wizard__actions">
+        <button
+          type="button"
+          class="btn-primary"
+          [disabled]="!decisao"
+          (click)="submitDecisao()"
+        >
+          Confirmar decisão <i class="fa fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- Etapa 5 — Operação (bridge) -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="wizard__body" *ngIf="currentStep === 'operacao'">
+    <div class="wizard__card wizard__card--bridge">
+      <h2 class="wizard__card-title">
+        <span class="step-badge step-badge--amber">5</span> Operação
+      </h2>
+      <p class="wizard__card-desc">
+        Configure deslocamento, quilometragem, valores e exames no Panorama do Atendimento.
+      </p>
+
+      <div class="bridge__summary" *ngIf="session()?.decisaoOperacional">
+        <span class="bridge__tag">{{ session()!.decisaoOperacional }}</span>
+        <span class="bridge__tag bridge__tag--muted">{{ session()!.petNome }}</span>
+      </div>
+
+      <div class="wizard__actions wizard__actions--row">
+        <a routerLink="/parceiros/panorama-atendimento" [queryParams]="{ wizardReturn: 1 }" class="btn-primary">
+          <i class="fa fa-map"></i> Abrir Panorama do Atendimento
+        </a>
+        <button type="button" class="btn-ghost" (click)="operacaoConcluida()">
+          Continuar sem panorama <i class="fa fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- Etapa 6 — IA (bridge, opcional) -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="wizard__body" *ngIf="currentStep === 'ia'">
+    <div class="wizard__card wizard__card--bridge">
+      <h2 class="wizard__card-title">
+        <span class="step-badge step-badge--purple">6</span> IA — Prontuário assistido <span class="badge-optional">Opcional</span>
+      </h2>
+      <p class="wizard__card-desc">
+        Converta áudio ou notas livres em prontuário estruturado com sugestão de retorno.
+      </p>
+
+      <div class="wizard__actions wizard__actions--row">
+        <a
+          *ngIf="session()?.atendimentoId"
+          [routerLink]="['/parceiros/vet-atendimento-ia', session()!.atendimentoId]"
+          [queryParams]="{ wizardReturn: 1 }"
+          class="btn-primary"
+        >
+          <i class="fa fa-wand-magic-sparkles"></i> Abrir IA
+        </a>
+        <p class="wizard__hint" *ngIf="!session()?.atendimentoId">
+          IA disponível após criar um atendimento clínico em Consulta &amp; Receita.
+        </p>
+        <button type="button" class="btn-ghost" (click)="concluir()">
+          <i class="fa fa-circle-check"></i> Concluir atendimento
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- Concluído -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="wizard__body" *ngIf="currentStep === 'concluido'">
+    <div class="wizard__card wizard__card--done">
+      <i class="fa fa-circle-check done-icon"></i>
+      <h2 class="wizard__card-title">Atendimento concluído</h2>
+      <p class="wizard__card-desc">Tudo registrado. Bom trabalho!</p>
+      <div class="wizard__actions">
+        <button type="button" class="btn-primary" (click)="concluir()">
+          <i class="fa fa-th-large"></i> Voltar ao Painel Vet
+        </button>
+      </div>
+    </div>
+  </div>
+
+</section>

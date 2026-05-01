@@ -7,6 +7,7 @@ import { filter } from 'rxjs/operators';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
 import { ParceirosMobileShellService } from '../../../services/parceiros-mobile-shell.service';
 import { Colaborador } from '../../../types/agenda.types';
+import { VetWizardSessionService, WizardSession } from '../../../services/vet-wizard-session.service';
 
 @Component({
   selector: 'app-parceiro-shell',
@@ -19,14 +20,16 @@ export class ParceiroShellComponent implements OnInit {
   colaborador = signal<Colaborador | null>(null);
   showUserMenu = signal(false);
   showVetMenu = signal(false);
-  showClinicaMenu = signal(false);
-  showPetshopMenu = signal(false);
-  showPosMenu = signal(false);
+  showAtendimentoMenu = signal(false);
+  showComercialMenu = signal(false);
+  showGestaoMenu = signal(false);
   showMobileNav = signal(false);
+  activeWizardSession = signal<WizardSession | null>(null);
   private currentUrl = '';
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly partnerDrawerBridge = inject(ParceirosMobileShellService);
+  private readonly wizardSvc = inject(VetWizardSessionService);
 
   constructor(
     private auth: ParceiroAuthService,
@@ -47,26 +50,31 @@ export class ParceiroShellComponent implements OnInit {
     if (vetNavGroup && !vetNavGroup.contains(target) && this.showVetMenu()) {
       this.showVetMenu.set(false);
     }
-    const clinicaNavGroup = this.el.nativeElement.querySelector('.nav-group--clinica');
-    if (clinicaNavGroup && !clinicaNavGroup.contains(target) && this.showClinicaMenu()) {
-      this.showClinicaMenu.set(false);
-    }
-    const petshopNavGroup = this.el.nativeElement.querySelector('.nav-group--petshop');
-    const petshopMobile = this.el.nativeElement.querySelector('.mobile-group--petshop');
-    const insidePetshop =
-      (petshopNavGroup && petshopNavGroup.contains(target)) ||
-      (petshopMobile && petshopMobile.contains(target));
-    if (!insidePetshop && this.showPetshopMenu()) {
-      this.showPetshopMenu.set(false);
+    const atendimentoNavGroup = this.el.nativeElement.querySelector('.nav-group--atendimento');
+    const atendimentoMobile = this.el.nativeElement.querySelector('.mobile-group--atendimento');
+    const insideAtendimento =
+      (atendimentoNavGroup && atendimentoNavGroup.contains(target)) ||
+      (atendimentoMobile && atendimentoMobile.contains(target));
+    if (!insideAtendimento && this.showAtendimentoMenu()) {
+      this.showAtendimentoMenu.set(false);
     }
 
-    const posNavGroup = this.el.nativeElement.querySelector('.nav-group--pos');
-    const posMobile = this.el.nativeElement.querySelector('.mobile-group--pos');
-    const insidePos =
-      (posNavGroup && posNavGroup.contains(target)) ||
-      (posMobile && posMobile.contains(target));
-    if (!insidePos && this.showPosMenu()) {
-      this.showPosMenu.set(false);
+    const comercialNavGroup = this.el.nativeElement.querySelector('.nav-group--comercial');
+    const comercialMobile = this.el.nativeElement.querySelector('.mobile-group--comercial');
+    const insideComercial =
+      (comercialNavGroup && comercialNavGroup.contains(target)) ||
+      (comercialMobile && comercialMobile.contains(target));
+    if (!insideComercial && this.showComercialMenu()) {
+      this.showComercialMenu.set(false);
+    }
+
+    const gestaoNavGroup = this.el.nativeElement.querySelector('.nav-group--gestao');
+    const gestaoMobile = this.el.nativeElement.querySelector('.mobile-group--gestao');
+    const insideGestao =
+      (gestaoNavGroup && gestaoNavGroup.contains(target)) ||
+      (gestaoMobile && gestaoMobile.contains(target));
+    if (!insideGestao && this.showGestaoMenu()) {
+      this.showGestaoMenu.set(false);
     }
 
     const mobileNavNode = this.el.nativeElement.querySelector('.mobile-nav');
@@ -85,6 +93,9 @@ export class ParceiroShellComponent implements OnInit {
   ngOnInit(): void {
     this.colaborador.set(this.auth.getCurrentColaborador());
     this.currentUrl = this.router.url;
+    this.wizardSvc.session$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(s => this.activeWizardSession.set(s));
     this.partnerDrawerBridge.openPartnerDrawer$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() =>
@@ -104,9 +115,9 @@ export class ParceiroShellComponent implements OnInit {
       .subscribe((e: any) => {
         this.currentUrl = e.urlAfterRedirects || e.url;
         this.showVetMenu.set(false);
-        this.showClinicaMenu.set(false);
-        this.showPetshopMenu.set(false);
-        this.showPosMenu.set(false);
+        this.showAtendimentoMenu.set(false);
+        this.showComercialMenu.set(false);
+        this.showGestaoMenu.set(false);
         this.showUserMenu.set(false);
         this.showMobileNav.set(false);
       });
@@ -117,13 +128,32 @@ export class ParceiroShellComponent implements OnInit {
            this.currentUrl.includes('/parceiros/gerar-receita') ||
            this.currentUrl.includes('/parceiros/historico-receitas') ||
            this.currentUrl.includes('/parceiros/pacientes') ||
-           this.currentUrl.includes('/parceiros/panorama-atendimento');
+           this.currentUrl.includes('/parceiros/panorama-atendimento') ||
+           this.currentUrl.includes('/parceiros/vet-cockpit') ||
+           this.currentUrl.includes('/parceiros/atendimento-wizard') ||
+           this.currentUrl.includes('/parceiros/vet-atendimento-ia');
   }
 
-  isClinicaFinanceiroActive(): boolean {
+  isAtendimentoActive(): boolean {
     return (
+      this.currentUrl.includes('/parceiros/servicos') ||
+      this.currentUrl.includes('/parceiros/meus-clientes') ||
+      this.currentUrl.includes('/parceiros/gestao-tutores-aulas') ||
+      this.currentUrl.includes('/parceiros/telemedicina-emergencial') ||
+      this.currentUrl.includes('/parceiros/reservas-hotel') ||
+      this.currentUrl.includes('/parceiros/hospedagem') ||
+      this.currentUrl.includes('/parceiros/transporte-pet')
+    );
+  }
+
+  isGestaoActive(): boolean {
+    return (
+      this.currentUrl.includes('/parceiros/colaboradores') ||
+      this.currentUrl.includes('/parceiros/configuracoes') ||
+      this.currentUrl.includes('/parceiros/minha-loja') ||
       this.currentUrl.includes('/parceiros/gestao-clinica') ||
-      this.currentUrl.includes('/parceiros/financeiro-parceiro')
+      this.currentUrl.includes('/parceiros/financeiro-parceiro') ||
+      this.currentUrl.includes('/parceiros/planos-assinatura')
     );
   }
 
@@ -132,15 +162,10 @@ export class ParceiroShellComponent implements OnInit {
            this.currentUrl.includes('/parceiros/hospedagem');
   }
 
-  isPetshopActive(): boolean {
+  isComercialActive(): boolean {
     return (
       this.currentUrl.includes('/parceiros/petshop-online') ||
-      this.currentUrl.includes('/parceiros/catalogo-produto')
-    );
-  }
-
-  isPosActive(): boolean {
-    return (
+      this.currentUrl.includes('/parceiros/catalogo-produto') ||
       this.currentUrl.includes('/parceiros/inventario-pos') ||
       this.currentUrl.includes('/parceiros/caixa')
     );
@@ -150,9 +175,39 @@ export class ParceiroShellComponent implements OnInit {
     this.showUserMenu.set(val ?? !this.showUserMenu());
     if (this.showUserMenu()) {
       this.showVetMenu.set(false);
-      this.showClinicaMenu.set(false);
-      this.showPetshopMenu.set(false);
-      this.showPosMenu.set(false);
+      this.showAtendimentoMenu.set(false);
+      this.showComercialMenu.set(false);
+      this.showGestaoMenu.set(false);
+    }
+  }
+
+  toggleAtendimentoMenu(val?: boolean): void {
+    this.showAtendimentoMenu.set(val ?? !this.showAtendimentoMenu());
+    if (this.showAtendimentoMenu()) {
+      this.showUserMenu.set(false);
+      this.showComercialMenu.set(false);
+      this.showGestaoMenu.set(false);
+      this.showVetMenu.set(false);
+    }
+  }
+
+  toggleComercialMenu(val?: boolean): void {
+    this.showComercialMenu.set(val ?? !this.showComercialMenu());
+    if (this.showComercialMenu()) {
+      this.showUserMenu.set(false);
+      this.showAtendimentoMenu.set(false);
+      this.showGestaoMenu.set(false);
+      this.showVetMenu.set(false);
+    }
+  }
+
+  toggleGestaoMenu(val?: boolean): void {
+    this.showGestaoMenu.set(val ?? !this.showGestaoMenu());
+    if (this.showGestaoMenu()) {
+      this.showUserMenu.set(false);
+      this.showAtendimentoMenu.set(false);
+      this.showComercialMenu.set(false);
+      this.showVetMenu.set(false);
     }
   }
 
@@ -160,39 +215,9 @@ export class ParceiroShellComponent implements OnInit {
     this.showVetMenu.set(val ?? !this.showVetMenu());
     if (this.showVetMenu()) {
       this.showUserMenu.set(false);
-      this.showClinicaMenu.set(false);
-      this.showPetshopMenu.set(false);
-      this.showPosMenu.set(false);
-    }
-  }
-
-  toggleClinicaMenu(val?: boolean): void {
-    this.showClinicaMenu.set(val ?? !this.showClinicaMenu());
-    if (this.showClinicaMenu()) {
-      this.showUserMenu.set(false);
-      this.showVetMenu.set(false);
-      this.showPetshopMenu.set(false);
-      this.showPosMenu.set(false);
-    }
-  }
-
-  togglePetshopMenu(val?: boolean): void {
-    this.showPetshopMenu.set(val ?? !this.showPetshopMenu());
-    if (this.showPetshopMenu()) {
-      this.showUserMenu.set(false);
-      this.showVetMenu.set(false);
-      this.showClinicaMenu.set(false);
-      this.showPosMenu.set(false);
-    }
-  }
-
-  togglePosMenu(val?: boolean): void {
-    this.showPosMenu.set(val ?? !this.showPosMenu());
-    if (this.showPosMenu()) {
-      this.showUserMenu.set(false);
-      this.showVetMenu.set(false);
-      this.showClinicaMenu.set(false);
-      this.showPetshopMenu.set(false);
+      this.showAtendimentoMenu.set(false);
+      this.showComercialMenu.set(false);
+      this.showGestaoMenu.set(false);
     }
   }
 
@@ -201,9 +226,9 @@ export class ParceiroShellComponent implements OnInit {
     if (this.showMobileNav()) {
       this.showUserMenu.set(false);
       this.showVetMenu.set(false);
-      this.showClinicaMenu.set(false);
-      this.showPetshopMenu.set(false);
-      this.showPosMenu.set(false);
+      this.showAtendimentoMenu.set(false);
+      this.showComercialMenu.set(false);
+      this.showGestaoMenu.set(false);
     }
   }
 

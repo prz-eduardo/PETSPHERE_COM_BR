@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { ParceiroAuthService } from '../../../../services/parceiro-auth.service';
@@ -27,6 +27,7 @@ import { AtendimentoPanoramaStorageService } from './atendimento-panorama-storag
 import type {
   PanoramaAtendimento,
   PanoramaAtendimentoStatus,
+  PanoramaDefaults,
   PanoramaExame,
   PanoramaExameStatus,
   PanoramaExtraLinha,
@@ -56,7 +57,24 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
   petsDaPermissao: PanoramaClientePermitidoPet[] = [];
   escopoPetsOk = false;
 
+  /** Defaults do parceiro (API) para novos registros e hidratação de origem vazia. */
+  parceiroDefaults: PanoramaDefaults | null = null;
+  preferenciasSalvasNoBackend = false;
+  bannerSemEnderecoCadastro = false;
+  bannerOrigemSemCoordenadas = false;
+
+  readonly panoramaStepIds: string[] = [
+    'panorama-ident',
+    'panorama-mapa',
+    'panorama-valores',
+    'panorama-exames',
+    'panorama-notas',
+  ];
+  readonly panoramaStepLabels = ['Identificação', 'Deslocamento', 'Valores', 'Exames', 'Notas'] as const;
+  readonly formaPagamentoPresets = ['Pix', 'Cartão', 'Convênio', 'Dinheiro'] as const;
+
   private map: import('leaflet').Map | null = null;
+  private autoRotaTimer: ReturnType<typeof setTimeout> | null = null;
   private layerRota: import('leaflet').Layer | null = null;
   private mkOrigem: import('leaflet').Marker | null = null;
   private mkDestino: import('leaflet').Marker | null = null;
@@ -89,11 +107,21 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     'cancelado',
   ];
 
+  readonly statusOptions: PanoramaAtendimentoStatus[] = [
+    'rascunho',
+    'agendado',
+    'deslocamento',
+    'em_atendimento',
+    'concluido',
+    'cancelado',
+  ];
+
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private auth: AuthService,
     private parceiroAuth: ParceiroAuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private routeDistance: RouteDistanceService,
     private storage: AtendimentoPanoramaStorageService,
     private agendaApi: AgendaApiService,
@@ -128,9 +156,77 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
+    void this.bootstrapPanorama();
+  }
+
+  private getEffectiveToken(): string | null {
+    try {
+      const t = this.auth.getToken?.();
+      if (t) return t;
+    } catch {}
+    try {
+      const pt = this.parceiroAuth.getToken?.();
+      if (pt) return pt;
+    } catch {}
+    return null;
+  }
+
+  private defaultsParaNovo(): PanoramaDefaults {
+    return { ...(this.parceiroDefaults ?? {}) };
+  }
+
+  private async hidratarPorAtendimentoApi(atendimentoId: number): Promise<void> {
+    const token = this.getEffectiveToken();
+    if (!token) {
+      this.toast.error('Faça login para carregar o atendimento.');
+      return;
+    }
+    try {
+      const d = await firstValueFrom(this.api.getAtendimentoDetalhe(atendimentoId, token));
+      const duplicado = this.itens.find((x) => Number(x.linkedAtendimentoId) === atendimentoId);
+      if (duplicado) {
+        this.selecionar(duplicado);
+        this.toast.success('Atendimento já está na lista do panorama.');
+        return;
+      }
+      const tutorNome = String(d?.cliente_nome || '').trim();
+      const petNome = String(d?.pet_nome || '').trim();
+      const criado = this.storage.criar(
+        this.ns,
+        {
+          tutorNome,
+          petNome,
+          petId: d?.pet_id != null ? Number(d.pet_id) : null,
+          clienteIdPermitido: d?.cliente_id != null ? Number(d.cliente_id) : null,
+          linkedAtendimentoId: atendimentoId,
+          status: 'rascunho',
+        },
+        this.defaultsParaNovo()
+      );
+      this.recarregarLista();
+      const row = this.itens.find((x) => x.id === criado.id);
+      this.selecionar(row ?? criado);
+      this.toast.success('Dados do atendimento carregados no panorama.');
+    } catch (e: unknown) {
+      const msg =
+        (e as { error?: { error?: string } })?.error?.error ||
+        'Não foi possível carregar este atendimento.';
+      this.toast.error(msg);
+    }
+  }
+
+  private async bootstrapPanorama(): Promise<void> {
     this.recarregarLista();
+    await this.carregarDefaultsParceiro();
     if (this.isParceiroShell && this.parceiroAuth.getCurrentColaborador()) {
-      void this.carregarPermissoesConcedidas();
+      await this.carregarPermissoesConcedidas();
+    }
+    const aidRaw = this.route.snapshot.queryParamMap.get('atendimentoId');
+    if (aidRaw) {
+      const n = Number(aidRaw);
+      if (Number.isFinite(n) && n > 0) {
+        await this.hidratarPorAtendimentoApi(n);
+      }
     }
     if (this.itens.length && !this.selecionado) {
       this.selecionar(this.itens[0]);
@@ -141,6 +237,10 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.autoRotaTimer) {
+      clearTimeout(this.autoRotaTimer);
+      this.autoRotaTimer = null;
+    }
     this.destruirMapa();
   }
 
@@ -214,6 +314,7 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
       s.tutorTelefone = (data.tutor?.telefone || '').trim() || s.tutorTelefone;
       if (data.endereco_texto) {
         s.destinoEnderecoTexto = data.endereco_texto;
+        await this.geocodificar('destino', { toastSuccess: false });
       }
       this.petsDaPermissao = Array.isArray(data.pets) ? data.pets : [];
       this.escopoPetsOk = !!data.escopo_pets;
@@ -235,13 +336,171 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  private async carregarDefaultsParceiro(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId) || !this.isParceiroShell) {
+      this.parceiroDefaults = {};
+      this.preferenciasSalvasNoBackend = false;
+      this.bannerSemEnderecoCadastro = false;
+      this.bannerOrigemSemCoordenadas = false;
+      return;
+    }
+    const token = this.getEffectiveToken();
+    if (!token) {
+      this.parceiroDefaults = {};
+      return;
+    }
+    try {
+      const [addr, pref] = await Promise.all([
+        firstValueFrom(this.api.getMeuEnderecoParceiro(token)),
+        firstValueFrom(this.api.getPanoramaPreferencias(token)),
+      ]);
+      const d: PanoramaDefaults = {
+        valorPorKm: pref.valor_por_km,
+        valorConsulta: pref.valor_consulta,
+        taxaAdicional: pref.taxa_adicional,
+        descontoPercent: pref.desconto_percent,
+        formaPagamento: pref.forma_pagamento ?? undefined,
+      };
+      if (addr.endereco_texto) {
+        d.origemEnderecoTexto = addr.endereco_texto;
+      }
+      if (addr.latitude != null && addr.longitude != null) {
+        d.origemLat = addr.latitude;
+        d.origemLng = addr.longitude;
+      }
+      this.preferenciasSalvasNoBackend = pref.saved === true;
+      this.bannerSemEnderecoCadastro = !addr.endereco_texto;
+      this.bannerOrigemSemCoordenadas = !!(
+        addr.endereco_texto &&
+        (addr.latitude == null || addr.longitude == null)
+      );
+
+      if (this.bannerOrigemSemCoordenadas && addr.endereco_texto) {
+        await this.enriquecerCoordsOrigemPorGeocode(d, addr.endereco_texto);
+      }
+
+      this.parceiroDefaults = d;
+    } catch {
+      this.parceiroDefaults = {};
+      this.toast.error('Não foi possível carregar endereço ou preferências do parceiro.');
+    }
+    this.cdr.markForCheck();
+  }
+
+  private async enriquecerCoordsOrigemPorGeocode(d: PanoramaDefaults, texto: string): Promise<void> {
+    try {
+      const res = await firstValueFrom(this.api.osmGeocodeAddress(texto.trim()));
+      const hit = (res.results || []).find(
+        (r) => r.lat != null && r.lon != null && Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lon))
+      );
+      if (hit) {
+        d.origemLat = Number(hit.lat);
+        d.origemLng = Number(hit.lon);
+        this.bannerOrigemSemCoordenadas = false;
+      }
+    } catch {
+      /* mantém banner */
+    }
+  }
+
+  private hidratarOrigemParceiroSeVazio(s: PanoramaAtendimento): void {
+    const d = this.parceiroDefaults;
+    if (!d) return;
+    if (!String(s.origemEnderecoTexto || '').trim() && d.origemEnderecoTexto) {
+      s.origemEnderecoTexto = d.origemEnderecoTexto;
+    }
+    const coordsInvalidos =
+      !Number.isFinite(s.origemLat) ||
+      !Number.isFinite(s.origemLng) ||
+      (s.origemLat === 0 && s.origemLng === 0);
+    if (coordsInvalidos && d.origemLat != null && d.origemLng != null) {
+      s.origemLat = d.origemLat;
+      s.origemLng = d.origemLng;
+    }
+  }
+
+  scrollParaPanoramaStep(id: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  setStatusChip(st: PanoramaAtendimentoStatus): void {
+    const s = this.selecionado;
+    if (!s) return;
+    s.status = st;
+    this.cdr.markForCheck();
+  }
+
+  statusChipAtivo(st: PanoramaAtendimentoStatus): boolean {
+    return this.selecionado?.status === st;
+  }
+
+  setFormaPagamentoChip(label: string): void {
+    const s = this.selecionado;
+    if (!s) return;
+    s.formaPagamento = label;
+    this.cdr.markForCheck();
+  }
+
+  formaPagamentoChipAtivo(label: string): boolean {
+    return (this.selecionado?.formaPagamento || '').trim() === label;
+  }
+
+  formaPagamentoEhOutra(): boolean {
+    const v = (this.selecionado?.formaPagamento || '').trim();
+    return !v || !(this.formaPagamentoPresets as readonly string[]).includes(v);
+  }
+
+  onDestinoEnderecoBlur(): void {
+    void this._geocodificar('destino', { toastSuccess: false });
+  }
+
+  focarFormaPagamentoOutra(): void {
+    const s = this.selecionado;
+    if (!s) return;
+    s.formaPagamento = '';
+    this.cdr.markForCheck();
+  }
+
+  async salvarComoPadrao(): Promise<void> {
+    const s = this.selecionado;
+    const token = this.getEffectiveToken();
+    if (!s || !token || !this.isParceiroShell) return;
+    try {
+      await firstValueFrom(
+        this.api.putPanoramaPreferencias(token, {
+          valor_por_km: Number(s.valorPorKm) || 0,
+          valor_consulta: Number(s.valorConsulta) || 0,
+          taxa_adicional: Number(s.taxaAdicional) || 0,
+          desconto_percent: Number(s.descontoPercent) || 0,
+          forma_pagamento: s.formaPagamento?.trim() || null,
+        })
+      );
+      this.preferenciasSalvasNoBackend = true;
+      if (this.parceiroDefaults) {
+        this.parceiroDefaults = {
+          ...this.parceiroDefaults,
+          valorPorKm: Number(s.valorPorKm) || 0,
+          valorConsulta: Number(s.valorConsulta) || 0,
+          taxaAdicional: Number(s.taxaAdicional) || 0,
+          descontoPercent: Number(s.descontoPercent) || 0,
+          formaPagamento: s.formaPagamento ?? undefined,
+        };
+      }
+      this.toast.success('Valores salvos como padrão para novos atendimentos.');
+      this.cdr.markForCheck();
+    } catch {
+      this.toast.error('Não foi possível salvar as preferências.');
+    }
+  }
+
   recarregarLista(): void {
     this.itens = this.storage.listar(this.ns);
     this.cdr.markForCheck();
   }
 
   novo(): void {
-    const criado = this.storage.criar(this.ns, {});
+    const criado = this.storage.criar(this.ns, {}, this.defaultsParaNovo());
     this.recarregarLista();
     this.selecionar(criado);
     this.msgRota = '';
@@ -251,6 +510,7 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
 
   selecionar(row: PanoramaAtendimento): void {
     this.selecionado = { ...row };
+    this.hidratarOrigemParceiroSeVazio(this.selecionado);
     this.msgRota = '';
     this.petsDaPermissao = [];
     this.escopoPetsOk = false;
@@ -333,6 +593,36 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     return Math.round((this.subtotalBruto() - this.valorDesconto()) * 100) / 100;
   }
 
+  private coordsValidas(lat: number, lng: number): boolean {
+    return (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      !(lat === 0 && lng === 0) &&
+      Math.abs(lat) <= 90 &&
+      Math.abs(lng) <= 180
+    );
+  }
+
+  private agendarAutoRota(): void {
+    if (this.autoRotaTimer) clearTimeout(this.autoRotaTimer);
+    this.autoRotaTimer = setTimeout(() => {
+      this.autoRotaTimer = null;
+      void this.tentarAutoCalcularRota();
+    }, 1500);
+  }
+
+  private async tentarAutoCalcularRota(): Promise<void> {
+    const s = this.selecionado;
+    if (!s || this.calculandoRota) return;
+    if (
+      !this.coordsValidas(s.origemLat, s.origemLng) ||
+      !this.coordsValidas(s.destinoLat, s.destinoLng)
+    ) {
+      return;
+    }
+    await this.calcularRota();
+  }
+
   async calcularRota(): Promise<void> {
     const s = this.selecionado;
     if (!s) return;
@@ -362,7 +652,17 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  async geocodificar(modo: 'origem' | 'destino'): Promise<void> {
+  async geocodificar(
+    modo: 'origem' | 'destino',
+    opts: { toastSuccess: boolean } = { toastSuccess: true },
+  ): Promise<void> {
+    await this._geocodificar(modo, opts);
+  }
+
+  private async _geocodificar(
+    modo: 'origem' | 'destino',
+    opts: { toastSuccess: boolean }
+  ): Promise<void> {
     const s = this.selecionado;
     if (!s) return;
     const q =
@@ -370,7 +670,9 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
         ? String(s.origemEnderecoTexto || '').trim()
         : String(s.destinoEnderecoTexto || '').trim();
     if (q.length < 4) {
-      this.toast.error('Digite o endereço completo (rua, número, cidade…) com ao menos 4 caracteres.');
+      if (opts.toastSuccess) {
+        this.toast.error('Digite o endereço completo (rua, número, cidade…) com ao menos 4 caracteres.');
+      }
       return;
     }
     if (modo === 'origem') this.geocodingOrigem = true;
@@ -382,7 +684,9 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
         (r) => r.lat != null && r.lon != null && Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lon))
       );
       if (!hit) {
-        this.toast.error('Nenhum resultado encontrado para este endereço. Ajuste o texto e tente de novo.');
+        if (opts.toastSuccess) {
+          this.toast.error('Nenhum resultado encontrado para este endereço. Ajuste o texto e tente de novo.');
+        }
         return;
       }
       const lat = Number(hit.lat);
@@ -396,9 +700,14 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
       }
       this.msgRota = hit.display_name ? `Local encontrado: ${hit.display_name}` : 'Coordenadas atualizadas (OpenStreetMap).';
       this.refreshMapa();
-      this.toast.success('Endereço localizado no mapa.');
+      if (opts.toastSuccess) {
+        this.toast.success('Endereço localizado no mapa.');
+      }
+      this.agendarAutoRota();
     } catch {
-      this.toast.error('Falha na geocodificação. Tente novamente em instantes.');
+      if (opts.toastSuccess) {
+        this.toast.error('Falha na geocodificação. Tente novamente em instantes.');
+      }
     } finally {
       if (modo === 'origem') this.geocodingOrigem = false;
       else this.geocodingDestino = false;
@@ -488,6 +797,7 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
         this.selecionado.origemLat = ll.lat;
         this.selecionado.origemLng = ll.lng;
         this.cdr.markForCheck();
+        this.agendarAutoRota();
       }
     });
     dragD.on('dragend', () => {
@@ -496,6 +806,7 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
         this.selecionado.destinoLat = ll.lat;
         this.selecionado.destinoLng = ll.lng;
         this.cdr.markForCheck();
+        this.agendarAutoRota();
       }
     });
 
@@ -515,6 +826,7 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
         dragD.setLatLng([lat, lng]);
       }
       this.cdr.markForCheck();
+      this.agendarAutoRota();
     });
 
     this.map.fitBounds(

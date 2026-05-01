@@ -78,6 +78,15 @@
         <span class="footer-dot" aria-hidden="true">·</span>
         <a href="#" (click)="openCookiePreferences($event)">Preferências de cookies</a>
       </p>
+      @if (showParceiroSegmentLinks) {
+        <p class="footer-parceiro-links" aria-label="Soluções para parceiros">
+          <a routerLink="/parceiro/planos">Planos para negócios</a>
+          <span class="footer-dot" aria-hidden="true">·</span>
+          <a routerLink="/parceiro/veterinarios">Veterinários</a>
+          <span class="footer-dot" aria-hidden="true">·</span>
+          <a routerLink="/parceiro/hotel-e-creche">Hotel e creche</a>
+        </p>
+      }
     </div>
   </div>
 </footer>

@@ -251,7 +251,6 @@ export class AdminComponent implements OnInit, OnDestroy {
   goToPlanos() { this.router.navigate(['/restrito/admin/planos']); }
   goToCreditos() { this.router.navigate(['/restrito/admin/creditos']); }
   goToTransportePet() { this.router.navigate(['/restrito/admin/transporte-pet']); }
-
   // -------- Header user menu --------
   toggleUserMenu(force?: boolean) {
     this.showUserMenu = typeof force === 'boolean' ? force : !this.showUserMenu;

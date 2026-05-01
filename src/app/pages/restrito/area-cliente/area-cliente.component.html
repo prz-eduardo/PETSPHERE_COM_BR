@@ -29,6 +29,10 @@
     <button type="button" class="btn btn-sec" (click)="goBack()" aria-label="Voltar">Voltar</button>
   </div>
 
+  <div *ngIf="!modal && internalView === 'telemedicina'" class="internal-back">
+    <button type="button" class="btn btn-sec" (click)="goBack()" aria-label="Voltar">Voltar</button>
+  </div>
+
   <!-- Título interno quando estamos navegando em subviews (mantém contexto) -->
   <h1 class="titulo" *ngIf="internalView">{{ titulo }}</h1>
 

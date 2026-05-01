@@ -379,9 +379,11 @@
     <section class="map-area">
       <div class="map-frame-wrap">
         <!-- Camadas do mapa + atalho Transporte (fecha chips ao abrir o painel) -->
-        <div *ngIf="!transportePetPainelAberto && !transportePetSelecaoLojaAberta && !isMobileMapLayout" class="map-legend-row map-legend-row--desktop">
+        <div
+          *ngIf="!transportePetPainelAberto && !transportePetSelecaoLojaAberta && !isMobileMapLayout && transportePetMostrarBotao"
+          class="map-legend-row map-legend-row--desktop-top"
+        >
           <button
-            *ngIf="transportePetMostrarBotao"
             type="button"
             class="mapa-transporte-trigger"
             (click)="abrirTransportePetPainel()"
@@ -389,6 +391,8 @@
             <span class="mapa-transporte-trigger__icon" aria-hidden="true">🚗</span>
             <span class="mapa-transporte-trigger__text">Transporte</span>
           </button>
+        </div>
+        <div *ngIf="!transportePetPainelAberto && !transportePetSelecaoLojaAberta && !isMobileMapLayout" class="map-legend-row map-legend-row--desktop-bottom">
           <div class="map-legend map-legend--desktop" role="group" aria-label="Camadas do mapa">
             <div class="map-legend-pills" role="toolbar">
               <button

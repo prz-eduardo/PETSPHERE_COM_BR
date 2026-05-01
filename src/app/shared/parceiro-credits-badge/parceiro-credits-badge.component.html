@@ -1,7 +1,7 @@
 <a
   class="pcredits"
-  routerLink="/parceiro/planos"
-  [attr.aria-label]="'Seus créditos PetSphere: ' + (saldo() !== null ? fmt(saldo()!) : 'carregando') + '. Abrir planos e recarga.'"
+  routerLink="/parceiros/planos-assinatura"
+  [attr.aria-label]="'Seus créditos PetSphere: ' + (saldo() !== null ? fmt(saldo()!) : 'carregando') + '. Abrir plano, saldo e extrato de créditos.'"
 >
   <span class="pcredits__glow" aria-hidden="true"></span>
   <span class="pcredits__icon" aria-hidden="true"><i class="fa fa-bolt"></i></span>
@@ -15,6 +15,6 @@
       <span class="pcredits__value pcredits__muted" *ngIf="error()">—</span>
     </ng-template>
   </span>
-  <span class="pcredits__hint" *ngIf="!loading() && !error() && saldo() !== null">recarregar</span>
+  <span class="pcredits__hint" *ngIf="!loading() && !error() && saldo() !== null">plano &amp; créditos</span>
   <i class="fa fa-angle-right pcredits__chev" aria-hidden="true"></i>
 </a>

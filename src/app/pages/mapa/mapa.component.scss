@@ -819,27 +819,37 @@
 }
 
 /* Atalho Transporte + fila com legenda (desktop/mobile) */
-.map-legend-row--desktop {
+.map-legend-row--desktop-top {
   position: absolute;
   z-index: 5;
   top: clamp(16px, 2.2vh, 24px);
   left: clamp(12px, 1.6vw, 20px);
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 8px;
-  max-width: min(680px, calc(100% - 28px));
+  align-items: center;
   pointer-events: none;
 }
-.map-legend-row--desktop > * {
+.map-legend-row--desktop-top > * {
   pointer-events: auto;
 }
-.map-legend-row--desktop .map-legend--desktop {
+.map-legend-row--desktop-bottom {
+  position: absolute;
+  z-index: 5;
+  left: clamp(12px, 1.6vw, 20px);
+  right: clamp(12px, 1.6vw, 20px);
+  bottom: clamp(12px, 2vh, 20px);
+  display: flex;
+  justify-content: flex-start;
+  pointer-events: none;
+}
+.map-legend-row--desktop-bottom > * {
+  pointer-events: auto;
+}
+.map-legend-row--desktop-bottom .map-legend--desktop {
   position: static;
   top: auto;
   left: auto;
-  max-width: none;
-  flex: 1;
+  max-width: min(100%, 760px);
+  flex: 0 1 auto;
   min-width: 0;
   transform: none;
 }
@@ -1025,11 +1035,10 @@
 .map-legend--desktop {
   pointer-events: auto;
   flex-wrap: wrap;
-  max-width: min(560px, calc(100% - 28px));
+  max-width: 100%;
   align-items: flex-start;
-  /* Keep category pills safely inside map bounds on desktop. */
-  top: clamp(16px, 2.2vh, 24px);
-  left: clamp(12px, 1.6vw, 20px);
+  top: auto;
+  left: auto;
   right: auto;
   bottom: auto;
   transform: none;

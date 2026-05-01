@@ -1,0 +1,213 @@
+<main class="adest-page" id="topo">
+  <!-- HERO -->
+  <section class="adest-hero" aria-labelledby="adest-hero-title">
+    <div class="hero-blob hero-blob--a" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob--b" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <span class="hero-kicker">
+          <i class="fa-solid fa-flask" aria-hidden="true"></i>
+          Protótipo de produto — experiência em construção
+        </span>
+        <h1 id="adest-hero-title" class="hero-title">
+          Adestramento que <span class="hero-accent">melhora o dia a dia</span> com o seu pet
+        </h1>
+        <p class="hero-lead">
+          Para tutores: encontre profissionais na região. Para adestradores: apareça no mapa e organize
+          sua operação junto com a {{ marca }}.
+        </p>
+        <div class="hero-actions">
+          <a routerLink="/mapa" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+            Buscar na região
+          </a>
+          <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+            <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+            Sou adestrador
+          </a>
+        </div>
+        <ul class="hero-trust" aria-label="Benefícios destacados">
+          <li>
+            <span class="trust-ic"><i class="fa-solid fa-heart" aria-hidden="true"></i></span>
+            <span><strong>Abordagem humana</strong> — foco em bem-estar e clareza para o tutor</span>
+          </li>
+          <li>
+            <span class="trust-ic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i></span>
+            <span><strong>Perfil no mapa</strong> — descoberta local integrada à plataforma</span>
+          </li>
+          <li>
+            <span class="trust-ic"><i class="fa-solid fa-paw" aria-hidden="true"></i></span>
+            <span><strong>Histórico do pet</strong> — mais contexto quando tutor e profissional usam a {{ marca }}</span>
+          </li>
+        </ul>
+      </div>
+      <div class="hero-panel" aria-hidden="false">
+        <div class="hero-card">
+          <div class="hero-card__head">
+            <i class="fa-solid fa-dog" aria-hidden="true"></i>
+            <span>Mockup visual</span>
+          </div>
+          <p class="hero-card__text">
+            Esta página ilustra a narrativa e os fluxos planejados. Nenhum agendamento real é feito aqui.
+          </p>
+          <ul class="hero-card__list">
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Jornada do tutor</li>
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Espaço para profissionais</li>
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> FAQ e próximos passos</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="adest-divider" aria-hidden="true" />
+
+  <!-- DORES -->
+  <section class="adest-bloco" aria-labelledby="dores-title">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow">Situações comuns</span>
+        <h2 id="dores-title" class="section-title">O que o adestramento pode ajudar a resolver</h2>
+        <p class="section-lead">
+          Você não precisa “consertar” o seu pet sozinho. Estes são pontos de partida frequentes para buscar um profissional.
+        </p>
+      </div>
+      <div class="dores-grid">
+        <article class="dor-card" *ngFor="let d of dores">
+          <div class="dor-card__icon" aria-hidden="true"><i [class]="d.icon"></i></div>
+          <h3 class="dor-card__title">{{ d.title }}</h3>
+          <p class="dor-card__text">{{ d.text }}</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <hr class="adest-divider" aria-hidden="true" />
+
+  <!-- SERVIÇOS -->
+  <section class="adest-bloco adest-bloco--surface" aria-labelledby="servicos-title">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow">Formatos</span>
+        <h2 id="servicos-title" class="section-title">Tipos de serviço que você pode encontrar</h2>
+        <p class="section-lead">
+          Cada profissional define a oferta. Use como guia para alinhar expectativas antes do primeiro contato.
+        </p>
+      </div>
+      <div class="servicos-grid">
+        <article class="servico-card" *ngFor="let s of servicos">
+          <div class="servico-card__icon" aria-hidden="true"><i [class]="s.icon"></i></div>
+          <h3 class="servico-card__title">{{ s.title }}</h3>
+          <p class="servico-card__lead">{{ s.lead }}</p>
+          <a href="#bloco-cta" class="servico-card__link" (click)="scrollTo('bloco-cta', $event)">
+            Ver como começar <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          </a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <hr class="adest-divider" aria-hidden="true" />
+
+  <!-- JORNADA -->
+  <section class="adest-bloco" aria-labelledby="jornada-title">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow">Passo a passo</span>
+        <h2 id="jornada-title" class="section-title">Jornada do tutor</h2>
+        <p class="section-lead">
+          Um fluxo simples: descobrir, comparar e falar com quem vai acompanhar você e o seu pet.
+        </p>
+      </div>
+      <ol class="jornada-track">
+        <li class="jornada-step" *ngFor="let step of jornada">
+          <span class="jornada-step__n" aria-hidden="true">{{ step.n }}</span>
+          <div class="jornada-step__body">
+            <h3 class="jornada-step__title">{{ step.title }}</h3>
+            <p class="jornada-step__text">{{ step.text }}</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <hr class="adest-divider" aria-hidden="true" />
+
+  <!-- PROFISSIONAIS -->
+  <section class="adest-bloco adest-bloco--cosmos" aria-labelledby="pro-title">
+    <div class="section-inner">
+      <div class="section-head section-head--light">
+        <span class="eyebrow eyebrow--light">Para o negócio</span>
+        <h2 id="pro-title" class="section-title section-title--light">Adestradores e escolas na {{ marca }}</h2>
+        <p class="section-lead section-lead--light">
+          O mockup antecipa como comunicar valor para quem vive de treino e comportamento — com as mesmas alavancas
+          que petshops e clínicas já usam.
+        </p>
+      </div>
+      <div class="pro-grid">
+        <article class="pro-card" *ngFor="let b of proBenefits">
+          <div class="pro-card__icon" aria-hidden="true"><i [class]="b.icon"></i></div>
+          <h3 class="pro-card__title">{{ b.title }}</h3>
+          <p class="pro-card__text">{{ b.text }}</p>
+        </article>
+      </div>
+      <div class="pro-cta">
+        <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+          Ver planos e créditos
+        </a>
+        <a routerLink="/parceiro/cadastrar" class="btn btn-ghost btn-lg">Criar cadastro</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="adest-bloco" aria-labelledby="faq-title">
+    <div class="section-inner section-inner--narrow">
+      <div class="section-head">
+        <span class="eyebrow">Dúvidas</span>
+        <h2 id="faq-title" class="section-title">Perguntas frequentes</h2>
+        <p class="section-lead">Respostas genéricas para orientar tutores; o profissional é sempre a referência final.</p>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item" *ngFor="let item of faq">
+          <summary class="faq-q">{{ item.q }}</summary>
+          <p class="faq-a">{{ item.a }}</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section class="adest-cta-band" id="bloco-cta" aria-labelledby="cta-final-title">
+    <div class="section-inner">
+      <h2 id="cta-final-title" class="cta-band__title">Pronto para dar o próximo passo?</h2>
+      <p class="cta-band__lead">
+        Explore o mapa ou cadastre seu negócio — esta página é apenas um mockup de UX; as rotas abaixo já existem na
+        plataforma.
+      </p>
+      <div class="cta-band__actions">
+        <a routerLink="/mapa" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+          Abrir mapa
+        </a>
+        <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-store" aria-hidden="true"></i>
+          Cadastrar parceiro
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mobile sticky CTA -->
+  <div class="adest-sticky-cta" role="region" aria-label="Ações rápidas">
+    <a routerLink="/mapa" class="adest-sticky-cta__btn adest-sticky-cta__btn--primary">
+      <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+      Mapa
+    </a>
+    <a routerLink="/parceiro/cadastrar" class="adest-sticky-cta__btn adest-sticky-cta__btn--secondary">
+      <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+      Cadastrar
+    </a>
+  </div>
+</main>

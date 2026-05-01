@@ -597,6 +597,116 @@
   background: rgba(153, 27, 27, 1);
 }
 
+.pet-card__vac {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--ac-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ac-text-dim);
+}
+
+.pet-card__vac--neutral {
+  color: var(--ac-text-dim);
+}
+
+.pet-card__vac--ok {
+  color: #b8d96a;
+  border-color: rgba(196, 214, 0, 0.35);
+  background: rgba(196, 214, 0, 0.08);
+}
+
+.pet-card__vac--warn {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.pet-card__vac--alert {
+  color: #ff7a6b;
+  border-color: rgba(255, 122, 107, 0.4);
+  background: rgba(255, 122, 107, 0.1);
+}
+
+.state--empty__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ac-text);
+  margin: 0 0 8px;
+}
+
+.state--empty__desc {
+  font-size: 14px;
+  color: var(--ac-text-dim);
+  line-height: 1.5;
+  margin: 0 0 18px;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pet-grid--skeleton .pet-card-skeleton {
+  border-radius: var(--ac-radius);
+  overflow: hidden;
+  border: 1px solid var(--ac-border);
+  background: var(--ac-surface);
+  min-height: 280px;
+}
+
+.pet-card-skeleton__media {
+  height: 160px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.09) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: pet-shimmer 1.2s ease-in-out infinite;
+}
+
+.pet-card-skeleton__body {
+  padding: 14px 16px 18px;
+}
+
+.pet-card-skeleton__line {
+  height: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: pet-shimmer 1.2s ease-in-out infinite;
+}
+
+.pet-card-skeleton__line--wide {
+  width: 72%;
+}
+
+.pet-card-skeleton__line--narrow {
+  width: 45%;
+}
+
+.pet-card-skeleton__chips {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pet-card-skeleton__chip {
+  width: 56px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  animation: pet-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes pet-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 @media (max-width: 640px) {
   .page-title {
     font-size: 22px;

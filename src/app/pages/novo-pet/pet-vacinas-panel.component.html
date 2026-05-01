@@ -1,0 +1,82 @@
+<div class="vac-panel">
+  <p class="vac-panel__hint muted" *ngIf="!lembretesGlobaisAtivos">
+    Para receber lembretes automáticos, ative <strong>Lembrar vacinas dos pets</strong> nas preferências do seu perfil. Os registros abaixo funcionam mesmo sem isso.
+  </p>
+
+  <div *ngIf="carregando" class="vac-panel__loading" aria-live="polite">Carregando carteira…</div>
+
+  <ul class="vac-timeline" *ngIf="!carregando && lista.length">
+    <li *ngFor="let v of lista" class="vac-timeline__item">
+      <div class="vac-timeline__dot" aria-hidden="true"></div>
+      <div class="vac-timeline__body">
+        <div class="vac-timeline__head">
+          <strong class="vac-timeline__nome">{{ v.nome }}</strong>
+          <span class="vac-timeline__data">{{ formatarBrData(v.data_aplicacao) }}</span>
+        </div>
+        <div class="vac-timeline__meta muted" *ngIf="v.proxima_reforco">
+          Próx. reforço: {{ formatarBrData(v.proxima_reforco) }}
+        </div>
+        <div class="vac-timeline__meta muted" *ngIf="v.lote">Lote: {{ v.lote }}</div>
+        <div class="vac-timeline__actions">
+          <a
+            *ngIf="v.comprovante_url"
+            class="vac-link"
+            [href]="v.comprovante_url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >Ver comprovante</a>
+          <span class="vac-badge" *ngIf="v.lembrete_ativo === 1 || v.lembrete_ativo === true">Lembrete ligado</span>
+          <button type="button" class="vac-btn-ghost" (click)="editar(v)">Editar</button>
+          <button type="button" class="vac-btn-ghost vac-btn-ghost--danger" (click)="excluir(v)">Excluir</button>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <p *ngIf="!carregando && !lista.length" class="muted vac-panel__empty">Nenhuma vacina registrada ainda.</p>
+
+  <div class="vac-form-card">
+    <h4 class="vac-form-card__title">{{ editandoId != null ? 'Editar dose' : 'Nova dose' }}</h4>
+    <div class="vac-form-grid">
+      <div class="field">
+        <label>Vacina *</label>
+        <input type="text" [(ngModel)]="formNome" placeholder="Ex.: V8, Antirrábica" />
+      </div>
+      <div class="field">
+        <label>Data da aplicação *</label>
+        <input type="date" [(ngModel)]="formDataAplicacao" [max]="hojeYmd()" />
+      </div>
+      <div class="field">
+        <label>Próximo reforço</label>
+        <input type="date" [(ngModel)]="formProxima" />
+      </div>
+      <div class="field">
+        <label>Lote</label>
+        <input type="text" [(ngModel)]="formLote" maxlength="64" />
+      </div>
+      <div class="field field--block">
+        <label>Aplicado por (clínica / profissional)</label>
+        <input type="text" [(ngModel)]="formAplicadoPor" maxlength="160" />
+      </div>
+      <div class="field field--block">
+        <label>Observações</label>
+        <textarea [(ngModel)]="formObs" rows="2" placeholder="Opcional"></textarea>
+      </div>
+      <div class="field field--block">
+        <label class="vac-toggle">
+          <input type="checkbox" [(ngModel)]="formLembrete" />
+          <span>Lembrete desta dose ativo</span>
+        </label>
+      </div>
+      <div class="field field--block">
+        <label>Comprovante (foto)</label>
+        <input type="file" accept="image/*" (change)="onFile($event)" />
+        <p class="muted small-print">PNG ou JPG, até 3MB.</p>
+      </div>
+    </div>
+    <div class="vac-form-actions">
+      <button type="button" class="btn-sec" *ngIf="editandoId != null" (click)="cancelarForm()" [disabled]="salvando">Cancelar edição</button>
+      <button type="button" class="btn-primary" (click)="salvar()" [disabled]="salvando">{{ salvando ? 'Salvando…' : 'Salvar dose' }}</button>
+    </div>
+  </div>
+</div>

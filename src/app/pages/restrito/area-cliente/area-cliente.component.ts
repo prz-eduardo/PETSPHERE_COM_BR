@@ -234,9 +234,13 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
         if (cadastro === '1') {
           this.modalCadastroAberto = true;
           this.modalLoginAberto = false;
-        } else if (login === '1') {
+        } else         if (login === '1') {
           this.modalLoginAberto = true;
           this.modalCadastroAberto = false;
+        }
+        const viewParam = pm.get('view');
+        if (viewParam === 'telemedicina') {
+          this.tryMountTelemedicinaFromRoute();
         }
       });
     }
@@ -307,6 +311,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
                 try { this._resolveProfile && this._resolveProfile(); } catch {}
                 this.profileLoading = false;
                 this.profilePromise = undefined;
+                this.tryMountTelemedicinaFromRoute();
               },
               error: (err) => {
                 const msg = (err && err.error && (err.error.message || err.error.error)) || err.message || 'Erro ao buscar pets';
@@ -315,12 +320,14 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
                 try { this._resolveProfile && this._resolveProfile(); } catch {}
                 this.profileLoading = false;
                 this.profilePromise = undefined;
+                this.tryMountTelemedicinaFromRoute();
               }
             });
           } else {
             try { this._resolveProfile && this._resolveProfile(); } catch {}
             this.profileLoading = false;
             this.profilePromise = undefined;
+            this.tryMountTelemedicinaFromRoute();
           }
         } else {
           // resposta inesperada
@@ -497,7 +504,10 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
       if (view === 'favoritos') return this.router.navigateByUrl('/favoritos');
       if (view === 'carrinho') return this.router.navigateByUrl('/carrinho');
       if (view === 'meus-cartoes') return this.router.navigateByUrl('/meus-cartoes');
-      if (view === 'telemedicina') return this.router.navigateByUrl('/area-cliente?view=telemedicina');
+      if (view === 'telemedicina') {
+        void this.router.navigateByUrl('/area-cliente?view=telemedicina');
+        return;
+      }
       if (view === 'loja') return this.router.navigateByUrl('/loja');
       if (view === 'consultar-pedidos') {
         return this.router.navigate([{ outlets: { modal: ['consultar-pedidos'] } }], { relativeTo: this.route });
@@ -544,24 +554,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
       return;
     }
     if (view === 'telemedicina') {
-      this.internalView = 'telemedicina';
-      this.titulo = 'Telemedicina';
-      if (!this.internalHost) return;
-      this.internalHost.clear();
-      try {
-        const mod = await import('./telemedicina/telemedicina.component');
-        const Cmp = (mod as any).TelemedicinaComponent;
-        const ref = this.internalHost.createComponent(Cmp);
-        if (ref?.instance) {
-          (ref.instance as any).modal = true;
-          if ((ref.instance as any).close) {
-            (ref.instance as any).close.subscribe(() => this.goBack());
-          }
-        }
-      } catch (e) {
-        console.error('Falha ao abrir Telemedicina', e);
-        this.toast.error('Não foi possível abrir Telemedicina agora');
-      }
+      await this.mountTelemedicinaEmbedded(true);
       return;
     }
     if (view === 'minha-galeria') {
@@ -850,8 +843,61 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
     if (this.internalHost) {
       try { this.internalHost.clear(); } catch {}
     }
+    const wasTelemedicina = this.internalView === 'telemedicina';
     this.internalView = null;
     this.titulo = 'Bem-vindo!';
+    if (wasTelemedicina && !this.modal && this.isBrowser) {
+      void this.router.navigate(['/area-cliente'], { queryParams: { view: null }, queryParamsHandling: 'merge' });
+    }
+  }
+
+  private tryMountTelemedicinaFromRoute(): void {
+    if (this.modal || !this.hasAuth) return;
+    if (this.route.snapshot.queryParamMap.get('view') !== 'telemedicina') return;
+    if (this.internalView === 'telemedicina') return;
+    setTimeout(() => void this.mountTelemedicinaEmbedded(false), 0);
+  }
+
+  private async mountTelemedicinaEmbedded(isModalShell: boolean): Promise<void> {
+    if (!this.hasAuth) {
+      this.toast.error('Faça login para usar a telemedicina.', 'Telemedicina');
+      return;
+    }
+    this.internalView = 'telemedicina';
+    this.titulo = 'Telemedicina';
+    if (!this.internalHost) return;
+    this.internalHost.clear();
+    try {
+      const mod = await import('./telemedicina/telemedicina.component');
+      const Cmp = (mod as any).TelemedicinaComponent;
+      const ref = this.internalHost.createComponent(Cmp);
+      if (ref?.instance) {
+        (ref.instance as any).modal = isModalShell;
+        const pet = this.pets?.[0];
+        const tipo = (pet?.tipo || '').toLowerCase();
+        (ref.instance as any).tutorPerfil = {
+          nome: this.clienteData?.nome || this.clienteData?.user?.nome || 'Tutor',
+          petNome: pet?.nome || 'Pet',
+          petEspecie: tipo.includes('gato') || tipo.includes('felino') ? 'Felino' : 'Canino',
+          petRaca: 'SRD',
+        };
+        try {
+          (ref.instance as any).petsCatalogo = (this.pets || []).map((p) => ({
+            id: p.id,
+            nome: p.nome,
+            tipo: p.tipo,
+          }));
+        } catch {
+          /* ignore */
+        }
+        if ((ref.instance as any).close) {
+          (ref.instance as any).close.subscribe(() => this.goBack());
+        }
+      }
+    } catch (e) {
+      console.error('Falha ao abrir Telemedicina', e);
+      this.toast.error('Não foi possível abrir Telemedicina agora');
+    }
   }
 
   private async openPetEditorInModal(petId: string | number): Promise<void> {

@@ -1,0 +1,58 @@
+.ia-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+.ia-head {
+  margin-bottom: 24px;
+}
+.ia-kicker {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin: 0 0 8px;
+}
+.ia-head h1 {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
+}
+.ia-lede {
+  margin: 0 0 16px;
+  color: #475569;
+  line-height: 1.5;
+}
+.ia-back {
+  display: inline-block;
+  font-weight: 600;
+  color: #0ea5e9;
+  text-decoration: none;
+}
+.ia-back:hover {
+  text-decoration: underline;
+}
+.ia-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.ia-danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+.muted {
+  color: #64748b;
+  margin: 4px 0 0;
+}
+.ia-steps {
+  padding-left: 20px;
+  line-height: 1.7;
+  color: #334155;
+}
+.ia-steps span {
+  font-weight: 700;
+  margin-right: 6px;
+}

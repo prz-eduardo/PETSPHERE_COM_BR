@@ -1,6 +1,6 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import type { PanoramaAtendimento } from './atendimento-panorama.types';
+import type { PanoramaAtendimento, PanoramaDefaults } from './atendimento-panorama.types';
 
 const STORAGE_PREFIX = 'ps_vet_panorama_v1';
 
@@ -41,7 +41,21 @@ export class AtendimentoPanoramaStorageService {
     }
   }
 
-  criar(ns: string, partial: Partial<PanoramaAtendimento>): PanoramaAtendimento {
+  criar(
+    ns: string,
+    partial: Partial<PanoramaAtendimento>,
+    defaults?: PanoramaDefaults
+  ): PanoramaAtendimento {
+    const d = defaults ?? {};
+    const olat = d.origemLat ?? 0;
+    const olng = d.origemLng ?? 0;
+    let dlat = d.destinoLat ?? 0;
+    let dlng = d.destinoLng ?? 0;
+    if (olat === dlat && olng === dlng) {
+      dlat = olat;
+      dlng = olng + 0.0001;
+    }
+
     const now = new Date().toISOString();
     const base: PanoramaAtendimento = {
       id: newId(),
@@ -50,15 +64,17 @@ export class AtendimentoPanoramaStorageService {
       tutorNome: '',
       petNome: '',
       status: 'rascunho',
-      origemLat: -23.55052,
-      origemLng: -46.633308,
-      destinoLat: -23.56,
-      destinoLng: -46.64,
-      valorPorKm: 3.5,
-      valorConsulta: 150,
-      taxaAdicional: 0,
+      origemLat: olat,
+      origemLng: olng,
+      destinoLat: dlat,
+      destinoLng: dlng,
+      origemEnderecoTexto: d.origemEnderecoTexto,
+      valorPorKm: d.valorPorKm ?? 0,
+      valorConsulta: d.valorConsulta ?? 0,
+      taxaAdicional: d.taxaAdicional ?? 0,
       extras: [],
-      descontoPercent: 0,
+      descontoPercent: d.descontoPercent ?? 0,
+      formaPagamento: d.formaPagamento ?? undefined,
       exames: [],
       ...partial,
     };

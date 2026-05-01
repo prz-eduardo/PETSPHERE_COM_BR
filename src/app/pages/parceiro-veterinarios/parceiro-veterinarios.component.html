@@ -1,0 +1,200 @@
+<main class="plp-page" id="topo">
+  <section class="plp-hero" aria-labelledby="vet-hero-title">
+    <div class="hero-blob hero-blob--a" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob--b" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <span class="hero-kicker">
+          <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
+          Para clínicas e veterinários
+        </span>
+        <h1 id="vet-hero-title" class="hero-title">
+          Sua clínica no <span class="hero-accent">mapa digital</span> que tutores já usam
+        </h1>
+        <p class="hero-lead">
+          Combine visibilidade no marketplace, ferramentas de agenda e automações com a área do veterinário — receitas,
+          pacientes e histórico integrados ao ecossistema {{ marca }}.
+        </p>
+        <div class="hero-actions">
+          <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+            Ver planos e créditos
+          </a>
+          <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+            <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+            Cadastrar parceiro
+          </a>
+          <a routerLink="/mapa" class="btn btn-ghost btn-lg">
+            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+            Explorar mapa
+          </a>
+        </div>
+        <ul class="hero-trust" aria-label="Benefícios destacados">
+          <li *ngFor="let t of heroTrust">
+            <span class="trust-ic"><i [class]="t.icon" aria-hidden="true"></i></span>
+            <span><strong>{{ t.strong }}</strong> — {{ t.text }}</span>
+          </li>
+        </ul>
+      </div>
+      <div class="hero-panel">
+        <div class="hero-card">
+          <div class="hero-card__head">
+            <i class="fa-solid fa-kit-medical" aria-hidden="true"></i>
+            <span>Uma só plataforma</span>
+          </div>
+          <p class="hero-card__text">
+            Do cadastro público aos fluxos internos da clínica, a mesma base que já move petshops e hotel para pets na
+            {{ marca }}.
+          </p>
+          <ul class="hero-card__list">
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Mapa + vitrine de parceiros</li>
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Automações e IA (planos pagos)</li>
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Área veterinária: receitas e pacientes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="plp-divider" aria-hidden="true" />
+
+  <section class="plp-bloco plp-bloco--surface" aria-labelledby="valores-title">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow">Por que estar na PetSphere</span>
+        <h2 id="valores-title" class="section-title">Veterinários no mesmo ecossistema dos tutores</h2>
+        <p class="section-lead">
+          Não é só “estar online”: é aparecer onde o tutor já pesquisa, combinar relacionamento automatizado com fluxos
+          clínicos digitais.
+        </p>
+      </div>
+      <div class="servicos-grid">
+        <article class="servico-card" *ngFor="let v of valores">
+          <div class="servico-card__icon" aria-hidden="true"><i [class]="v.icon"></i></div>
+          <h3 class="servico-card__title">{{ v.title }}</h3>
+          <p class="servico-card__lead">{{ v.lead }}</p>
+          <a href="#bloco-cta" class="servico-card__link" (click)="scrollTo('bloco-cta', $event)">
+            Próximo passo <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          </a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <hr class="plp-divider" aria-hidden="true" />
+
+  <section class="plp-bloco" aria-labelledby="clinica-title">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow">Rotina clínica</span>
+        <h2 id="clinica-title" class="section-title">O que o produto já oferece à equipe veterinária</h2>
+        <p class="section-lead">
+          Funcionalidades alinhadas à área reservada ao veterinário na plataforma — complementares à sua presença como
+          parceiro público.
+        </p>
+      </div>
+      <div class="dores-grid">
+        <article class="dor-card" *ngFor="let c of clinica">
+          <div class="dor-card__icon" aria-hidden="true"><i [class]="c.icon"></i></div>
+          <h3 class="dor-card__title">{{ c.title }}</h3>
+          <p class="dor-card__text">{{ c.text }}</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <hr class="plp-divider" aria-hidden="true" />
+
+  <section class="plp-bloco plp-bloco--cosmos" aria-labelledby="auto-title">
+    <div class="section-inner">
+      <div class="section-head section-head--light">
+        <span class="eyebrow eyebrow--light">Planos pagos</span>
+        <h2 id="auto-title" class="section-title section-title--light">Automações que liberam sua recepção</h2>
+        <p class="section-lead section-lead--light">
+          A mesma lógica de Free / Pro / Enterprise da página de planos da {{ marca }}: você escala comunicação sem
+          multiplicar atendimento manual.
+        </p>
+      </div>
+      <div class="pro-grid">
+        <article class="pro-card" *ngFor="let a of automacoes">
+          <div class="pro-card__icon" aria-hidden="true"><i [class]="a.icon"></i></div>
+          <h3 class="pro-card__title">{{ a.title }}</h3>
+          <p class="pro-card__text">{{ a.text }}</p>
+        </article>
+      </div>
+      <div class="pro-cta">
+        <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-tags" aria-hidden="true"></i>
+          Comparar planos e pacotes de crédito
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <hr class="plp-divider" aria-hidden="true" />
+
+  <section class="plp-bloco" aria-labelledby="eco-title">
+    <div class="section-inner section-inner--narrow">
+      <div class="section-head">
+        <span class="eyebrow">Ecossistema</span>
+        <h2 id="eco-title" class="section-title">Passeadores, hotel e outros prestadores na mesma rede</h2>
+        <p class="section-lead">
+          Tutores encontram passeios monitorados com transparência de rota, além de hotel, creche e serviços clínicos. Quanto
+          mais completa a rede, mais natural é o tutor voltar ao app da {{ marca }} — inclusive para encontrar você.
+        </p>
+      </div>
+      <div class="pro-cta">
+        <a routerLink="/passeadores" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-route" aria-hidden="true"></i>
+          Demonstração de passeios (ilustrativo)
+        </a>
+        <a routerLink="/parceiro/hotel-e-creche" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-hotel" aria-hidden="true"></i>
+          Hotel e creche na PetSphere
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="plp-bloco" aria-labelledby="faq-vet-title">
+    <div class="section-inner section-inner--narrow">
+      <div class="section-head">
+        <span class="eyebrow">Dúvidas</span>
+        <h2 id="faq-vet-title" class="section-title">Perguntas frequentes</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item" *ngFor="let item of faq">
+          <summary class="faq-q">{{ item.q }}</summary>
+          <p class="faq-a">{{ item.a }}</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="plp-cta-band" id="bloco-cta" aria-labelledby="cta-vet-final">
+    <div class="section-inner">
+      <h2 id="cta-vet-final" class="cta-band__title">Leve sua clínica para a PetSphere</h2>
+      <p class="cta-band__lead">
+        Escolha o plano, cadastre o parceiro e combine com o time quando precisar de escala corporativa ou integrações.
+      </p>
+      <div class="cta-band__actions">
+        <a routerLink="/parceiro/cadastrar" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>
+          Começar cadastro
+        </a>
+        <a routerLink="/parceiro/planos" class="btn btn-ghost btn-lg">Ver planos</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="plp-sticky-cta" role="region" aria-label="Ações rápidas">
+    <a routerLink="/parceiro/planos" class="plp-sticky-cta__btn plp-sticky-cta__btn--primary">
+      <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+      Planos
+    </a>
+    <a routerLink="/parceiro/cadastrar" class="plp-sticky-cta__btn plp-sticky-cta__btn--secondary">
+      <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+      Cadastrar
+    </a>
+  </div>
+</main>

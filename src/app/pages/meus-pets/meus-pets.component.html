@@ -6,7 +6,7 @@
       <button type="button" class="btn-back" (click)="voltar()">← Voltar</button>
     </div>
     <h1 class="page-title" *ngIf="!modal">Meus pets</h1>
-    <p class="page-lead" *ngIf="!modal && !carregando && pets.length > 0">Toque no card para editar. Use o + para cadastrar outro pet.</p>
+    <p class="page-lead" *ngIf="!modal && !carregando && pets.length > 0">Toque no card para editar, ver vacinas e personalizar o perfil. Use o + para cadastrar outro pet.</p>
 
     <div class="page-tools" *ngIf="!carregando">
       <a class="btn-new-pet" href="/novo-pet" (click)="onNewPetClick($event)" aria-label="Cadastrar novo pet">
@@ -15,10 +15,25 @@
       </a>
     </div>
 
-    <div *ngIf="carregando" class="state state--loading" aria-live="polite">Carregando seus pets…</div>
+    <ul *ngIf="carregando" class="pet-grid pet-grid--skeleton" aria-hidden="true" role="presentation">
+      <li *ngFor="let _ of skeletonSlots" class="pet-grid__item">
+        <div class="pet-card-skeleton">
+          <div class="pet-card-skeleton__media"></div>
+          <div class="pet-card-skeleton__body">
+            <div class="pet-card-skeleton__line pet-card-skeleton__line--wide"></div>
+            <div class="pet-card-skeleton__line pet-card-skeleton__line--narrow"></div>
+            <div class="pet-card-skeleton__chips">
+              <span class="pet-card-skeleton__chip"></span>
+              <span class="pet-card-skeleton__chip"></span>
+            </div>
+          </div>
+        </div>
+      </li>
+    </ul>
 
     <div *ngIf="!carregando && !pets.length" class="state state--empty">
-      <p>Você ainda não cadastrou nenhum pet.</p>
+      <p class="state--empty__title">Seus pets em um só lugar</p>
+      <p class="state--empty__desc">Cadastre nome, vacinas, alergias e fotos para agilizar consultas e serviços.</p>
       <a class="btn-cta" href="/novo-pet" (click)="onNewPetClick($event)">Cadastrar pet</a>
     </div>
 
@@ -79,6 +94,16 @@
           </div>
 
           <div class="pet-card__body">
+            <div
+              *ngIf="vacinasEtiqueta(p) as vac"
+              class="pet-card__vac"
+              [class.pet-card__vac--ok]="vac.mod === 'ok'"
+              [class.pet-card__vac--warn]="vac.mod === 'warn'"
+              [class.pet-card__vac--alert]="vac.mod === 'alert'"
+              [class.pet-card__vac--neutral]="vac.mod === 'neutral'"
+            >
+              {{ vac.text }}
+            </div>
             <p *ngIf="p.observacoes" class="pet-card__obs">
               <span class="pet-card__obs-label">Observações</span>
               <span class="pet-card__obs-txt">{{ p.observacoes }}</span>

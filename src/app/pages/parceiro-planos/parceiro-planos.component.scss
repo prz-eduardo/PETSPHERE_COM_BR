@@ -325,6 +325,55 @@
     i { color: var(--c-aurora); font-size: 0.85em; }
   }
 
+  .hero-segments {
+    margin: 8px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 640px;
+    margin-inline: auto;
+  }
+
+  .hero-segments__label {
+    width: 100%;
+    text-align: center;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.52);
+    @media (min-width: 520px) {
+      width: auto;
+      margin-right: 4px;
+    }
+  }
+
+  .hero-segments__dot {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  a.hero-segments__link {
+    color: var(--c-aurora-soft);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(220, 255, 133, 0.35);
+    &:hover {
+      color: #fff;
+      border-bottom-color: rgba(255, 255, 255, 0.45);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--c-aurora);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+  }
+
   /* ============================================================== */
   /* 2. TRANSFORM (antes/depois)                                     */
   /* ============================================================== */

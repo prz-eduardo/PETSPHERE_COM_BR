@@ -1,54 +1,382 @@
-<section class="telemedicina">
-  <header class="telemedicina-header">
-    <h2>Telemedicina</h2>
-    <button type="button" class="btn-refresh" (click)="loadConsultas()" [disabled]="loading">
-      {{ loading ? 'Atualizando...' : 'Atualizar' }}
+<div class="tm-root">
+  <div class="tm-flow-banner" [class]="'tm-flow-banner--' + flowBadge().tone">
+    <span class="tm-flow-badge">{{ flowBadge().label }}</span>
+    <span class="tm-flow-hint" *ngIf="flow() === 'scheduled_future'">
+      Seu agendamento aparece abaixo em &quot;Próximas consultas&quot;.
+    </span>
+  </div>
+
+  <div class="tm-queue-feedback" *ngIf="queueMock.queueFeedback() as qfb">
+    <p>{{ qfb }}</p>
+    <button type="button" class="tm-btn tm-btn--ghost tm-btn--sm" (click)="limparFeedbackFila()">Fechar</button>
+  </div>
+
+  <nav class="tm-tabs" role="tablist" aria-label="Telemedicina">
+    <button
+      type="button"
+      *ngFor="let t of tabs"
+      class="tm-tab"
+      [class.tm-tab--active]="activeTab() === t.id"
+      [attr.aria-selected]="activeTab() === t.id"
+      (click)="setTab(t.id)"
+    >
+      <span class="tm-tab__short">{{ t.short }}</span>
+      <span class="tm-tab__full">{{ t.label }}</span>
     </button>
-  </header>
+  </nav>
 
-  <p class="erro" *ngIf="erro">{{ erro }}</p>
-
-  <div class="chamada-info" *ngIf="chamadaAtiva">
-    <div class="call-header">
-      <div><strong>Sala:</strong> {{ chamadaAtiva.sala_codigo }}</div>
-      <div><small>Canal: {{ chamadaAtiva.signaling_channel }}</small></div>
-      <div>Status: {{ callState }}</div>
-    </div>
-
-    <div class="call-videos">
-      <video #remoteVideo class="remote-video" autoplay playsinline></video>
-      <video #localVideo class="local-video" autoplay playsinline muted></video>
-    </div>
-
-    <div class="call-controls">
-      <button type="button" (click)="toggleMute()">{{ muted ? 'Desmutar' : 'Mudo' }}</button>
-      <button type="button" (click)="toggleVideo()">{{ videoEnabled ? 'Desligar câmera' : 'Ligar câmera' }}</button>
-      <button type="button" class="btn-end" (click)="endCall()">Encerrar chamada</button>
-    </div>
-  </div>
-
-  <div class="vazio" *ngIf="!loading && !consultas.length">
-    Nenhuma consulta de telemedicina encontrada no momento.
-  </div>
-
-  <div class="lista" *ngIf="consultas.length">
-    <article class="consulta" *ngFor="let c of consultas">
-      <div class="consulta-main">
-        <div class="consulta-title">Consulta #{{ c.id }}</div>
-        <div class="consulta-meta">
-          {{ c.janela_inicio | date:'dd/MM/yyyy HH:mm' }} - {{ c.janela_fim | date:'HH:mm' }}
-        </div>
-        <div class="consulta-meta">Status: {{ c.status }}</div>
+  <!-- TAB Emergência -->
+  <section *ngIf="activeTab() === 'emergencia'" class="tm-panel">
+    <div class="tm-hero tm-hero--emergency">
+      <p class="tm-eyebrow">Emergência · fila global</p>
+      <h2 class="tm-title">Atender agora</h2>
+      <p class="tm-lead">
+        Você entra na fila da plataforma e é atendido pelo <strong>próximo veterinário disponível</strong>.
+        Sem escolher profissional aqui — fluxo rápido, preço fixo.
+      </p>
+      <div class="tm-price-block">
+        <span class="tm-price-label">Valor da consulta emergencial</span>
+        <strong class="tm-price">{{ formatMoney(queueMock.emergencyFixedPrice) }}</strong>
+        <span class="tm-price-note">Definido pela plataforma · sem negociação</span>
       </div>
+      <div class="tm-stats-row">
+        <div class="tm-stat">
+          <span class="tm-stat__label">Tempo médio de espera</span>
+          <strong>~{{ queueMock.estimatedWaitMinutesPublic }} min</strong>
+        </div>
+        <div class="tm-stat">
+          <span class="tm-stat__label">Veterinários online agora</span>
+          <strong>{{ queueMock.vetsOnlineCount() }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="tm-card">
+      <p class="tm-legal-note">
+        A telemedicina veterinária no Brasil tem limites legais: trata-se de <strong>orientação</strong>, não substitui
+        exame presencial em emergências graves. Em risco à vida do animal, procure atendimento presencial imediato.
+      </p>
+      <label class="tm-field">
+        <span>Urgência declarada</span>
+        <select [(ngModel)]="urgency" name="urgency">
+          <option value="ALTA">Alta</option>
+          <option value="MEDIA">Média</option>
+          <option value="BAIXA">Estável / orientação</option>
+        </select>
+      </label>
+      <label class="tm-field">
+        <span>Plano (simulação de prioridade)</span>
+        <select [(ngModel)]="plano" name="plano">
+          <option value="basico">Básico</option>
+          <option value="premium">Premium</option>
+        </select>
+      </label>
+      <label class="tm-field">
+        <span>Sintomas ou contexto (opcional)</span>
+        <textarea
+          rows="3"
+          [(ngModel)]="sintomasEmergencia"
+          name="sintomas"
+          placeholder="Ex.: vômito desde ontem, apetite reduzido…"
+        ></textarea>
+      </label>
       <button
         type="button"
-        class="btn-entrar"
-        (click)="entrar(c)"
-        [disabled]="!janelaDisponivel(c) || joinLoadingId === c.id"
-        title="Disponível apenas durante o horário da consulta"
+        class="tm-btn tm-btn--primary tm-btn--block"
+        (click)="iniciarEmergencia()"
+        [disabled]="queueMock.tutorFlow() === 'joining' || queueMock.tutorFlow() === 'waiting_global' || queueMock.tutorFlow() === 'waiting_directed' || queueMock.tutorFlow() === 'called' || queueMock.tutorFlow() === 'in_consult'"
       >
-        {{ joinLoadingId === c.id ? 'Conectando...' : 'Entrar na chamada' }}
+        Iniciar atendimento agora
       </button>
-    </article>
-  </div>
-</section>
+      <p class="tm-microcopy">
+        Ao continuar, você entra na <strong>fila global</strong> de telemedicina. Isso não é agendamento.
+      </p>
+    </div>
+  </section>
+
+  <!-- TAB Escolher vet -->
+  <section *ngIf="activeTab() === 'escolher'" class="tm-panel">
+    <header class="tm-section-head">
+      <h2 class="tm-title">Escolher veterinário</h2>
+      <p class="tm-lead">
+        Aqui você <strong>escolhe o profissional</strong>. Entramos em fila direcionada até ele(a) aceitar.
+      </p>
+      <p class="tm-muted" *ngIf="catalogoCarregado === 'erro'">
+        Não foi possível carregar o catálogo desta loja; exibindo lista de demonstração.
+      </p>
+      <div class="tm-discovery-toolbar">
+        <label class="tm-field tm-field--inline">
+          <span>Buscar</span>
+          <input
+            type="search"
+            [ngModel]="vetSearch()"
+            (ngModelChange)="vetSearch.set($event)"
+            name="vetq"
+            placeholder="Nome, especialidade ou CRMV"
+            autocomplete="off"
+          />
+        </label>
+        <label class="tm-field tm-field--inline">
+          <span>Ordenar</span>
+          <select [ngModel]="vetSort()" (ngModelChange)="onVetSortChange($event)" name="vetsort">
+            <option value="nome">Nome</option>
+            <option value="preco">Menor preço (agend.)</option>
+            <option value="resposta">Resposta mais rápida</option>
+          </select>
+        </label>
+        <a
+          class="tm-link-map"
+          [routerLink]="mapaTelemedicinaLink()"
+          [queryParams]="{ foco: 'telemedicina' }"
+          queryParamsHandling="merge"
+        >
+          Ver no mapa
+        </a>
+      </div>
+    </header>
+
+    <div class="tm-empty" *ngIf="todosVets().length === 0">
+      <p>Nenhum profissional listado.</p>
+    </div>
+
+    <div class="tm-empty" *ngIf="todosVets().length > 0 && vetsOnlineList().length === 0">
+      <p>Nenhum veterinário online no momento (com os filtros atuais).</p>
+      <p class="tm-muted">Tente a aba <strong>Atender agora</strong> (fila global) ou <strong>Agendar</strong> uma consulta futura.</p>
+    </div>
+
+    <div class="tm-vet-grid" *ngIf="todosVets().length > 0">
+      <article class="tm-vet-card" *ngFor="let v of todosVets()">
+        <div class="tm-vet-card__head">
+          <h3>{{ v.nome }}</h3>
+          <span class="tm-chip" [class.tm-chip--on]="v.online" [class.tm-chip--off]="!v.online">
+            {{ v.online ? 'Online' : 'Offline' }}
+          </span>
+        </div>
+        <p class="tm-vet-spec">{{ v.especialidade }}</p>
+        <p class="tm-vet-crmv tm-muted" *ngIf="v.crmv">CRMV {{ v.crmv }}</p>
+        <p class="tm-vet-crmv tm-muted" *ngIf="!v.crmv">CRMV não informado</p>
+        <div class="tm-vet-meta">
+          <span>Agend. a partir de · {{ formatMoney(v.precoAgendamento) }}</span>
+          <span>Resposta média · {{ v.tempoRespostaMedioMin }} min</span>
+          <span *ngIf="v.avaliacao != null">Nota · {{ v.avaliacao | number:'1.1-1' }}</span>
+          <span *ngIf="v.avaliacao == null" class="tm-muted">Sem avaliações ainda</span>
+        </div>
+        <button
+          type="button"
+          class="tm-btn tm-btn--secondary tm-btn--block"
+          (click)="chamarVet(v.id)"
+          [disabled]="!v.online || queueMock.tutorFlow() === 'joining' || queueMock.tutorFlow() === 'waiting_global' || queueMock.tutorFlow() === 'waiting_directed' || queueMock.tutorFlow() === 'called' || queueMock.tutorFlow() === 'in_consult'"
+        >
+          Chamar agora
+        </button>
+      </article>
+    </div>
+  </section>
+
+  <!-- TAB Fila -->
+  <section *ngIf="activeTab() === 'fila'" class="tm-panel">
+    <header class="tm-section-head">
+      <h2 class="tm-title">Fila de atendimento</h2>
+      <p class="tm-lead">Sala de espera digital — posição e previsão atualizam automaticamente (simulação).</p>
+    </header>
+
+    <div class="tm-empty" *ngIf="flow() === 'idle' && !queueMeta()">
+      <p>Você não está em fila no momento.</p>
+      <button type="button" class="tm-btn tm-btn--ghost" (click)="setTab('emergencia')">Ir para emergência</button>
+    </div>
+
+    <div class="tm-queue-actions" *ngIf="queueMeta() && (flow() === 'waiting_global' || flow() === 'waiting_directed' || flow() === 'joining')">
+      <button type="button" class="tm-btn tm-btn--ghost" (click)="sairDaFila()">Sair da fila</button>
+    </div>
+
+    <div class="tm-queue-card" *ngIf="queueMeta() as qm">
+      <div class="tm-queue-row">
+        <span class="tm-muted">Tipo</span>
+        <strong>{{ qm.queueKind === 'global' ? 'Fila global' : 'Fila direcionada' }}</strong>
+      </div>
+      <div class="tm-queue-row" *ngIf="qm.queueKind === 'directed' && qm.directedVetId">
+        <span class="tm-muted">Profissional</span>
+        <strong>{{ vetNomePorId(qm.directedVetId) }}</strong>
+      </div>
+      <div class="tm-queue-row">
+        <span class="tm-muted">Posição</span>
+        <strong>{{ qm.position }}º</strong>
+      </div>
+      <div class="tm-queue-row">
+        <span class="tm-muted">Tempo estimado</span>
+        <strong>~{{ qm.etaMinutes }} min</strong>
+      </div>
+      <div class="tm-queue-row">
+        <span class="tm-muted">Aguardando há</span>
+        <strong>{{ qm.waitMinutes }} min</strong>
+      </div>
+      <div class="tm-queue-row">
+        <span class="tm-muted">Status</span>
+        <span class="tm-chip tm-chip--wait">{{ statusFilaLabel() }}</span>
+      </div>
+      <div class="tm-queue-row" *ngIf="qm.queueKind === 'global'">
+        <span class="tm-muted">Preço</span>
+        <strong>{{ formatMoney(qm.precoEmergenciaFixo) }}</strong>
+      </div>
+      <p class="tm-muted tm-queue-timeout-hint">Após ~45 min de espera o pedido expira automaticamente (simulação).</p>
+    </div>
+
+    <div class="tm-callout tm-callout--live" *ngIf="flow() === 'called'">
+      <strong>Veterinário chamando você.</strong>
+      <p>Prepare-se para iniciar a videochamada simulada.</p>
+    </div>
+
+    <div class="tm-mock-session" *ngIf="flow() === 'in_consult'">
+      <h3>Consulta em andamento (simulação)</h3>
+      <p class="tm-muted">
+        Em produção, esta área conectaria à sala de vídeo. Aqui você pode encerrar para testar o fluxo.
+      </p>
+      <button type="button" class="tm-btn tm-btn--primary" (click)="encerrarSessaoMock()">Encerrar atendimento</button>
+    </div>
+
+    <div class="tm-callout tm-callout--ok" *ngIf="flow() === 'finished'">
+      <p>Atendimento finalizado.</p>
+      <button type="button" class="tm-btn tm-btn--ghost" (click)="dispensarFinalizado()">Ok</button>
+    </div>
+  </section>
+
+  <!-- TAB Agendar -->
+  <section *ngIf="activeTab() === 'agendar'" class="tm-panel">
+    <header class="tm-section-head">
+      <h2 class="tm-title">Agendar consulta</h2>
+      <p class="tm-lead">
+        Fluxo <strong>separado da fila de emergência</strong>. Preço varia por profissional e horário.
+      </p>
+    </header>
+
+    <div class="tm-card">
+      <div class="tm-segment" role="group" aria-label="Modo de agendamento">
+        <button
+          type="button"
+          class="tm-segment__btn"
+          [class.tm-segment__btn--active]="agendaModoAutomatico"
+          (click)="agendaModoAutomatico = true; agendaVetId = null; agendaHorario = null"
+        >
+          Automático (melhor encaixe)
+        </button>
+        <button
+          type="button"
+          class="tm-segment__btn"
+          [class.tm-segment__btn--active]="!agendaModoAutomatico"
+          (click)="agendaModoAutomatico = false; agendaHorario = null"
+        >
+          Escolher veterinário
+        </button>
+      </div>
+
+      <label class="tm-field" *ngIf="!agendaModoAutomatico">
+        <span>Profissional</span>
+        <select [(ngModel)]="agendaVetId" (ngModelChange)="onAgendaVetChange()" name="agvet">
+          <option [ngValue]="null">Selecione…</option>
+          <option *ngFor="let v of todosVets()" [ngValue]="v.id">{{ v.nome }} — {{ formatMoney(v.precoAgendamento) }}</option>
+        </select>
+      </label>
+
+      <label class="tm-field">
+        <span>Pet da consulta <span class="tm-req">*</span></span>
+        <select [(ngModel)]="agendaPetId" name="agpet" [disabled]="!petsCatalogo.length">
+          <option [ngValue]="null">Selecione…</option>
+          <option *ngFor="let p of petsCatalogo" [ngValue]="petIdAsString(p.id)">{{ p.nome }}</option>
+        </select>
+      </label>
+      <p class="tm-muted" *ngIf="!petsCatalogo.length">Cadastre um pet em <strong>Meus pets</strong> para vincular o agendamento.</p>
+
+      <label class="tm-field">
+        <span>Motivo ou sintomas (opcional)</span>
+        <textarea rows="2" [(ngModel)]="agendaMotivo" name="agmotivo" placeholder="Ex.: check-up, revisão de exames…"></textarea>
+      </label>
+
+      <label class="tm-field">
+        <span>Dia</span>
+        <select [(ngModel)]="agendaDiaKey" (ngModelChange)="onDiaChange()" name="agdia">
+          <option [ngValue]="null">Selecione…</option>
+          <option *ngFor="let d of diasAgenda()" [ngValue]="d.dateKey">{{ d.label }}</option>
+        </select>
+      </label>
+
+      <label class="tm-field">
+        <span>Horário</span>
+        <select [(ngModel)]="agendaHorario" name="aghora" [disabled]="!agendaDiaKey">
+          <option [ngValue]="null">Selecione…</option>
+          <option *ngFor="let s of slotsDoDia()" [ngValue]="s.horario">
+            {{ s.horario }} — {{ s.vetNome }} — {{ formatMoney(s.preco) }}
+          </option>
+        </select>
+      </label>
+
+      <button
+        type="button"
+        class="tm-btn tm-btn--primary tm-btn--block"
+        (click)="confirmarAgendamento()"
+        [disabled]="!agendaDiaKey || !agendaHorario || !agendaPetId || (!agendaModoAutomatico && !agendaVetId)"
+      >
+        Confirmar agendamento
+      </button>
+    </div>
+
+    <div class="tm-card tm-card--soft" *ngIf="queueMock.scheduledConsultations().length">
+      <h3>Próximas consultas</h3>
+      <ul class="tm-book-list">
+        <li *ngFor="let b of queueMock.scheduledConsultations()">
+          <strong>{{ b.dataLabel }} · {{ b.horario }}</strong>
+          <span>{{ b.vetNome }} — {{ formatMoney(b.preco) }}</span>
+          <span *ngIf="b.petNome" class="tm-muted">Pet: {{ b.petNome }}</span>
+          <span class="tm-chip tm-chip--schedule" *ngIf="b.automatico">Automático</span>
+          <span class="tm-chip tm-chip--on" *ngIf="b.apiIntencaoId">Registro #{{ b.apiIntencaoId }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="tm-card tm-card--api">
+      <div class="tm-api-head">
+        <h3>Consultas na sua conta</h3>
+        <button type="button" class="tm-btn tm-btn--ghost tm-btn--sm" (click)="loadConsultas()" [disabled]="loading">
+          {{ loading ? 'Atualizando…' : 'Atualizar' }}
+        </button>
+      </div>
+      <p class="tm-muted" *ngIf="erro">{{ erro }}</p>
+      <p class="tm-muted" *ngIf="!loading && !consultas.length">Nenhuma consulta agendada via sistema no momento.</p>
+
+      <div class="tm-api-call" *ngIf="chamadaAtiva">
+        <div class="tm-call-header">
+          <div><strong>Sala:</strong> {{ chamadaAtiva.sala_codigo }}</div>
+          <div><small>Canal: {{ chamadaAtiva.signaling_channel }}</small></div>
+          <div>Status: {{ callState }}</div>
+        </div>
+        <div class="tm-call-videos">
+          <video #remoteVideo class="tm-remote" autoplay playsinline></video>
+          <video #localVideo class="tm-local" autoplay playsinline muted></video>
+        </div>
+        <div class="tm-call-controls">
+          <button type="button" (click)="toggleMute()">{{ muted ? 'Desmutar' : 'Mudo' }}</button>
+          <button type="button" (click)="toggleVideo()">{{ videoEnabled ? 'Desligar câmera' : 'Ligar câmera' }}</button>
+          <button type="button" class="tm-btn-end" (click)="endCall()">Encerrar chamada</button>
+        </div>
+      </div>
+
+      <ul class="tm-api-list" *ngIf="consultas.length">
+        <li *ngFor="let c of consultas">
+          <div>
+            <strong>Consulta #{{ c.id }}</strong>
+            <div class="tm-muted">
+              {{ c.janela_inicio | date:'dd/MM/yyyy HH:mm' }} – {{ c.janela_fim | date:'HH:mm' }} · {{ c.status }}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="tm-btn tm-btn--secondary tm-btn--sm"
+            (click)="entrar(c)"
+            [disabled]="!janelaDisponivel(c) || joinLoadingId === c.id"
+          >
+            {{ joinLoadingId === c.id ? 'Conectando…' : 'Entrar na chamada' }}
+          </button>
+        </li>
+      </ul>
+    </div>
+  </section>
+</div>

@@ -1,7 +1,7 @@
 import { Component, Inject, PLATFORM_ID, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { ApiService, ClienteMeResponse } from '../../services/api.service';
+import { ApiService, ClienteMeResponse, PetVacinasResumo } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { NavmenuComponent } from '../../navmenu/navmenu.component';
@@ -23,6 +23,8 @@ export class MeusPetsComponent implements OnChanges {
   @Output() petDeleted = new EventEmitter<void>();
   @Input() clienteMe: any | null = null;
   @Input() pets: any[] = [];
+  /** Placeholders para skeleton de carregamento */
+  readonly skeletonSlots = [0, 1, 2];
   carregando = true;
   /** id do pet em exclusão (evita cliques duplicados) */
   deletingPetId: string | null = null;
@@ -332,6 +334,29 @@ export class MeusPetsComponent implements OnChanges {
     if (c === true || c === 1 || c === '1') return 'Castrado(a)';
     if (c === false || c === 0 || c === '0') return 'Não castrado(a)';
     return '';
+  }
+
+  /** Rótulo e variante visual para resumo de vacinas no card. */
+  vacinasEtiqueta(pet: any): { text: string; mod: 'neutral' | 'ok' | 'warn' | 'alert' } | null {
+    const r = pet?.vacinas_resumo as PetVacinasResumo | undefined;
+    if (!r) return null;
+    if (r.status === 'sem_registros' || !r.vacinas_count) {
+      return { text: 'Carteira: sem registros', mod: 'neutral' };
+    }
+    if (r.status === 'atrasada') {
+      return { text: 'Carteira: reforço em atraso', mod: 'alert' };
+    }
+    if (r.status === 'proxima') {
+      const d = r.proxima_reforco ? this.formatarBrDataCurta(r.proxima_reforco) : '';
+      return { text: d ? `Próx. dose ${d}` : 'Próxima dose em breve', mod: 'warn' };
+    }
+    return { text: `${r.vacinas_count} dose(s) na carteira`, mod: 'ok' };
+  }
+
+  private formatarBrDataCurta(ymd: string): string {
+    const m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return ymd;
+    return `${m[3]}/${m[2]}/${m[1]}`;
   }
 
   porteBadge(pet: any): string {

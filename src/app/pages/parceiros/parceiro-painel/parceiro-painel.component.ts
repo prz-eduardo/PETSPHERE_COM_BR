@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
 import { ParceiroCreditosService } from '../../../services/parceiro-creditos.service';
 import { AdminHomeOverviewComponent } from '../../restrito/admin/home-overview/home-overview.component';
@@ -28,6 +28,7 @@ const LS_OPERACAO_TIPO = 'parceiro_painel_operacao_tipo';
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     AdminHomeOverviewComponent,
     ParceiroPainelOperacaoVendasComponent,
     ParceiroPainelOperacaoHotelariaComponent,
@@ -275,6 +276,6 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
   }
 
   goToPlanosCreditos(): void {
-    this.router.navigate(['/parceiro/planos']);
+    this.router.navigate(['/parceiros/planos-assinatura']);
   }
 }

@@ -22,79 +22,87 @@
       <a routerLink="/parceiros/agenda" routerLinkActive="active">
         <i class="fa fa-calendar"></i> Agenda
       </a>
-      <a routerLink="/parceiros/telemedicina-emergencial" routerLinkActive="active">
-        <i class="fa fa-video-camera"></i> Telemed emergencial
-      </a>
-      <a routerLink="/parceiros/servicos" routerLinkActive="active">
-        <i class="fa fa-scissors"></i> Serviços
-      </a>
-      <a routerLink="/parceiros/meus-clientes" routerLinkActive="active">
-        <i class="fa fa-address-book-o"></i> Meus clientes
-      </a>
       <a routerLink="/parceiros/mensagens" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">
         <i class="fa fa-comments"></i> Mensagens
       </a>
-      <a routerLink="/parceiros/hospedagem" [class.active]="isHospedagemActive()">
-        <i class="fa fa-home"></i> Hospedagem pet
-      </a>
-      <a routerLink="/parceiros/transporte-pet" routerLinkActive="active">
-        <i class="fa fa-car"></i> Transporte Pet
-      </a>
-      <a routerLink="/parceiros/colaboradores" routerLinkActive="active">
-        <i class="fa fa-users"></i> Colaboradores
-      </a>
-      <div class="nav-group nav-group--petshop" [class.open]="showPetshopMenu()">
+      <div class="nav-group nav-group--atendimento" [class.open]="showAtendimentoMenu()">
         <button
           class="nav-group-btn"
           type="button"
-          (click)="togglePetshopMenu()"
-          [class.active]="isPetshopActive()"
+          (click)="toggleAtendimentoMenu()"
+          [class.active]="isAtendimentoActive()"
         >
-          <i class="fa fa-shopping-cart"></i> Petshop online <i class="fa fa-chevron-down nav-caret"></i>
+          <i class="fa fa-briefcase"></i> Atendimento <i class="fa fa-chevron-down nav-caret"></i>
         </button>
-        <div class="nav-dropdown" *ngIf="showPetshopMenu()">
-          <a routerLink="/parceiros/petshop-online" routerLinkActive="active" (click)="togglePetshopMenu(false)">
-            <i class="fa fa-store"></i> Catálogo e vendas
+        <div class="nav-dropdown" *ngIf="showAtendimentoMenu()">
+          <a routerLink="/parceiros/servicos" routerLinkActive="active" (click)="toggleAtendimentoMenu(false)">
+            <i class="fa fa-scissors"></i> Serviços
           </a>
-          <a routerLink="/parceiros/catalogo-produto" routerLinkActive="active" (click)="togglePetshopMenu(false)">
-            <i class="fa fa-cube"></i> Cadastro de produto (assistente)
+          <a routerLink="/parceiros/meus-clientes" routerLinkActive="active" (click)="toggleAtendimentoMenu(false)">
+            <i class="fa fa-address-book-o"></i> Meus clientes
+          </a>
+          <a routerLink="/parceiros/gestao-tutores-aulas" routerLinkActive="active" (click)="toggleAtendimentoMenu(false)">
+            <i class="fa fa-graduation-cap"></i> Turmas &amp; aulas
+          </a>
+          <a routerLink="/parceiros/telemedicina-emergencial" routerLinkActive="active" (click)="toggleAtendimentoMenu(false)">
+            <i class="fa fa-video-camera"></i> Telemed emergencial
+          </a>
+          <a routerLink="/parceiros/hospedagem" [class.active]="isHospedagemActive()" (click)="toggleAtendimentoMenu(false)">
+            <i class="fa fa-home"></i> Hospedagem pet
+          </a>
+          <a routerLink="/parceiros/transporte-pet" routerLinkActive="active" (click)="toggleAtendimentoMenu(false)">
+            <i class="fa fa-car"></i> Transporte Pet
           </a>
         </div>
       </div>
-      <div class="nav-group nav-group--pos" [class.open]="showPosMenu()">
+
+      <div class="nav-group nav-group--comercial" [class.open]="showComercialMenu()">
         <button
           class="nav-group-btn"
           type="button"
-          (click)="togglePosMenu()"
-          [class.active]="isPosActive()"
+          (click)="toggleComercialMenu()"
+          [class.active]="isComercialActive()"
         >
-          <i class="fa fa-barcode"></i> Inventário / POS <i class="fa fa-chevron-down nav-caret"></i>
+          <i class="fa fa-shopping-cart"></i> Comercial <i class="fa fa-chevron-down nav-caret"></i>
         </button>
-        <div class="nav-dropdown" *ngIf="showPosMenu()">
-          <a routerLink="/parceiros/inventario-pos" routerLinkActive="active" (click)="togglePosMenu(false)">
+        <div class="nav-dropdown" *ngIf="showComercialMenu()">
+          <a routerLink="/parceiros/petshop-online" routerLinkActive="active" (click)="toggleComercialMenu(false)">
+            <i class="fa fa-store"></i> Petshop online
+          </a>
+          <a routerLink="/parceiros/catalogo-produto" routerLinkActive="active" (click)="toggleComercialMenu(false)">
+            <i class="fa fa-cube"></i> Cadastro de produto
+          </a>
+          <a routerLink="/parceiros/inventario-pos" routerLinkActive="active" (click)="toggleComercialMenu(false)">
             <i class="fa fa-barcode"></i> Inventário / POS
           </a>
-          <a routerLink="/parceiros/caixa" routerLinkActive="active" (click)="togglePosMenu(false)">
+          <a routerLink="/parceiros/caixa" routerLinkActive="active" (click)="toggleComercialMenu(false)">
             <i class="fa fa-money"></i> Caixa
           </a>
         </div>
       </div>
-      <a routerLink="/parceiros/configuracoes" routerLinkActive="active">
-        <i class="fa fa-sliders"></i> Configurações
-      </a>
-      <div class="nav-group nav-group--clinica" [class.open]="showClinicaMenu()">
+
+      <div class="nav-group nav-group--gestao" [class.open]="showGestaoMenu()">
         <button
           class="nav-group-btn"
-          (click)="toggleClinicaMenu()"
-          [class.active]="isClinicaFinanceiroActive()"
+          (click)="toggleGestaoMenu()"
+          [class.active]="isGestaoActive()"
         >
-          <i class="fa fa-hospital-o"></i> Clínica &amp; financeiro <i class="fa fa-chevron-down nav-caret"></i>
+          <i class="fa fa-sliders"></i> Gestão <i class="fa fa-chevron-down nav-caret"></i>
         </button>
-        <div class="nav-dropdown" *ngIf="showClinicaMenu()">
-          <a routerLink="/parceiros/gestao-clinica" routerLinkActive="active" (click)="toggleClinicaMenu(false)">
+        <div class="nav-dropdown" *ngIf="showGestaoMenu()">
+          <a routerLink="/parceiros/colaboradores" routerLinkActive="active" (click)="toggleGestaoMenu(false)">
+            <i class="fa fa-users"></i> Colaboradores
+          </a>
+          <a routerLink="/parceiros/planos-assinatura" routerLinkActive="active" (click)="toggleGestaoMenu(false)">
+            <i class="fa fa-bolt"></i> Plano &amp; créditos
+          </a>
+          <a routerLink="/parceiros/configuracoes" routerLinkActive="active" (click)="toggleGestaoMenu(false)">
+            <i class="fa fa-sliders"></i> Configurações
+          </a>
+          <a routerLink="/parceiros/gestao-clinica" routerLinkActive="active" (click)="toggleGestaoMenu(false)">
             <i class="fa fa-building-o"></i> Gestão da clínica <span class="nav-soon">Em breve</span>
           </a>
-          <a routerLink="/parceiros/financeiro-parceiro" routerLinkActive="active" (click)="toggleClinicaMenu(false)">
+          <a routerLink="/parceiros/financeiro-parceiro" routerLinkActive="active" (click)="toggleGestaoMenu(false)">
             <i class="fa fa-money"></i> Pagamentos &amp; repasses <span class="nav-soon">Em breve</span>
           </a>
         </div>
@@ -104,6 +112,13 @@
           <i class="fa fa-flask"></i> Área Vet <i class="fa fa-chevron-down nav-caret"></i>
         </button>
         <div class="nav-dropdown" *ngIf="showVetMenu()">
+          <a routerLink="/parceiros/vet-cockpit" routerLinkActive="active" (click)="toggleVetMenu(false)">
+            <i class="fa fa-th-large"></i> Painel Vet
+          </a>
+          <a routerLink="/parceiros/atendimento-wizard" routerLinkActive="active" (click)="toggleVetMenu(false)">
+            <i class="fa fa-play-circle"></i> Iniciar atendimento
+          </a>
+          <div class="nav-divider"></div>
           <a routerLink="/parceiros/area-vet" routerLinkActive="active" (click)="toggleVetMenu(false)">
             <i class="fa fa-flask"></i> Ativos & Fórmulas
           </a>
@@ -124,6 +139,15 @@
     </nav>
 
     <div class="header-actions">
+      <a
+        *ngIf="activeWizardSession()"
+        routerLink="/parceiros/atendimento-wizard"
+        class="wizard-badge"
+        title="Atendimento em andamento"
+      >
+        <i class="fa fa-circle-dot wizard-badge__dot"></i>
+        {{ activeWizardSession()!.petNome || 'Atendimento ativo' }}
+      </a>
       <app-parceiro-credits-badge />
       <div class="header-user-area">
         <div class="tipo-switcher">
@@ -140,7 +164,7 @@
               </div>
             </div>
             <div class="menu-divider"></div>
-            <a routerLink="/parceiro/planos" (click)="toggleUserMenu(false)"><i class="fa fa-bolt"></i> Planos &amp; créditos</a>
+            <a routerLink="/parceiros/planos-assinatura" (click)="toggleUserMenu(false)"><i class="fa fa-bolt"></i> Plano &amp; créditos</a>
             <div class="menu-divider"></div>
             <button (click)="goToPainel(); toggleUserMenu(false)"><i class="fa fa-th-large"></i> Painel</button>
             <button class="danger" (click)="logout(); toggleUserMenu(false)"><i class="fa fa-sign-out"></i> Sair</button>
@@ -154,13 +178,34 @@
       <nav class="mobile-nav__links">
         <a routerLink="/parceiros/painel" (click)="toggleMobileNav(false)"><i class="fa fa-th-large"></i> Painel</a>
         <a routerLink="/parceiros/agenda" (click)="toggleMobileNav(false)"><i class="fa fa-calendar"></i> Agenda</a>
-        <a routerLink="/parceiros/telemedicina-emergencial" (click)="toggleMobileNav(false)"><i class="fa fa-video-camera"></i> Telemed emergencial</a>
-        <a routerLink="/parceiros/servicos" (click)="toggleMobileNav(false)"><i class="fa fa-scissors"></i> Serviços</a>
-        <a routerLink="/parceiros/meus-clientes" (click)="toggleMobileNav(false)"><i class="fa fa-address-book-o"></i> Meus clientes</a>
         <a routerLink="/parceiros/mensagens" (click)="toggleMobileNav(false)"><i class="fa fa-comments"></i> Mensagens</a>
-        <a routerLink="/parceiros/hospedagem" (click)="toggleMobileNav(false)" [class.active]="isHospedagemActive()"><i class="fa fa-home"></i> Hospedagem pet</a>
-        <a routerLink="/parceiros/transporte-pet" routerLinkActive="active" (click)="toggleMobileNav(false)"><i class="fa fa-car"></i> Transporte Pet</a>
-        <a routerLink="/parceiros/colaboradores" (click)="toggleMobileNav(false)"><i class="fa fa-users"></i> Colaboradores</a>
+
+        <div class="mobile-group mobile-group--atendimento" [class.open]="showAtendimentoMenu()">
+          <button type="button" class="mobile-group-btn" (click)="toggleAtendimentoMenu(); $event.stopPropagation()">
+            <span class="mobile-group-btn__leading"><i class="fa fa-briefcase"></i> Atendimento</span>
+            <i class="fa fa-chevron-down mobile-group-btn__caret" aria-hidden="true"></i>
+          </button>
+          <div class="mobile-group-list" *ngIf="showAtendimentoMenu()">
+            <a routerLink="/parceiros/servicos" (click)="toggleMobileNav(false); toggleAtendimentoMenu(false)">
+              <i class="fa fa-scissors"></i> Serviços
+            </a>
+            <a routerLink="/parceiros/meus-clientes" (click)="toggleMobileNav(false); toggleAtendimentoMenu(false)">
+              <i class="fa fa-address-book-o"></i> Meus clientes
+            </a>
+            <a routerLink="/parceiros/gestao-tutores-aulas" (click)="toggleMobileNav(false); toggleAtendimentoMenu(false)">
+              <i class="fa fa-graduation-cap"></i> Turmas &amp; aulas
+            </a>
+            <a routerLink="/parceiros/telemedicina-emergencial" (click)="toggleMobileNav(false); toggleAtendimentoMenu(false)">
+              <i class="fa fa-video-camera"></i> Telemed emergencial
+            </a>
+            <a routerLink="/parceiros/hospedagem" (click)="toggleMobileNav(false); toggleAtendimentoMenu(false)" [class.active]="isHospedagemActive()">
+              <i class="fa fa-home"></i> Hospedagem pet
+            </a>
+            <a routerLink="/parceiros/transporte-pet" (click)="toggleMobileNav(false); toggleAtendimentoMenu(false)">
+              <i class="fa fa-car"></i> Transporte Pet
+            </a>
+          </div>
+        </div>
 
         <div
           class="mobile-fab-shortcuts"
@@ -182,59 +227,59 @@
           </button>
         </div>
 
-        <div class="mobile-group mobile-group--petshop" [class.open]="showPetshopMenu()">
-          <button type="button" class="mobile-group-btn" (click)="togglePetshopMenu(); $event.stopPropagation()">
-            <span class="mobile-group-btn__leading"><i class="fa fa-shopping-cart"></i> Petshop online</span>
+        <div class="mobile-group mobile-group--comercial" [class.open]="showComercialMenu()">
+          <button type="button" class="mobile-group-btn" (click)="toggleComercialMenu(); $event.stopPropagation()">
+            <span class="mobile-group-btn__leading"><i class="fa fa-shopping-cart"></i> Comercial</span>
             <i class="fa fa-chevron-down mobile-group-btn__caret" aria-hidden="true"></i>
           </button>
-          <div class="mobile-group-list" *ngIf="showPetshopMenu()">
-            <a routerLink="/parceiros/petshop-online" (click)="toggleMobileNav(false); togglePetshopMenu(false)">
-              <i class="fa fa-store"></i> Catálogo e vendas
+          <div class="mobile-group-list" *ngIf="showComercialMenu()">
+            <a routerLink="/parceiros/petshop-online" (click)="toggleMobileNav(false); toggleComercialMenu(false)">
+              <i class="fa fa-store"></i> Petshop online
             </a>
-            <a routerLink="/parceiros/catalogo-produto" (click)="toggleMobileNav(false); togglePetshopMenu(false)">
-              <i class="fa fa-cube"></i> Cadastro de produto (assistente)
+            <a routerLink="/parceiros/catalogo-produto" (click)="toggleMobileNav(false); toggleComercialMenu(false)">
+              <i class="fa fa-cube"></i> Cadastro de produto
             </a>
-          </div>
-        </div>
-
-        <div class="mobile-group mobile-group--pos" [class.open]="showPosMenu()">
-          <button type="button" class="mobile-group-btn" (click)="togglePosMenu(); $event.stopPropagation()">
-            <span class="mobile-group-btn__leading"><i class="fa fa-barcode"></i> Inventário / POS</span>
-            <i class="fa fa-chevron-down mobile-group-btn__caret" aria-hidden="true"></i>
-          </button>
-          <div class="mobile-group-list" *ngIf="showPosMenu()">
-            <a routerLink="/parceiros/inventario-pos" (click)="toggleMobileNav(false); togglePosMenu(false)">
+            <a routerLink="/parceiros/inventario-pos" (click)="toggleMobileNav(false); toggleComercialMenu(false)">
               <i class="fa fa-barcode"></i> Inventário / POS
             </a>
-            <a routerLink="/parceiros/caixa" (click)="toggleMobileNav(false); togglePosMenu(false)">
+            <a routerLink="/parceiros/caixa" (click)="toggleMobileNav(false); toggleComercialMenu(false)">
               <i class="fa fa-money"></i> Caixa
             </a>
           </div>
         </div>
 
-        <a routerLink="/parceiros/configuracoes" (click)="toggleMobileNav(false)"><i class="fa fa-sliders"></i> Configurações</a>
-
-        <div class="mobile-group" [class.open]="showClinicaMenu()">
-          <button type="button" class="mobile-group-btn" (click)="toggleClinicaMenu()">
-            <span class="mobile-group-btn__leading"><i class="fa fa-hospital-o"></i> Clínica &amp; financeiro</span>
+        <div class="mobile-group mobile-group--gestao" [class.open]="showGestaoMenu()">
+          <button type="button" class="mobile-group-btn" (click)="toggleGestaoMenu()">
+            <span class="mobile-group-btn__leading"><i class="fa fa-sliders"></i> Gestão</span>
             <i class="fa fa-chevron-down mobile-group-btn__caret" aria-hidden="true"></i>
           </button>
-          <div class="mobile-group-list" *ngIf="showClinicaMenu()">
-            <a routerLink="/parceiros/gestao-clinica" (click)="toggleMobileNav(false); toggleClinicaMenu(false)">
+          <div class="mobile-group-list" *ngIf="showGestaoMenu()">
+            <a routerLink="/parceiros/colaboradores" (click)="toggleMobileNav(false); toggleGestaoMenu(false)">
+              <i class="fa fa-users"></i> Colaboradores
+            </a>
+            <a routerLink="/parceiros/planos-assinatura" (click)="toggleMobileNav(false); toggleGestaoMenu(false)">
+              <i class="fa fa-bolt"></i> Plano &amp; créditos
+            </a>
+            <a routerLink="/parceiros/configuracoes" (click)="toggleMobileNav(false); toggleGestaoMenu(false)">
+              <i class="fa fa-sliders"></i> Configurações
+            </a>
+            <a routerLink="/parceiros/gestao-clinica" (click)="toggleMobileNav(false); toggleGestaoMenu(false)">
               <i class="fa fa-building-o"></i> Gestão da clínica <span class="nav-soon">Em breve</span>
             </a>
-            <a routerLink="/parceiros/financeiro-parceiro" (click)="toggleMobileNav(false); toggleClinicaMenu(false)">
+            <a routerLink="/parceiros/financeiro-parceiro" (click)="toggleMobileNav(false); toggleGestaoMenu(false)">
               <i class="fa fa-money"></i> Pagamentos &amp; repasses <span class="nav-soon">Em breve</span>
             </a>
           </div>
         </div>
 
-        <div class="mobile-group" [class.open]="showVetMenu()">
+        <div class="mobile-group mobile-group--vet" [class.open]="showVetMenu()">
           <button type="button" class="mobile-group-btn" (click)="toggleVetMenu()">
             <span class="mobile-group-btn__leading"><i class="fa fa-flask"></i> Área Vet</span>
             <i class="fa fa-chevron-down mobile-group-btn__caret" aria-hidden="true"></i>
           </button>
           <div class="mobile-group-list" *ngIf="showVetMenu()">
+            <a routerLink="/parceiros/vet-cockpit" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-th-large"></i> Painel Vet</a>
+            <a routerLink="/parceiros/atendimento-wizard" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-play-circle"></i> Iniciar atendimento</a>
             <a routerLink="/parceiros/area-vet" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-flask"></i> Ativos &amp; Fórmulas</a>
             <a routerLink="/parceiros/gerar-receita" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-stethoscope"></i> Consulta &amp; receita</a>
             <a routerLink="/parceiros/historico-receitas" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-history"></i> Histórico</a>
@@ -246,7 +291,7 @@
         <div class="mobile-user">
           <div class="mobile-user-label">Logado como</div>
           <div class="mobile-user-name">{{ colaborador()?.nome ?? 'Colaborador' }}</div>
-          <a routerLink="/parceiro/planos" class="mobile-user-link" (click)="toggleMobileNav(false)"><i class="fa fa-bolt"></i> Planos &amp; créditos</a>
+          <a routerLink="/parceiros/planos-assinatura" class="mobile-user-link" (click)="toggleMobileNav(false)"><i class="fa fa-bolt"></i> Plano &amp; créditos</a>
           <button type="button" (click)="goToPainel(); toggleMobileNav(false)"><i class="fa fa-th-large"></i> Painel</button>
           <button type="button" class="danger" (click)="logout(); toggleMobileNav(false)"><i class="fa fa-sign-out"></i> Sair</button>
         </div>

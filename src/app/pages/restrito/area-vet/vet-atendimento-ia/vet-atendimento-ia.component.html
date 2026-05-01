@@ -1,0 +1,24 @@
+<div class="ia-wrap">
+  <header class="ia-head">
+    <p class="ia-kicker">Créditos IA — em breve</p>
+    <h1>Assistente de prontuário</h1>
+    <p class="ia-lede">
+      Fluxo reservado para processamento de áudio/notas com IA e gravação no caso clínico.
+      Por ora esta tela confirma o vínculo com o atendimento e lista os passos planejados.
+    </p>
+    <a class="ia-back" [routerLink]="voltarLink">Voltar ao atendimento</a>
+  </header>
+
+  <section class="ia-card" *ngIf="loading">Carregando…</section>
+  <section class="ia-card ia-danger" *ngIf="erro && !loading">{{ erro }}</section>
+
+  <section class="ia-card" *ngIf="!loading && !erro && detalhe">
+    <p><strong>Atendimento #{{ atendimentoId }}</strong></p>
+    <p class="muted" *ngIf="detalhe.pet_nome">Paciente: {{ detalhe.pet_nome }}</p>
+    <p class="muted" *ngIf="detalhe.cliente_nome">Tutor: {{ detalhe.cliente_nome }}</p>
+  </section>
+
+  <ol class="ia-steps">
+    <li *ngFor="let s of steps; let i = index"><span>{{ i + 1 }}</span> {{ s }}</li>
+  </ol>
+</div>

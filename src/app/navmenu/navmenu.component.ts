@@ -97,23 +97,19 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   liveRibbonClosing = false;
   private liveRibbonDismissed = false;
 
-  // ─── Items: dock móvel = motor tutor (Galeria + Mapa) + FAB ────────────────
-  /** Desktop / dock — apenas galeria e mapa (loja/sobre/planos ficam FAB + linha secundária). */
-  readonly mainNavItems: NavMainItem[] = [
-    { id: 'galeria', label: 'Galeria', shortLabel: 'Galeria', link: '/galeria', icon: 'fas fa-fw fa-images', psIcon: 'home' },
-    { id: 'mapa',    label: 'Mapa',    shortLabel: 'Mapa',   link: '/mapa',    icon: 'fas fa-fw fa-map-location-dot', psIcon: 'map' },
-  ];
-
+  /** Carrinho aparece só na lente cliente logado (desktop e labels). */
   private readonly carrinhoNavItem: NavMainItem = {
     id: 'carrinho', label: 'Carrinho', shortLabel: 'Carrinho', link: '/carrinho',
     icon: 'fas fa-fw fa-cart-shopping', psIcon: 'cart',
   };
 
   /**
-   * Mobile dock tutor — Galeria, Mapa, FAB (Petsphere), Notificações, Entrar|Sair.
+   * Mobile dock tutor — Galeria, Mapa, Loja, Sobre, FAB central, Notificações, Entrar|Sair.
    */
   get mobileDockItems(): NavMainItem[] {
-    const galeriaLink = this.tenantLoja.isTenantLoja() ? '/' : '/galeria';
+    const tenantSf = this.tenantLoja.isTenantLoja();
+    const galeriaLink = tenantSf ? '/' : '/galeria';
+    const sobreDockHref = tenantSf ? '/institucional-loja' : '/sobre-nos';
     const left: NavMainItem[] = [
       {
         id: 'galeria',
@@ -130,6 +126,22 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         link: '/mapa',
         icon: 'fas fa-fw fa-map-location-dot',
         psIcon: 'map',
+      },
+      {
+        id: 'loja',
+        label: 'Loja',
+        shortLabel: 'Loja',
+        link: this.lojaHref,
+        icon: 'fas fa-fw fa-store',
+        psIcon: 'shop',
+      },
+      {
+        id: 'sobre',
+        label: 'Sobre',
+        shortLabel: 'Sobre',
+        link: sobreDockHref,
+        icon: 'fas fa-fw fa-circle-info',
+        psIcon: 'sparkle',
       },
     ];
     const notif: NavMainItem = {
@@ -191,22 +203,94 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Abas primárias da lente atual — compartilhadas entre dock móvel (Profissionais/Vet)
-   * e barra desktop, para manter a mesma navegação em ambos.
+   * Desktop (≥768): lente Prestador não mostra Painel/Agenda/Equipe como abas superiores
+   * (esses atalhos continuam apenas no dock móvel). Abas institucionais aqui + CTA Painel/Entrar.
    */
+  private desktopParceiroTopNavTabs(): NavMainItem[] {
+    const tenantSf = this.tenantLoja.isTenantLoja();
+    const sobrePainelHref = tenantSf ? '/institucional-loja' : '/sobre-nos';
+    const sobreItem: NavMainItem = {
+      id: 'sobre',
+      label: 'Quem somos',
+      shortLabel: 'Quem somos',
+      link: sobrePainelHref,
+      icon: 'fas fa-fw fa-circle-info',
+      psIcon: 'sparkle',
+    };
+    if (tenantSf) return [sobreItem];
+    return [
+      sobreItem,
+      {
+        id: 'lp-vet-tab',
+        label: 'Veterinários',
+        shortLabel: 'Veterinários',
+        link: '/parceiro/veterinarios',
+        icon: 'fas fa-fw fa-stethoscope',
+        psIcon: 'stethoscope',
+      },
+      {
+        id: 'lp-hotel-tab',
+        label: 'Hotel e creche',
+        shortLabel: 'Hotel',
+        link: '/parceiro/hotel-e-creche',
+        icon: 'fas fa-fw fa-hotel',
+        psIcon: 'bed',
+      },
+      {
+        id: 'lp-adestramentos-tab',
+        label: 'Adestramentos',
+        shortLabel: 'Adestramentos',
+        link: '/adestramentos',
+        icon: 'fas fa-fw fa-paw',
+        psIcon: 'paw',
+      },
+      {
+        id: 'planos-dock',
+        label: 'Planos',
+        shortLabel: 'Planos',
+        link: '/parceiro/planos',
+        icon: 'fas fa-fw fa-layer-group',
+        psIcon: 'sparkle',
+      },
+    ];
+  }
+
+  /** Abas primárias da lente atual — dock móvel Profissionais/Vet; vet desktop usa as mesmas. */
   private get primaryNavItemsForProfissionalLens(): NavMainItem[] | null {
+    const tenantSf = this.tenantLoja.isTenantLoja();
     if (this.dockMode === 'vet') {
       const h = (p: string): string => this.vetClinicalHref(p);
+      const sobreLink = tenantSf ? '/institucional-loja' : h('/sobre-nos');
       return [
         { id: 'pacientes', label: 'Pacientes', shortLabel: 'Pacientes', link: h('/pacientes'), icon: 'fas fa-fw fa-paw', psIcon: 'paw' },
         { id: 'receitas', label: 'Receitas', shortLabel: 'Receitas', link: h('/historico-receitas'), icon: 'fas fa-fw fa-file-prescription', psIcon: 'sparkle' },
         { id: 'gerar', label: 'Nova', shortLabel: 'Nova', link: h('/gerar-receita'), icon: 'fas fa-fw fa-plus', psIcon: 'sparkle' },
-        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: h('/sobre-nos'), icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
+        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: sobreLink, icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
       ];
     }
     if (this.dockMode === 'parceiro') {
       if (!this.parceiroAuth.isLoggedIn()) {
         const loja = this.lojaHref;
+        if (tenantSf) {
+          return [
+            {
+              id: 'loja',
+              label: 'Loja',
+              shortLabel: 'Loja',
+              link: loja,
+              icon: 'fas fa-fw fa-desktop',
+              psIcon: 'sparkle',
+            },
+            {
+              id: 'prestador-shell',
+              label: 'Área do prestador',
+              shortLabel: 'Prestador',
+              link: '/parceiros/login',
+              icon: 'fas fa-fw fa-right-to-bracket',
+              psIcon: 'person',
+            },
+          ];
+        }
         return [
           {
             id: 'sobre',
@@ -242,11 +326,12 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
           },
         ];
       }
+      const sobrePainelHref = tenantSf ? '/institucional-loja' : '/sobre-nos';
       return [
         { id: 'painel', label: 'Painel', shortLabel: 'Painel', link: '/parceiros/painel', icon: 'fas fa-fw fa-gauge', psIcon: 'home' },
         { id: 'agenda', label: 'Agenda', shortLabel: 'Agenda', link: '/parceiros/agenda', icon: 'fas fa-fw fa-calendar', psIcon: 'calendar' },
         { id: 'colab', label: 'Equipe', shortLabel: 'Equipe', link: '/parceiros/colaboradores', icon: 'fas fa-fw fa-users', psIcon: 'person' },
-        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: '/sobre-nos', icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
+        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: sobrePainelHref, icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
       ];
     }
     return null;
@@ -276,7 +361,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Incluir `dockMode` evita reuso Ivy de `<li>` entre lentes Cliente vs Profissionais/Vet —
+   * Incluir `dockMode` evita reuso Ivy de `<li>` entre lentes Tutores vs Profissionais/Vet —
    * o mesmo índice com ids diferentes chegava a deixar “fantasmas” sobrepostos ao mudar modo.
    */
   trackDockGridCell(_index: number, cell: DockGridCell): string {
@@ -287,7 +372,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   // ─── Quick actions catalog (FAB sheet + radial) ─────────────────────────────
   readonly quickActionCatalog: Record<DockActionId, QuickAction> = {
     'agendar':      { id: 'agendar',      label: 'Agendar',         caption: 'Consulta com vet',          link: '/mapa?service=consulta', icon: 'calendar', tone: 'aqua' },
-    'telemedicina': { id: 'telemedicina', label: 'Telemedicina',    caption: 'Consulta online agora',     link: '/mapa?service=telemedicina', icon: 'video', tone: 'aqua' },
+    'telemedicina': { id: 'telemedicina', label: 'Telemedicina',    caption: 'Consulta online agora',     link: '/area-cliente?view=telemedicina', icon: 'video', tone: 'aqua' },
     'buscar-vet':   { id: 'buscar-vet',   label: 'Buscar vet',      caption: 'Veterinários próximos',     link: '/mapa', icon: 'stethoscope', tone: 'aqua' },
     'transporte-pet': { id: 'transporte-pet', label: 'Transporte pet', caption: 'Pedir corrida no mapa', link: '/mapa?service=transporte', icon: 'map', tone: 'aqua' },
     'comprar':      { id: 'comprar',      label: 'Comprar',         caption: 'Loja Petsphere',            link: '/loja', icon: 'shop', tone: 'aurora' },
@@ -298,6 +383,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     'vet-receitas':  { id: 'vet-receitas',  label: 'Receitas',     caption: 'Histórico de prescrições',  link: '/historico-receitas', icon: 'sparkle', tone: 'aqua' },
     'vet-gerar':     { id: 'vet-gerar',     label: 'Nova receita',  caption: 'Emitir receita',            link: '/gerar-receita', icon: 'sparkle', tone: 'aqua' },
     'vet-panorama':  { id: 'vet-panorama',  label: 'Panorama',      caption: 'Custos e exames',          link: '/panorama-atendimento', icon: 'map', tone: 'aqua' },
+    'vet-cockpit':   { id: 'vet-cockpit',   label: 'Painel Vet',    caption: 'Visão geral do dia',        link: '/parceiros/vet-cockpit', icon: 'home', tone: 'aqua' },
     'parceiro-painel':   { id: 'parceiro-painel',   label: 'Painel',     caption: 'Resumo da loja',       link: '/parceiros/painel', icon: 'home', tone: 'neutral' },
     'parceiro-agenda':   { id: 'parceiro-agenda',   label: 'Agenda',     caption: 'Compromissos',         link: '/parceiros/agenda', icon: 'calendar', tone: 'neutral' },
     'parceiro-equipe':   { id: 'parceiro-equipe',   label: 'Equipe',     caption: 'Colaboradores',        link: '/parceiros/colaboradores', icon: 'person', tone: 'neutral' },
@@ -311,6 +397,30 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     },
     'sobre-nos':         { id: 'sobre-nos',       label: 'Quem somos',   caption: 'Institucional Petsphere', link: '/sobre-nos', icon: 'sparkle', tone: 'neutral' },
     'planos-parceiro':   { id: 'planos-parceiro', label: 'Planos Petsphere', caption: 'Créditos e negócio', link: '/parceiro/planos', icon: 'sparkle', tone: 'neutral' },
+    'lp-veterinarios': {
+      id: 'lp-veterinarios',
+      label: 'Veterinários',
+      caption: 'Clínicas na PetSphere',
+      link: '/parceiro/veterinarios',
+      icon: 'stethoscope',
+      tone: 'aqua',
+    },
+    'lp-hotel-creche': {
+      id: 'lp-hotel-creche',
+      label: 'Hotel e creche',
+      caption: 'Hospedagem e day use',
+      link: '/parceiro/hotel-e-creche',
+      icon: 'bed',
+      tone: 'aurora',
+    },
+    'lp-adestramentos': {
+      id: 'lp-adestramentos',
+      label: 'Adestramentos',
+      caption: 'Comportamento e profissionais',
+      link: '/adestramentos',
+      icon: 'paw',
+      tone: 'neutral',
+    },
     'prestador-login':   { id: 'prestador-login', label: 'Entrar na área Prestador', caption: 'Login e painel', link: '/parceiros/login', icon: 'person', tone: 'neutral' },
   };
 
@@ -328,11 +438,22 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     return next;
   }
 
+  /** Na vitrine tenant, “Comprar” deve ir para a própria loja — não `/loja` global com copy Petsphere. */
+  private mapTenantConsumerQuickActionIfNeeded(id: DockActionId, src: QuickAction): QuickAction {
+    if (!this.tenantLoja.isTenantLoja() || id !== 'comprar') return src;
+    return {
+      ...src,
+      link: this.lojaHref,
+      caption: 'Na vitrine deste parceiro',
+      label: 'Comprar',
+    };
+  }
+
   /** Painéis da bottom sheet — conteúdo depende só do modo do dock ao abrir (snapshot em openSheet). */
   private computeSheetPanels(): SheetPanelRow[] {
     const c = this.quickActionCatalog;
     if (this.dockMode === 'vet') {
-      const ids: DockActionId[] = ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'vet-panorama', 'telemedicina'];
+      const ids: DockActionId[] = ['vet-cockpit', 'vet-gerar', 'vet-pacientes', 'vet-receitas', 'vet-panorama'];
       return [
         {
           sectionLabel: null,
@@ -344,8 +465,20 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       ];
     }
     if (this.dockMode === 'parceiro') {
+      const tenantSf = this.tenantLoja.isTenantLoja();
       const ids: DockActionId[] = !this.parceiroAuth.isLoggedIn()
-        ? ['sobre-nos', 'planos-parceiro', 'parceiro-cadastro', 'comprar', 'prestador-login']
+        ? tenantSf
+          ? ['comprar', 'prestador-login']
+          : [
+              'sobre-nos',
+              'planos-parceiro',
+              'lp-veterinarios',
+              'lp-hotel-creche',
+              'lp-adestramentos',
+              'parceiro-cadastro',
+              'comprar',
+              'prestador-login',
+            ]
         : ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar', 'buscar-vet'];
       return [{
         sectionLabel: null,
@@ -396,9 +529,9 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  /** Em desktop, oculta links de negócios quando a lente ativa é Cliente. */
-  get showDesktopBusinessLink(): boolean {
-    return this.isViewportMin768() && this.dockMode !== 'cliente';
+  /** Vitrine em subdomínio / host do parceiro — sem marketing institucional Petsphere. */
+  get isTenantPartnerStorefront(): boolean {
+    return this.tenantLoja.isTenantLoja();
   }
 
   openPartnerShellDrawerFromNav(): void {
@@ -410,6 +543,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private buildConsumerSheetPanels(): SheetPanelRow[] {
     const cat = this.quickActionCatalog;
+    const tenantSf = this.tenantLoja.isTenantLoja();
     let coreIds: DockActionId[] = this.isCliente
       ? ['transporte-pet', 'agendar', 'telemedicina', 'buscar-vet', 'hospedagem']
       : ['transporte-pet', 'buscar-vet', 'agendar', 'telemedicina', 'hospedagem'];
@@ -425,14 +559,31 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       { sectionLabel: 'Mapa e cuidados com o pet', actions: coreIds.map((id) => cat[id]) },
     ];
     if (lojaPanel.length > 0) {
-      rows.push({ sectionLabel: 'Loja oficial Petsphere', actions: lojaPanel.map((id) => cat[id]) });
+      const lojaActions = lojaPanel.map((id) => {
+        const base = cat[id];
+        if (tenantSf && id === 'comprar') {
+          return {
+            ...base,
+            link: this.lojaHref,
+            caption: 'Na vitrine deste parceiro',
+            label: 'Comprar',
+          };
+        }
+        return base;
+      });
+      rows.push({
+        sectionLabel: tenantSf ? 'Loja' : 'Loja oficial Petsphere',
+        actions: lojaActions,
+      });
     }
     /** Parceiro: toggle na navbar superior (ver `Cliente | Parceiro`) — não no sheet central. */
-    const institucionalIds: DockActionId[] = ['sobre-nos', 'planos-parceiro'];
-    rows.push({
-      sectionLabel: 'Institucional e parceiros',
-      actions: institucionalIds.map((id) => cat[id]),
-    });
+    if (!tenantSf) {
+      const institucionalIds: DockActionId[] = ['sobre-nos', 'lp-veterinarios', 'lp-hotel-creche'];
+      rows.push({
+        sectionLabel: 'Institucional e parceiros',
+        actions: institucionalIds.map((id) => cat[id]),
+      });
+    }
     return rows;
   }
 
@@ -451,9 +602,12 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.tenantLoja.isTenantLoja() ? '/' : '/loja';
   }
 
-  /** Linha secundária só na lente cliente (no Profissionais/Vet as abas primárias já cobrem o fluxo). */
-  get showDesktopSecondaryLinks(): boolean {
-    return !!this.showFullMenu && (this.dockMode === 'guest' || this.dockMode === 'cliente');
+  get showDesktopParceiroPainelBtn(): boolean {
+    return !!(this.showFullMenu && this.dockMode === 'parceiro' && this.parceiroAuth.isLoggedIn() && this.isViewportMin768());
+  }
+
+  get showDesktopParceiroEntrarBtn(): boolean {
+    return !!(this.showFullMenu && this.dockMode === 'parceiro' && !this.parceiroAuth.isLoggedIn() && this.isViewportMin768());
   }
 
   /**
@@ -461,6 +615,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   get showClienteParceiroToggle(): boolean {
     if (!this.showFullMenu || this.isAreaVetRoute) return false;
+    if (this.tenantLoja.isTenantLoja()) return false;
     return this.dockMode !== 'vet';
   }
 
@@ -497,9 +652,13 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       return ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'vet-panorama'];
     }
     if (this.dockMode === 'parceiro') {
-      return !this.parceiroAuth.isLoggedIn()
-        ? ['planos-parceiro', 'parceiro-cadastro', 'comprar', 'prestador-login']
-        : ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar'];
+      const tenantSf = this.tenantLoja.isTenantLoja();
+      if (!this.parceiroAuth.isLoggedIn()) {
+        return tenantSf
+          ? ['comprar', 'prestador-login', 'buscar-vet', 'transporte-pet']
+          : ['planos-parceiro', 'parceiro-cadastro', 'comprar', 'prestador-login'];
+      }
+      return ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar'];
     }
     return ['transporte-pet', 'buscar-vet', 'agendar', 'comprar'];
   }
@@ -648,7 +807,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.radialActions = this.dockCtx
       .topActions(4, this.fabRadialDefaultIds())
-      .map(id => this.quickActionCatalog[id]);
+      .map(id => this.mapTenantConsumerQuickActionIfNeeded(id, { ...this.quickActionCatalog[id] }));
 
     this.partnerFabBridgeSub = merge(
       this.parceirosMobileShell.openPartnerFabRadial$.pipe(map(() => 'radial' as const)),
@@ -923,7 +1082,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         (path === '/' && this.tenantLoja.isTenantLoja()) ||
         path.startsWith('/loja') || path.startsWith('/produto/') || path.startsWith('/favoritos') || path.startsWith('/checkout')
       );
-      case 'sobre':      return path.startsWith('/sobre-nos');
+      case 'sobre':      return path.startsWith('/sobre-nos') || path.startsWith('/institucional-loja');
       case 'mapa':       return path.startsWith('/mapa');
       case 'galeria':
         return (
@@ -939,28 +1098,41 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'colab':      return path.startsWith('/parceiros/colaboradores');
       case 'planos-dock': return path.startsWith('/parceiro/planos');
       case 'cadastro-parc': return path.startsWith('/parceiro/cadastrar');
+      case 'lp-vet-tab': return path.startsWith('/parceiro/veterinarios');
+      case 'lp-hotel-tab': return path.startsWith('/parceiro/hotel-e-creche');
+      case 'lp-adestramentos-tab': return path.startsWith('/adestramentos');
+      case 'prestador-shell':
+        return path.startsWith('/parceiros/login') || path.startsWith('/parceiros/recuperar-senha');
       default: return false;
     }
   }
 
   /**
-   * Top-bar desktop: mesma lente que o dock móvel (cliente = Galeria/Mapa[+carrinho];
-   * Profissionais = marketing ou painel; Vet = rotas clínicas).
+   * Top-bar desktop: cliente = Galeria, Mapa, Loja, Sobre (+ Carrinho se logado);
+   * vet / prestador mantêm suas lentes; FAB móvel segue mesmo strip de 4 itens.
    */
   get visibleNavItems(): NavMainItem[] {
     const prof = this.primaryNavItemsForProfissionalLens;
-    if (prof) return prof;
+    if (prof) {
+      if (this.dockMode === 'parceiro' && this.isViewportMin768()) return this.desktopParceiroTopNavTabs();
+      return prof;
+    }
 
-    const galeriaLink = this.tenantLoja.isTenantLoja() ? '/' : '/galeria';
-    const base: NavMainItem[] = [
-      { ...this.mainNavItems[0], link: galeriaLink },
-      { ...this.mainNavItems[1] },
+    const tenantSf = this.tenantLoja.isTenantLoja();
+    const galeriaLink = tenantSf ? '/' : '/galeria';
+    const sobreLink = tenantSf ? '/institucional-loja' : '/sobre-nos';
+
+    /** Lente cliente / guest — desktop + dock: mesmo conjunto padronizado (ícones na barra). */
+    const clienteStrip: NavMainItem[] = [
+      { id: 'galeria', label: 'Galeria', shortLabel: 'Galeria', link: galeriaLink, icon: 'fas fa-fw fa-images', psIcon: 'home' },
+      { id: 'mapa', label: 'Mapa', shortLabel: 'Mapa', link: '/mapa', icon: 'fas fa-fw fa-map-location-dot', psIcon: 'map' },
+      { id: 'loja', label: 'Loja', shortLabel: 'Loja', link: this.lojaHref, icon: 'fas fa-fw fa-store', psIcon: 'shop' },
+      { id: 'sobre', label: 'Sobre', shortLabel: 'Sobre', link: sobreLink, icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
     ];
     if (this.isCliente) {
-      const i = base.findIndex(x => x.id === 'mapa') + 1;
-      return [...base.slice(0, i), this.carrinhoNavItem, ...base.slice(i)];
+      return [...clienteStrip, this.carrinhoNavItem];
     }
-    return base;
+    return clienteStrip;
   }
 
   // ─── FAB: tap → bottom sheet, long-press → radial menu ──────────────────────
@@ -1048,10 +1220,15 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     this.sheetRowsSnapshot = this.computeSheetPanels();
     if (this.dockMode === 'parceiro') {
       if (!this.parceiroAuth.isLoggedIn()) {
-        this.sheetLeadTitle = 'Para o seu negócio';
-        this.sheetLeadSubtitle = 'Planos, cadastro, vitrine de demonstrações e entrada no painel';
+        if (this.tenantLoja.isTenantLoja()) {
+          this.sheetLeadTitle = 'Esta vitrine';
+          this.sheetLeadSubtitle = 'Loja pública e entrada na área do prestador';
+        } else {
+          this.sheetLeadTitle = 'Para o seu negócio';
+          this.sheetLeadSubtitle = 'Planos, cadastro, vitrine de demonstrações e entrada no painel';
+        }
       } else {
-        this.sheetLeadTitle = 'Prestador Petsphere';
+        this.sheetLeadTitle = this.tenantLoja.isTenantLoja() ? 'Prestador' : 'Prestador Petsphere';
         this.sheetLeadSubtitle = 'Atalhos do painel e do app cliente';
       }
     } else if (this.dockMode === 'vet') {
@@ -1083,9 +1260,11 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       .map((id) => {
         const src = this.quickActionCatalog[id];
         if (this.dockMode === 'vet') {
-          return { ...src, link: this.vetClinicalHref(src.link) };
+          return this.mapTenantConsumerQuickActionIfNeeded(id, { ...src, link: this.vetClinicalHref(src.link) });
         }
-        return this.mapParceiroQuickActionCopy(id, { ...src });
+        let out = this.mapParceiroQuickActionCopy(id, { ...src });
+        out = this.mapTenantConsumerQuickActionIfNeeded(id, out);
+        return out;
       });
     this.isRadialOpen = true;
     this.cdr.detectChanges();

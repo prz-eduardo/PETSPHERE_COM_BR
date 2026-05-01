@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CookiePreferencesService } from '../services/cookie-preferences.service';
+import { TenantLojaService } from '../services/tenant-loja.service';
 import { LOJA_IDENTIDADE, LOJA_MAPA_URL } from '../constants/loja-public';
 
 interface AddressBlock {
@@ -18,7 +19,13 @@ interface AddressBlock {
 })
 export class FooterComponent {
   private readonly cookies = inject(CookiePreferencesService);
+  private readonly tenantLoja = inject(TenantLojaService);
   readonly year = new Date().getFullYear();
+
+  /** Landings de parceiro só no domínio principal (vitrim tenant redireciona essas rotas). */
+  get showParceiroSegmentLinks(): boolean {
+    return !this.tenantLoja.isTenantLoja();
+  }
 
   readonly company = {
     name: LOJA_IDENTIDADE.marca.nome,

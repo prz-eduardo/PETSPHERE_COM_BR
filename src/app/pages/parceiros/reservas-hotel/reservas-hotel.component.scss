@@ -97,6 +97,14 @@ h1 {
   border-bottom: 1px solid var(--admin-border);
 }
 
+.modo-segment {
+  margin-bottom: 1rem;
+  border-radius: var(--admin-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+}
+
 .tab-btn {
   border: none;
   border-right: 1px solid var(--admin-border);
@@ -348,6 +356,12 @@ th {
   padding: 0.12rem 0.45rem;
   font-size: var(--admin-font-size-xs);
   font-weight: var(--admin-font-weight-semibold);
+}
+
+.room-badge--uso {
+  color: #5eead4;
+  border: 1px solid rgba(94, 234, 212, 0.4);
+  background: rgba(13, 148, 136, 0.15);
 }
 
 .room-badge--conforto {

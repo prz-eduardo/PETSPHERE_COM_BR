@@ -3,7 +3,7 @@
 // Shared types used by all agenda components and services
 // =============================================================================
 
-export type PartnerType = 'PETSHOP' | 'CLINIC' | 'SITTER' | 'HOTEL';
+export type PartnerType = 'PETSHOP' | 'CLINIC' | 'SITTER' | 'HOTEL' | 'DAYCARE';
 
 export type ViewMode = 'DAY' | 'WEEK' | 'TIMELINE' | 'LIST';
 
@@ -51,6 +51,8 @@ export interface Colaborador {
   vet_id?: number | null;
   vet_approved?: number | null;
   vet_crmv?: string | null;
+  /** Quando a API retorna vínculo com estabelecimento (snake_case). */
+  estabelecimento_id?: number | null;
 }
 
 export interface Recurso {
@@ -184,6 +186,17 @@ export interface AgendaFiltros {
 export interface SlotInfo {
   hora: Date;
   profissionalId?: string;
+}
+
+/** Payload da sidebar ao concluir o assistente de agendamento (API + UX). */
+export interface AgendaSavePayload {
+  agendamento: Agendamento;
+  /** Incluído quando a API deve notificar o tutor por e-mail (cadastrado vs convidado por e-mail). */
+  tutorNotificacao?: {
+    enviar: boolean;
+    modo?: 'cadastrado' | 'guest';
+    emailGuest?: string;
+  };
 }
 
 export interface Parceiro {

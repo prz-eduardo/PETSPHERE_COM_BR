@@ -1,0 +1,212 @@
+<main class="plp-page" id="topo">
+  <section class="plp-hero" aria-labelledby="hotel-hero-title">
+    <div class="hero-blob hero-blob--a" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob--b" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <span class="hero-kicker">
+          <i class="fa-solid fa-hotel" aria-hidden="true"></i>
+          Hotel · creche · day use
+        </span>
+        <h1 id="hotel-hero-title" class="hero-title">
+          Ocupação cheia <span class="hero-accent">sem sufocar sua equipe</span>
+        </h1>
+        <p class="hero-lead">
+          Reservas, baias e comunicação com tutores na mesma plataforma em que outros prestadores já usam planos Free e Pro —
+          visibilidade no mapa mais automações que reduzem bolhas na agenda.
+        </p>
+        <div class="hero-actions">
+          <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+            Ver planos e créditos
+          </a>
+          <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+            <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+            Cadastrar unidade
+          </a>
+          <a routerLink="/mapa" class="btn btn-ghost btn-lg">
+            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+            Ver mapa
+          </a>
+        </div>
+        <ul class="hero-trust" aria-label="Benefícios destacados">
+          <li *ngFor="let t of heroTrust">
+            <span class="trust-ic"><i [class]="t.icon" aria-hidden="true"></i></span>
+            <span><strong>{{ t.strong }}</strong> — {{ t.text }}</span>
+          </li>
+        </ul>
+      </div>
+      <div class="hero-panel">
+        <div class="hero-card">
+          <div class="hero-card__head">
+            <i class="fa-solid fa-warehouse" aria-hidden="true"></i>
+            <span>Hospedagem no painel parceiro</span>
+          </div>
+          <p class="hero-card__text">
+            O módulo de hospedagem trata hotel e creche com linguagem própria de vagas e serviços — integrado aos demais fluxos da
+            {{ marca }}.
+          </p>
+          <ul class="hero-card__list">
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Painel «Hospedagem pet &amp; creche»</li>
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Planos com WhatsApp + IA opcionais</li>
+            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Descoberta no mapa e marketplace</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="plp-divider" aria-hidden="true" />
+
+  <section class="plp-bloco plp-bloco--surface" aria-labelledby="como-title" id="como-funciona">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow">Operação hotelaria</span>
+        <h2 id="como-title" class="section-title">Como a Petsphere apoia reservas e ocupação</h2>
+        <p class="section-lead">
+          Do cadastro público aos controles diários da unidade — mesma infraestrutura de parceiros que já cobre agendas exigentes.
+        </p>
+      </div>
+      <div class="servicos-grid">
+        <article class="servico-card" *ngFor="let o of operacao">
+          <div class="servico-card__icon" aria-hidden="true"><i [class]="o.icon"></i></div>
+          <h3 class="servico-card__title">{{ o.title }}</h3>
+          <p class="servico-card__lead">{{ o.lead }}</p>
+          <a href="#bloco-cta-hotel" class="servico-card__link" (click)="scrollTo('bloco-cta-hotel', $event)">
+            Quero escalonar <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          </a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <hr class="plp-divider" aria-hidden="true" />
+
+  <section class="plp-bloco" aria-labelledby="modos-title">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow">Um lugar, várias ofertas</span>
+        <h2 id="modos-title" class="section-title">Hotel, creche ou uso diurno</h2>
+        <p class="section-lead">Adapte a narrativa ao que você vende sem perder o mesmo back-end de parceiro.</p>
+      </div>
+      <div class="dores-grid">
+        <article class="dor-card" *ngFor="let m of modos">
+          <div class="dor-card__icon" aria-hidden="true"><i [class]="m.icon"></i></div>
+          <h3 class="dor-card__title">{{ m.title }}</h3>
+          <p class="dor-card__text">{{ m.text }}</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <hr class="plp-divider" aria-hidden="true" />
+
+  <section class="plp-bloco plp-bloco--cosmos" aria-labelledby="hotel-auto-title">
+    <div class="section-inner">
+      <div class="section-head section-head--light">
+        <span class="eyebrow eyebrow--light">Relacionamento com tutores</span>
+        <h2 id="hotel-auto-title" class="section-title section-title--light">Automações que enchem a agenda hotel/creche</h2>
+        <p class="section-lead section-lead--light">
+          Mensagens repetitivas não deveriam competir com o cuidado ao pet. Nos planos Pro e superiores, a {{ marca }} oferece o
+          mesmo pacote de WhatsApp, IA e e-mail já documentado para outros prestadores em Planos &amp; créditos.
+        </p>
+      </div>
+      <div class="pro-grid">
+        <article class="pro-card" *ngFor="let c of comunicacao">
+          <div class="pro-card__icon" aria-hidden="true"><i [class]="c.icon"></i></div>
+          <h3 class="pro-card__title">{{ c.title }}</h3>
+          <p class="pro-card__text">{{ c.text }}</p>
+        </article>
+      </div>
+      <div class="pro-cta">
+        <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          Ver Planos Free e Pro
+        </a>
+        <a routerLink="/passeadores" class="btn btn-ghost btn-lg">
+          Ecossistema: demo de passeios
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <hr class="plp-divider" aria-hidden="true" />
+
+  <section class="plp-bloco" aria-labelledby="jornada-hotel-title">
+    <div class="section-inner">
+      <div class="section-head">
+        <span class="eyebrow">Passo a passo</span>
+        <h2 id="jornada-hotel-title" class="section-title">Do cadastro ao primeiro check-in digital</h2>
+      </div>
+      <ol class="jornada-track">
+        <li class="jornada-step">
+          <span class="jornada-step__n" aria-hidden="true">1</span>
+          <div class="jornada-step__body">
+            <h3 class="jornada-step__title">Cadastre a unidade como parceiro</h3>
+            <p class="jornada-step__text">Escolha plano inicial e libere a vitrine — tutores já podem encontrar você no ecossistema.</p>
+          </div>
+        </li>
+        <li class="jornada-step">
+          <span class="jornada-step__n" aria-hidden="true">2</span>
+          <div class="jornada-step__body">
+            <h3 class="jornada-step__title">Configure baias e serviços</h3>
+            <p class="jornada-step__text">
+              No painel, alinhe ofertas de hotel, day use ou creche aos serviços que você efetivamente vende.
+            </p>
+          </div>
+        </li>
+        <li class="jornada-step">
+          <span class="jornada-step__n" aria-hidden="true">3</span>
+          <div class="jornada-step__body">
+            <h3 class="jornada-step__title">Ative automações conforme escala</h3>
+            <p class="jornada-step__text">
+              Subindo para planos pagos, ligue WhatsApp, IA na recepção digital e agenda inteligente para reduzir buracos ociosos.
+            </p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="plp-bloco" aria-labelledby="faq-hotel-title">
+    <div class="section-inner section-inner--narrow">
+      <div class="section-head">
+        <span class="eyebrow">Dúvidas</span>
+        <h2 id="faq-hotel-title" class="section-title">Perguntas frequentes</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item" *ngFor="let item of faq">
+          <summary class="faq-q">{{ item.q }}</summary>
+          <p class="faq-a">{{ item.a }}</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="plp-cta-band" id="bloco-cta-hotel" aria-labelledby="cta-hotel-final">
+    <div class="section-inner">
+      <h2 id="cta-hotel-final" class="cta-band__title">Prepare sua hospedagem para a temporada cheia</h2>
+      <p class="cta-band__lead">
+        Experimente Free com mapa e vitrine ou suba de plano quando automações virarem obrigatório para não perder leads.
+      </p>
+      <div class="cta-band__actions">
+        <a routerLink="/parceiro/cadastrar" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-door-open" aria-hidden="true"></i>
+          Começar agora
+        </a>
+        <a routerLink="/parceiro/planos" class="btn btn-ghost btn-lg">Comparar planos</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="plp-sticky-cta" role="region" aria-label="Ações rápidas">
+    <a routerLink="/parceiro/planos" class="plp-sticky-cta__btn plp-sticky-cta__btn--primary">
+      <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+      Planos
+    </a>
+    <a routerLink="/parceiro/cadastrar" class="plp-sticky-cta__btn plp-sticky-cta__btn--secondary">
+      <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+      Cadastrar
+    </a>
+  </div>
+</main>

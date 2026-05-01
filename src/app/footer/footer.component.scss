@@ -272,6 +272,25 @@
   }
 }
 
+.footer-parceiro-links {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  a {
+    color: var(--fp-footer-ink, #0f172a);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+  .footer-dot {
+    display: inline-block;
+    margin: 0 0.35em;
+    opacity: 0.45;
+  }
+}
+
 /* Responsive ------------------------------------------------------------- */
 @media (max-width: 960px) {
   .footer-grid {

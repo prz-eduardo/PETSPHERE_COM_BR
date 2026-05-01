@@ -5,9 +5,11 @@
     <div class="atendimento-hero__text">
       <p class="atendimento-kicker">Consultório</p>
       <h1 class="atendimento-title">Consulta, prontuário e receita</h1>
-      <p class="atendimento-lede">
-        Fluxo pensado para o dia a dia da clínica: identificar o tutor, registrar o paciente, documentar a consulta,
-        prescrever com segurança e arquivar o atendimento — sem sair do painel do parceiro.
+      <p class="atendimento-lede" *ngIf="workflowPhase === 'clinical'">
+        Modo clínico: documente a consulta em etapas. Cobrança, mapa e prescrição ficam para depois.
+      </p>
+      <p class="atendimento-lede" *ngIf="workflowPhase === 'receita'">
+        Prescrição e assinatura — em seguida você escolhe como encerrar financeiro e logística.
       </p>
     </div>
     <div class="atendimento-hero__actions">
@@ -15,17 +17,17 @@
     </div>
   </header>
 
-  <ol class="atendimento-track" *ngIf="embedInParceiroShell" aria-hidden="true">
-    <li><span>1</span> Tutor</li>
-    <li><span>2</span> Paciente</li>
-    <li><span>3</span> Consulta</li>
-    <li><span>4</span> Exames</li>
-    <li><span>5</span> Receita</li>
-    <li><span>6</span> Assinar</li>
+  <ol class="atendimento-track wizard-track" *ngIf="workflowPhase === 'clinical'" aria-label="Passos do atendimento clínico">
+    <li *ngFor="let label of clinicalStepLabels; let i = index" [class.active]="clinicalStep === i + 1" [class.done]="clinicalStep > i + 1">
+      <span>{{ i + 1 }}</span> {{ label }}
+    </li>
   </ol>
 
+  <!-- ——— Fase clínica ——— -->
+  <ng-container *ngIf="workflowPhase === 'clinical'">
+
   <!-- CPF -->
-  <article class="card receita-card panel" id="passo-tutor">
+  <article class="card receita-card panel" id="passo-tutor" *ngIf="clinicalStep === 1">
     <div class="panel-head">
       <span class="panel-step">1</span>
       <div>
@@ -51,12 +53,12 @@
   </article>
 
   <!-- Tutor encontrado -->
-  <article *ngIf="tutorEncontrado" class="card receita-card panel" id="dadosTutor">
+  <article *ngIf="tutorEncontrado && clinicalStep <= 2" class="card receita-card panel" id="dadosTutor">
     <div class="panel-head panel-head--compact">
       <span class="panel-step panel-step--ok" aria-hidden="true">✓</span>
       <div>
         <h2 class="panel-title">Cadastro localizado</h2>
-        <p class="panel-hint">Confira nome e contato antes de escolher o paciente.</p>
+        <p class="panel-hint">Confira nome e contato; na próxima etapa você escolhe o paciente.</p>
       </div>
     </div>
     <h3 class="visually-hidden">Dados do tutor</h3>
@@ -69,39 +71,53 @@
     </div>
 
     <!-- Pets -->
+    <ng-container *ngIf="clinicalStep >= 2">
     <h4 class="subtitulo">Pets Cadastrados</h4>
   <div class="cards-da-letra" id="listaPets" *ngIf="tutorEncontrado.pets?.length; else semPets">
       <div
         *ngFor="let pet of tutorEncontrado.pets; trackBy: trackByPet"
         class="pet-card"
+        [class.pet-card--has-photo]="getPetPrimaryPhotoUrl(pet)"
         [class.selected]="petSelecionado?.id === pet.id"
         (click)="selecionarPet(pet)"
       >
-        <div class="ativo-header">{{ pet.nome }} <small class="muted">({{ pet.sexo }})</small>
-          <span class="pet-status" *ngIf="isPetPendente(pet)">Pendente de aceitação</span>
-        </div>
-        <div class="ativo-details">
-          Idade: {{ pet.idade }} anos<br />
-          Peso: {{ pet.peso }} kg<br />
-          Raça: {{ pet.raca }}<br />
-          <div *ngIf="pet.alergias?.length" class="alergias-wrapper">
-            <div class="alergias-label"><strong>Alergias:</strong></div>
-            <div class="ativos-badges">
-              <span class="badge" *ngFor="let a of pet.alergias">{{ a }}</span>
-            </div>
+        <ng-container *ngIf="getPetPrimaryPhotoUrl(pet)">
+          <div
+            class="pet-card__photo"
+            [style.background-image]="petCardBackgroundImage(pet)!"
+            role="img"
+            [attr.aria-label]="'Foto de ' + pet.nome"
+          ></div>
+          <div class="pet-card__overlay" aria-hidden="true"></div>
+        </ng-container>
+        <div class="pet-card__body">
+          <div class="ativo-header">{{ pet.nome }} <small class="muted">({{ pet.sexo }})</small>
+            <span class="pet-status" *ngIf="isPetPendente(pet)">Pendente de aceitação</span>
           </div>
-          <div *ngIf="pet.alergias && !pet.alergias.length">Alergias: Nenhuma</div>
-          Espécie: {{ pet.especie}}
+          <div class="ativo-details">
+            Idade: {{ pet.idade }} anos<br />
+            Peso: {{ pet.peso }} kg<br />
+            Raça: {{ pet.raca }}<br />
+            <div *ngIf="pet.alergias?.length" class="alergias-wrapper">
+              <div class="alergias-label"><strong>Alergias:</strong></div>
+              <div class="ativos-badges">
+                <span class="badge" *ngFor="let a of pet.alergias">{{ a }}</span>
+              </div>
+            </div>
+            <div *ngIf="pet.alergias && !pet.alergias.length">Alergias: Nenhuma</div>
+            Espécie: {{ pet.especie}}
+          </div>
         </div>
       </div>
     </div>
     <ng-template #semPets>
       <div class="muted">Nenhum pet encontrado para este tutor.</div>
     </ng-template>
+    </ng-container>
   </article>
 
   <!-- Cadastro manual do tutor -->
-  <article *ngIf="cadastroManualTutor" class="card receita-card panel">
+  <article *ngIf="cadastroManualTutor && clinicalStep === 1" class="card receita-card panel">
     <div class="panel-head panel-head--compact">
       <span class="panel-step">1</span>
       <div>
@@ -119,7 +135,7 @@
   </article>
 
 <!-- Novo Pet -->
-  <article class="card receita-card panel" id="dadosPet">
+  <article class="card receita-card panel" id="dadosPet" *ngIf="clinicalStep === 2">
     <div class="panel-head">
       <span class="panel-step">2</span>
       <div>
@@ -181,16 +197,16 @@
     </article>
 
 
-  <!-- Prontuário -->
-  <article class="card receita-card panel" id="passo-consulta">
+  <!-- Prontuário — anamnese -->
+  <article class="card receita-card panel" id="passo-anamnese" *ngIf="clinicalStep === 3">
     <div class="panel-head">
       <span class="panel-step">3</span>
       <div>
-        <h2 class="panel-title">Evolução da consulta</h2>
-        <p class="panel-hint">Queixa, anamnese, exame físico, hipótese diagnóstica e conduta — o núcleo do prontuário.</p>
+        <h2 class="panel-title">Anamnese</h2>
+        <p class="panel-hint">Queixa principal e história relatada pelo tutor.</p>
       </div>
     </div>
-    <h3 class="visually-hidden">Prontuário clínico</h3>
+    <h3 class="visually-hidden">Queixa e anamnese</h3>
     <div class="grid-pet">
       <div class="input-group">
         <label>Queixa principal</label>
@@ -200,31 +216,86 @@
         <label>Anamnese</label>
         <textarea [(ngModel)]="anamnese" placeholder="Histórico relatado pelo tutor..." class="input-busca"></textarea>
       </div>
-      <div class="input-group full">
-        <label>Exame físico</label>
-        <textarea [(ngModel)]="exameFisico" placeholder="Parâmetros clínicos e achados físicos..." class="input-busca"></textarea>
-      </div>
-      <div class="input-group full">
-        <label>Diagnóstico</label>
-        <textarea [(ngModel)]="diagnostico" placeholder="Hipóteses diagnósticas / diagnóstico conclusivo..." class="input-busca"></textarea>
-      </div>
-      <div class="input-group full">
-        <label>Plano terapêutico</label>
-        <textarea [(ngModel)]="planoTerapeutico" placeholder="Conduta e orientações clínicas..." class="input-busca"></textarea>
-      </div>
-      <div class="input-group">
-        <label>Tipo de execução</label>
-        <select [(ngModel)]="tipoExecucao" (ngModelChange)="onTipoExecucaoChange()" class="input-busca">
-          <option value="presencial">Presencial</option>
-          <option value="domiciliar">Domiciliar</option>
-          <option value="telemedicina">Telemedicina</option>
-          <option value="encaminhamento">Encaminhamento</option>
-        </select>
-      </div>
     </div>
   </article>
 
-  <article class="card receita-card panel">
+  <!-- Exame físico + exames + fotos -->
+  <article class="card receita-card panel" id="passo-exame-fisico" *ngIf="clinicalStep === 4">
+    <div class="panel-head">
+      <span class="panel-step">4</span>
+      <div>
+        <h2 class="panel-title">Exame físico</h2>
+        <p class="panel-hint">Sinais vitais, sistemas com um toque e achados extras — tudo salvo no prontuário.</p>
+      </div>
+    </div>
+
+    <p class="subtitulo ef-subtitle">Sinais vitais</p>
+    <div class="grid-pet ef-vitals">
+      <div class="input-group">
+        <label>Temperatura (°C)</label>
+        <input [(ngModel)]="exameFisicoForm.temperatura" name="efTemp" placeholder="ex.: 38,5" class="input-busca" inputmode="decimal" />
+      </div>
+      <div class="input-group">
+        <label>FC (bpm)</label>
+        <input [(ngModel)]="exameFisicoForm.fc" name="efFc" placeholder="ex.: 120" class="input-busca" inputmode="numeric" />
+      </div>
+      <div class="input-group">
+        <label>FR (mrm)</label>
+        <input [(ngModel)]="exameFisicoForm.fr" name="efFr" placeholder="ex.: 24" class="input-busca" inputmode="numeric" />
+      </div>
+      <div class="input-group">
+        <label>TPC (s)</label>
+        <input [(ngModel)]="exameFisicoForm.tpcSeg" name="efTpc" placeholder="ex.: 1,5" class="input-busca" />
+      </div>
+      <div class="input-group">
+        <label>PA (mmHg)</label>
+        <input [(ngModel)]="exameFisicoForm.pas" name="efPas" placeholder="ex.: 132/78" class="input-busca" />
+      </div>
+      <div class="input-group">
+        <label>Peso hoje (kg)</label>
+        <input [(ngModel)]="exameFisicoForm.pesoDia" name="efPeso" placeholder="Opcional" class="input-busca" inputmode="decimal" />
+      </div>
+    </div>
+
+    <p class="subtitulo ef-subtitle">Sistemas — toque rápido</p>
+    <p class="muted small ef-hint">Normal / Alterado / N/A. Toque de novo no mesmo botão para limpar.</p>
+    <div class="ef-sistemas">
+      <div class="ef-sistema" *ngFor="let key of exameFisicoSistemaOrdem">
+        <span class="ef-sistema-label">{{ exameFisicoSistemaLabels[key] }}</span>
+        <div class="ef-chips">
+          <button type="button" class="ef-chip" [class.ef-chip--active]="exameToggleVal(key) === 'normal'" (click)="setExameToggle(key, 'normal')">Normal</button>
+          <button type="button" class="ef-chip" [class.ef-chip--active]="exameToggleVal(key) === 'alterado'" (click)="setExameToggle(key, 'alterado')">Alterado</button>
+          <button type="button" class="ef-chip" [class.ef-chip--active]="exameToggleVal(key) === 'nao_avaliado'" (click)="setExameToggle(key, 'nao_avaliado')">N/A</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="subtitulo ef-subtitle">Achados adicionais</p>
+    <div class="ef-custom" *ngFor="let linha of exameFisicoForm.custom; let i = index">
+      <div class="grid-pet ef-custom-grid">
+        <div class="input-group">
+          <label>Título</label>
+          <input [(ngModel)]="linha.titulo" [name]="'efcT' + linha.id" placeholder="ex.: Membros posteriores" class="input-busca" />
+        </div>
+        <div class="input-group ef-custom-actions">
+          <label class="ef-label-spacer">&nbsp;</label>
+          <button type="button" class="btn-sec" (click)="removeExameCustomRow(i)">Remover</button>
+        </div>
+        <div class="input-group full">
+          <label>Descrição</label>
+          <input [(ngModel)]="linha.texto" [name]="'efcX' + linha.id" placeholder="Achado objetivo…" class="input-busca" />
+        </div>
+      </div>
+    </div>
+    <button class="btn-toggle ef-add" type="button" (click)="addExameCustomRow()">+ Linha de achado</button>
+
+    <div class="input-group full ef-complemento">
+      <label>Observações gerais do exame físico</label>
+      <textarea [(ngModel)]="exameFisicoForm.complemento" name="efComp" placeholder="Notas livres, detalhes de alterações, etc." class="input-busca" rows="3"></textarea>
+    </div>
+  </article>
+
+  <article class="card receita-card panel" *ngIf="clinicalStep === 4">
     <div class="panel-head">
       <span class="panel-step">4</span>
       <div>
@@ -246,7 +317,7 @@
     <button class="btn-toggle" type="button" (click)="adicionarExameSolicitado()">+ Adicionar exame</button>
   </article>
 
-  <article class="card receita-card panel">
+  <article class="card receita-card panel" *ngIf="clinicalStep === 4">
     <div class="panel-head panel-head--compact">
       <span class="panel-step">4</span>
       <div>
@@ -284,8 +355,29 @@
     </div>
   </article>
 
+  <!-- Hipótese e plano -->
+  <article class="card receita-card panel" id="passo-diagnostico" *ngIf="clinicalStep === 5">
+    <div class="panel-head">
+      <span class="panel-step">5</span>
+      <div>
+        <h2 class="panel-title">Diagnóstico e plano</h2>
+        <p class="panel-hint">Hipótese diagnóstica e conduta terapêutica.</p>
+      </div>
+    </div>
+    <div class="grid-pet">
+      <div class="input-group full">
+        <label>Diagnóstico</label>
+        <textarea [(ngModel)]="diagnostico" placeholder="Hipóteses diagnósticas / diagnóstico conclusivo..." class="input-busca"></textarea>
+      </div>
+      <div class="input-group full">
+        <label>Plano terapêutico</label>
+        <textarea [(ngModel)]="planoTerapeutico" placeholder="Conduta e orientações clínicas..." class="input-busca"></textarea>
+      </div>
+    </div>
+  </article>
+
   <!-- Observações -->
-  <article class="card receita-card panel">
+  <article class="card receita-card panel" *ngIf="clinicalStep === 6">
     <div class="panel-head panel-head--compact">
       <div>
         <h2 class="panel-title">Observações gerais</h2>
@@ -296,7 +388,7 @@
     <textarea [(ngModel)]="observacoes" placeholder="Observações complementares do atendimento..." class="input-busca"></textarea>
   </article>
 
-  <article class="card receita-card panel" id="passo-retorno">
+  <article class="card receita-card panel" id="passo-retorno" *ngIf="clinicalStep === 6">
     <div class="panel-head">
       <span class="panel-step panel-step--muted" aria-hidden="true">↺</span>
       <div>
@@ -327,6 +419,39 @@
       <p class="muted small retorno-footnote">
         É necessário tutor localizado por CPF (conta na loja) ou e-mail no cadastro manual para o envio do aviso.
       </p>
+    </div>
+  </article>
+
+  <div class="wizard-nav clinical-nav">
+    <button type="button" class="btn-sec" (click)="voltarClinical()" [disabled]="clinicalStep === 1 || salvandoAtendimento">Voltar</button>
+    <button type="button" class="btn" *ngIf="clinicalStep < 6" (click)="avancarClinical()" [disabled]="salvandoAtendimento">Avançar</button>
+    <button type="button" class="btn btn-primary-lg" *ngIf="clinicalStep === 6" (click)="concluirFaseClinica()" [disabled]="salvandoAtendimento">
+      {{ salvandoAtendimento ? 'Registrando…' : 'Concluir fase clínica' }}
+    </button>
+  </div>
+
+  </ng-container>
+  <!-- ——— Fase receita / operação financeira ——— -->
+  <ng-container *ngIf="workflowPhase === 'receita'">
+
+  <article class="card receita-card panel" id="passo-tipo-execucao">
+    <div class="panel-head panel-head--compact">
+      <span class="panel-step">↗</span>
+      <div>
+        <h2 class="panel-title">Tipo de execução</h2>
+        <p class="panel-hint">Define as opções ao finalizar (cobrança, logística). Ajuste antes da prescrição.</p>
+      </div>
+    </div>
+    <div class="grid-pet">
+      <div class="input-group">
+        <label>Tipo de execução</label>
+        <select [(ngModel)]="tipoExecucao" (ngModelChange)="onTipoExecucaoChange()" class="input-busca">
+          <option value="presencial">Presencial</option>
+          <option value="domiciliar">Domiciliar</option>
+          <option value="telemedicina">Telemedicina</option>
+          <option value="encaminhamento">Encaminhamento</option>
+        </select>
+      </div>
     </div>
   </article>
 
@@ -439,9 +564,30 @@
     <button id="btnFinalizarConsulta" class="btn btn-primary-lg" type="button" (click)="abrirModalFinalizacao()" [disabled]="salvandoAtendimento">
       {{ salvandoAtendimento ? 'Salvando...' : 'Finalizar consulta' }}
     </button>
-    <p class="rodape-hint muted small">A decisão de cobrança/logística é feita no próximo passo, sem interromper o fluxo clínico.</p>
+    <p class="rodape-hint muted small">Escolha cobrança ou logística — a receita será anexada ao atendimento já criado na fase clínica.</p>
   </div>
+
+  </ng-container>
+
 </section>
+
+  <!-- Modal: Gate pós-clínica -->
+  <div class="modal-backdrop" *ngIf="showPosClinicaGateModal" (click)="fecharGatePosClinica()"></div>
+  <div class="modal-card modal-card--gate" *ngIf="showPosClinicaGateModal" (click)="$event.stopPropagation()">
+    <h3>O que você quer fazer agora?</h3>
+    <p class="muted small">Atendimento #{{ atendimentoEmEdicaoId }} registrado (fase clínica).</p>
+    <div class="gate-actions">
+      <button type="button" class="btn" (click)="gateFinalizarSemOperacao()" [disabled]="salvandoAtendimento">Finalizar sem operação</button>
+      <button type="button" class="btn" (click)="gateIrParaReceita()" [disabled]="salvandoAtendimento">Gerar receita / prescrever</button>
+      <button type="button" class="btn" (click)="gateIrWizardIa()" [disabled]="salvandoAtendimento">Assistente IA (prontuário)</button>
+      <button type="button" class="btn" (click)="gateIniciarDomiciliar()" [disabled]="salvandoAtendimento">Atendimento domiciliar</button>
+      <button type="button" class="btn" (click)="gatePrepararTelemedicina()" [disabled]="salvandoAtendimento">Telemedicina</button>
+      <button type="button" class="btn-sec" (click)="gateAgendarRetornoNav()" [disabled]="salvandoAtendimento">Agendar retorno (agenda)</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-sec" (click)="fecharGatePosClinica()" [disabled]="salvandoAtendimento">Fechar</button>
+    </div>
+  </div>
 
   <!-- Modal: Gate de finalização -->
   <div class="modal-backdrop" *ngIf="showFinalizacaoModal" (click)="fecharModalFinalizacao()"></div>

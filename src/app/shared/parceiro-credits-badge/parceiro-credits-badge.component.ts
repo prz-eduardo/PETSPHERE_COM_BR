@@ -7,7 +7,7 @@ import { ParceiroAuthService } from '../../services/parceiro-auth.service';
 
 /**
  * Chip de saldo de créditos no header do painel parceiro (sempre visível, inclusive no mobile).
- * Clique leva à página pública de planos & pacotes para recarga.
+ * Clique leva à área logada de plano, saldo, extrato e assinatura (com link para a vitrine de planos).
  */
 @Component({
   selector: 'app-parceiro-credits-badge',

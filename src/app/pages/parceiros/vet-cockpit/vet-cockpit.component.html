@@ -1,0 +1,155 @@
+<section class="cockpit">
+
+  <header class="cockpit__hero">
+    <div class="cockpit__hero-text">
+      <p class="cockpit__kicker">Área Vet</p>
+      <h1 class="cockpit__title">Painel de Atendimento</h1>
+      <p class="cockpit__lede">Visão centralizada do seu dia clínico.</p>
+    </div>
+    <div class="cockpit__hero-actions">
+      <button type="button" class="btn-primary btn-lg" (click)="iniciarNovoAtendimento()">
+        <i class="fa fa-play-circle"></i> Iniciar novo atendimento
+      </button>
+    </div>
+  </header>
+
+  <!-- Banner: sessão wizard ativa -->
+  <div class="cockpit__banner-sessao" *ngIf="wizardSession()">
+    <div class="banner-sessao__info">
+      <i class="fa fa-circle-dot banner-sessao__dot"></i>
+      <span class="banner-sessao__label">Atendimento em andamento:</span>
+      <strong>{{ wizardSession()!.petNome || 'Pet' }}</strong>
+      <span class="banner-sessao__sep">·</span>
+      <span>{{ wizardSession()!.tutorNome || 'Tutor' }}</span>
+      <span class="banner-sessao__step">{{ stepLabel(wizardSession()!.step) }}</span>
+    </div>
+    <div class="banner-sessao__actions">
+      <button type="button" class="btn-primary btn-sm" (click)="retomarSessao()">
+        <i class="fa fa-arrow-right"></i> Retomar
+      </button>
+      <button type="button" class="btn-ghost btn-sm" (click)="encerrarSessao()">
+        Encerrar sessão
+      </button>
+    </div>
+  </div>
+
+  <div class="cockpit__grid">
+
+    <!-- Bloco 1: Atendimentos ativos -->
+    <article class="cockpit__card">
+      <header class="cockpit__card-header">
+        <span class="cockpit__card-icon"><i class="fa fa-map-signs"></i></span>
+        <h2 class="cockpit__card-title">Atendimentos ativos</h2>
+        <a routerLink="/parceiros/panorama-atendimento" class="cockpit__card-link">Ver todos</a>
+      </header>
+
+      <div class="cockpit__card-body">
+        <p class="cockpit__empty" *ngIf="!atendimentosAtivos().length">
+          Nenhum atendimento em andamento.
+          <a routerLink="/parceiros/panorama-atendimento" class="link">Criar no Panorama</a>
+        </p>
+        <ul class="cockpit__list" *ngIf="atendimentosAtivos().length">
+          <li
+            class="cockpit__list-item"
+            *ngFor="let a of atendimentosAtivos()"
+          >
+            <span class="list-item__nome">{{ a.petNome || 'Pet' }} · {{ a.tutorNome || 'Tutor' }}</span>
+            <span class="list-item__badge list-item__badge--status">{{ a.status }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <footer class="cockpit__card-footer">
+        <a routerLink="/parceiros/panorama-atendimento" class="btn-ghost btn-sm">
+          <i class="fa fa-plus"></i> Novo registro
+        </a>
+      </footer>
+    </article>
+
+    <!-- Bloco 2: Agenda do dia -->
+    <article class="cockpit__card">
+      <header class="cockpit__card-header">
+        <span class="cockpit__card-icon"><i class="fa fa-calendar"></i></span>
+        <h2 class="cockpit__card-title">Agenda de hoje</h2>
+        <a routerLink="/parceiros/agenda" class="cockpit__card-link">Abrir agenda</a>
+      </header>
+
+      <div class="cockpit__card-body">
+        <p class="cockpit__loading" *ngIf="carregandoAgenda()">Carregando…</p>
+        <p class="cockpit__error" *ngIf="erroAgenda() && !carregandoAgenda()">
+          <i class="fa fa-triangle-exclamation"></i> {{ erroAgenda() }}
+        </p>
+        <p class="cockpit__empty" *ngIf="!carregandoAgenda() && !erroAgenda() && !agendaHoje().length">
+          Sem agendamentos para hoje.
+        </p>
+        <ul class="cockpit__list" *ngIf="agendaHoje().length">
+          <li class="cockpit__list-item" *ngFor="let ag of agendaHoje()">
+            <span class="list-item__nome">
+              {{ ag.pet_nome_snapshot || ag.petNome || ag.pet_nome || 'Pet' }}
+              · {{ ag.cliente_nome_snapshot || ag.clienteNome || ag.cliente_nome || 'Tutor' }}
+            </span>
+            <span class="list-item__hora">
+              {{ (ag.data_hora_inicio || ag.inicio) | date: 'HH:mm' }}
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <footer class="cockpit__card-footer">
+        <a routerLink="/parceiros/agenda" class="btn-ghost btn-sm">
+          <i class="fa fa-calendar-plus"></i> Agendar
+        </a>
+      </footer>
+    </article>
+
+    <!-- Bloco 3: Telemedicina -->
+    <article class="cockpit__card">
+      <header class="cockpit__card-header">
+        <span class="cockpit__card-icon cockpit__card-icon--tele"><i class="fa fa-video"></i></span>
+        <h2 class="cockpit__card-title">Telemedicina</h2>
+        <a routerLink="/parceiros/telemedicina-emergencial" class="cockpit__card-link">Abrir</a>
+      </header>
+
+      <div class="cockpit__card-body cockpit__card-body--center">
+        <p class="cockpit__tele-desc">Gerencie sua fila de chamadas emergenciais, preços e disponibilidade.</p>
+      </div>
+
+      <footer class="cockpit__card-footer">
+        <a routerLink="/parceiros/telemedicina-emergencial" class="btn-primary btn-sm">
+          <i class="fa fa-video"></i> Entrar na fila
+        </a>
+      </footer>
+    </article>
+
+    <!-- Bloco 4: Acesso rápido -->
+    <article class="cockpit__card">
+      <header class="cockpit__card-header">
+        <span class="cockpit__card-icon"><i class="fa fa-bolt"></i></span>
+        <h2 class="cockpit__card-title">Acesso rápido</h2>
+      </header>
+
+      <div class="cockpit__card-body">
+        <nav class="cockpit__quick-nav">
+          <a routerLink="/parceiros/gerar-receita" class="quick-nav__item">
+            <i class="fa fa-stethoscope"></i>
+            <span>Consulta &amp; Receita</span>
+          </a>
+          <a routerLink="/parceiros/pacientes" class="quick-nav__item">
+            <i class="fa fa-paw"></i>
+            <span>Pacientes</span>
+          </a>
+          <a routerLink="/parceiros/historico-receitas" class="quick-nav__item">
+            <i class="fa fa-history"></i>
+            <span>Histórico</span>
+          </a>
+          <a routerLink="/parceiros/area-vet" class="quick-nav__item">
+            <i class="fa fa-flask"></i>
+            <span>Ativos &amp; Fórmulas</span>
+          </a>
+        </nav>
+      </div>
+    </article>
+
+  </div>
+
+</section>

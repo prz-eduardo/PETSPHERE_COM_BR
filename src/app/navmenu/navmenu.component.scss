@@ -232,6 +232,69 @@ nav.app-navbar {
 
   .nav-tab-item { position: relative; z-index: 2; flex-shrink: 0; list-style: none; }
 
+  /* Lente tutores (desktop): quatro rotas padronizadas + pastilhas nos ícones (carrinho fica só o ícone) */
+  .navbar-nav-tabs--cliente-strip {
+    gap: 4px;
+
+    .nav-tab-link {
+      gap: 8px;
+      padding-inline: 11px;
+
+      > i[class*='fa-']:not(.fa-cart-shopping) {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 11px;
+        font-size: 0.74rem !important;
+        opacity: 1 !important;
+        color: rgba(255, 255, 255, 0.92);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset;
+        transition:
+          transform 0.28s var(--ps-ease-spring),
+          background 0.24s ease,
+          border-color 0.24s ease,
+          color 0.24s ease;
+      }
+
+      &:hover > i[class*='fa-']:not(.fa-cart-shopping) {
+        transform: translateY(-1px) scale(1.05);
+        border-color: rgba(197, 255, 61, 0.4);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(197, 255, 61, 0.1));
+      }
+
+      /* Carrinho mantém glyfo simples ao lado da label */
+      > i.fa-cart-shopping {
+        font-size: 0.76rem !important;
+        opacity: 0.95 !important;
+        width: auto !important;
+        height: auto !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: inherit;
+      }
+    }
+
+    .nav-tab-item.active .nav-tab-link > i[class*='fa-']:not(.fa-cart-shopping) {
+      color: var(--ps-cosmos);
+      border-color: rgba(197, 255, 61, 0.55);
+      background: linear-gradient(145deg, var(--ps-aurora), var(--ps-aurora-soft));
+      box-shadow:
+        0 0 0 1px rgba(15, 11, 46, 0.12),
+        0 10px 24px rgba(159, 224, 0, 0.22);
+      transform: translateY(0) scale(1);
+    }
+
+    .nav-tab-item.active .nav-tab-link > i.fa-cart-shopping {
+      color: var(--ps-snow) !important;
+    }
+  }
+
   .nav-tab-link {
     position: relative;
     display: inline-flex;
@@ -252,11 +315,22 @@ nav.app-navbar {
     &:hover { color: var(--ps-snow); transform: translateY(-1px); i { transform: scale(1.08); } }
   }
 
+  .navbar-nav-tabs--cliente-strip .nav-tab-link:hover {
+    transform: translateY(-1px);
+  }
+
+  .navbar-nav-tabs--cliente-strip .nav-tab-link:hover i.fa-cart-shopping {
+    transform: scale(1.1);
+  }
+
   .nav-tab-item.active .nav-tab-link {
     color: var(--ps-snow);
     transform: translateY(0);
     border-radius: 12px 12px 0 0;
-    i { color: var(--ps-snow); }
+  }
+
+  .navbar-nav-tabs:not(.navbar-nav-tabs--cliente-strip) .nav-tab-item.active .nav-tab-link i {
+    color: var(--ps-snow);
   }
 
   .nav-tab-label { white-space: nowrap; }
@@ -382,6 +456,62 @@ nav.app-navbar {
   .ps-view-toggle__btn:focus-visible {
     outline: 2px solid var(--ps-aurora);
     outline-offset: 2px;
+  }
+
+  .navbar-parceiro-cta {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    font-family: $font-display;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      transform 0.18s ease;
+    @media (min-width: 768px) {
+      display: inline-flex;
+    }
+  }
+
+  .navbar-parceiro-cta--primary {
+    background: var(--ps-aurora);
+    border: 1px solid transparent;
+    color: var(--ps-cosmos);
+    box-shadow: 0 10px 24px rgba(159, 224, 0, 0.35);
+
+    &:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ps-aurora);
+      outline-offset: 3px;
+    }
+  }
+
+  .navbar-parceiro-cta--ghost {
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.94);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: var(--ps-aurora);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--ps-aurora);
+      outline-offset: 3px;
+    }
   }
 
   .user-trigger {
@@ -827,8 +957,12 @@ nav.app-navbar {
     padding: 2px;
     cursor: pointer;
     touch-action: manipulation;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: var(--ps-cosmos);
     box-shadow: 0 4px 12px rgba(6, 4, 24, 0.55), 0 0 0 1.5px var(--ps-aurora);
+    color: rgba(255, 255, 255, 0.92);
 
     &:focus-visible {
       outline: 3px solid var(--ps-aurora);

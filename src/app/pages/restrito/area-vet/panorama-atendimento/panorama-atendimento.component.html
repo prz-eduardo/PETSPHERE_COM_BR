@@ -4,8 +4,7 @@
       <p class="atendimento-kicker">Operação</p>
       <h1 class="atendimento-title">Panorama do atendimento</h1>
       <p class="atendimento-lede">
-        Mapa (OpenStreetMap), quilometragem pela rota, valores e exames. Os registros continuam salvos neste aparelho; tutor e pets podem ser carregados da base quando há
-        <strong>permissão do cliente</strong> em Meus clientes.
+        Quilometragem pela rota, valores e exames. Os registros ficam neste aparelho; com permissão LGPD você carrega tutor e pets de <strong>Meus clientes</strong>.
       </p>
     </div>
     <div class="atendimento-hero__actions hero-actions">
@@ -15,265 +14,334 @@
     </div>
   </header>
 
-  <div class="panorama-layout" *ngIf="itens.length || selecionado">
-    <aside class="panel panel--aside">
-      <h2 class="panel__title">Registros</h2>
-      <p class="panel__hint" *ngIf="!itens.length">Nenhum ainda — use «Novo registro».</p>
-      <div class="lista-scroll">
-        <button
-          type="button"
-          class="lista-item"
-          *ngFor="let it of itens"
-          [class.lista-item--ativo]="selecionado?.id === it.id"
-          (click)="selecionar(it)"
-        >
-          <span class="lista-item__titulo">{{ it.petNome || 'Pet' }} · {{ it.tutorNome || 'Tutor' }}</span>
-          <span class="lista-item__meta">{{ statusLabels[it.status] }} · {{ it.atualizadoEm | date : 'short' }}</span>
-        </button>
-      </div>
-    </aside>
+  <ng-container *ngIf="itens.length || selecionado">
+    <ol class="atendimento-track wizard-track" aria-label="Seções do panorama">
+      <li *ngFor="let sid of panoramaStepIds; let i = index" (click)="scrollParaPanoramaStep(sid)">
+        <span>{{ i + 1 }}</span> {{ panoramaStepLabels[i] }}
+      </li>
+    </ol>
 
-    <div class="panorama-main" *ngIf="selecionado as s">
-      <div class="toolbar-row">
-        <button type="button" class="btn-primary" (click)="salvar()">Salvar</button>
-        <button type="button" class="btn-ghost" (click)="excluir()">Excluir</button>
-      </div>
+    <div class="panorama-layout">
+      <aside class="card receita-card panel panel--aside">
+        <div class="panel-head panel-head--compact">
+          <span class="panel-step panel-step--muted">§</span>
+          <div>
+            <h2 class="panel-title">Registros</h2>
+            <p class="panel-hint">Histórico local deste perfil.</p>
+          </div>
+        </div>
+        <p class="panel__hint" *ngIf="!itens.length">Nenhum ainda — use «Novo registro».</p>
+        <div class="lista-scroll">
+          <button
+            type="button"
+            class="lista-item"
+            *ngFor="let it of itens"
+            [class.lista-item--ativo]="selecionado?.id === it.id"
+            (click)="selecionar(it)"
+          >
+            <span class="lista-item__titulo">{{ it.petNome || 'Pet' }} · {{ it.tutorNome || 'Tutor' }}</span>
+            <span class="lista-item__meta">{{ statusLabels[it.status] }} · {{ it.atualizadoEm | date : 'short' }}</span>
+          </button>
+        </div>
+      </aside>
 
-      <article class="panel" *ngIf="isParceiroShell">
-        <h2 class="panel__title">Tutor e pet (permissão LGPD)</h2>
-        <p class="panel__hint">
-          Apenas clientes com status <strong>concedido</strong> em Meus clientes. Escopo «pets» ou «completo» libera a lista de animais.
-        </p>
-        <p class="panel__hint" *ngIf="carregandoPermissoes">Carregando permissões…</p>
-        <div class="grid2" *ngIf="!carregandoPermissoes">
-          <label class="field">
-            <span>Tutor permitido para esta loja</span>
-            <select
-              class="input"
-              [ngModel]="s.clienteIdPermitido ?? null"
-              (ngModelChange)="onClientePermitidoChangeRaw($event)"
-              name="cliPerm"
+      <div class="panorama-main" *ngIf="selecionado as s">
+        <div class="toolbar-row">
+          <button type="button" class="btn-primary" (click)="salvar()">Salvar</button>
+          <button type="button" class="btn-ghost" (click)="excluir()">Excluir</button>
+        </div>
+
+        <article class="card receita-card panel" id="panorama-ident">
+          <div class="panel-head">
+            <span class="panel-step">1</span>
+            <div>
+              <h2 class="panel-title">Identificação</h2>
+              <p class="panel-hint">Dados do caso e status operacional.</p>
+            </div>
+          </div>
+
+          <div class="panel-ident-lgpd" *ngIf="isParceiroShell">
+            <h3 class="subtitulo">Tutor e pet (permissão LGPD)</h3>
+            <p class="panel__hint">
+              Apenas clientes com status <strong>concedido</strong> em Meus clientes. Escopo «pets» ou «completo» libera a lista de animais.
+            </p>
+            <p class="panel__hint" *ngIf="carregandoPermissoes">Carregando permissões…</p>
+            <div class="grid2" *ngIf="!carregandoPermissoes">
+              <label class="field">
+                <span>Tutor permitido para esta loja</span>
+                <select
+                  class="input input-busca"
+                  [ngModel]="s.clienteIdPermitido ?? null"
+                  (ngModelChange)="onClientePermitidoChangeRaw($event)"
+                  name="cliPerm"
+                >
+                  <option [ngValue]="null">— Preencher manualmente abaixo —</option>
+                  <option *ngFor="let p of permissoesConcedidas" [ngValue]="p.cliente_id">
+                    {{ p.cliente_nome || 'Cliente' }} (#{{ p.cliente_id }}) · {{ p.escopo }}
+                  </option>
+                </select>
+              </label>
+              <label class="field" *ngIf="escopoPetsOk && petsDaPermissao.length">
+                <span>Pet</span>
+                <select
+                  class="input input-busca"
+                  [ngModel]="s.petId ?? null"
+                  (ngModelChange)="onPetPermitidoChangeRaw($event)"
+                  name="petPerm"
+                >
+                  <option [ngValue]="null">— Escolher —</option>
+                  <option *ngFor="let pet of petsDaPermissao" [ngValue]="pet.id">
+                    {{ pet.nome }}<span *ngIf="pet.especie"> ({{ pet.especie }})</span>
+                  </option>
+                </select>
+              </label>
+              <p class="field field--full panel__hint" *ngIf="s.clienteIdPermitido && !escopoPetsOk">
+                Permissão atual não inclui pets — informe o nome do animal manualmente abaixo.
+              </p>
+              <p class="field field--full panel__hint" *ngIf="carregandoTutorApi">Carregando dados do tutor…</p>
+            </div>
+          </div>
+
+          <h3 class="subtitulo">Ficha rápida</h3>
+          <div class="grid2">
+            <label class="field">
+              <span>Tutor</span>
+              <input class="input input-busca" [(ngModel)]="s.tutorNome" name="tutorNome" placeholder="Nome do tutor" />
+            </label>
+            <label class="field">
+              <span>Pet</span>
+              <input class="input input-busca" [(ngModel)]="s.petNome" name="petNome" placeholder="Nome do pet" />
+            </label>
+            <label class="field">
+              <span>Telefone / contato</span>
+              <input class="input input-busca" [(ngModel)]="s.tutorTelefone" name="tel" placeholder="WhatsApp" />
+            </label>
+          </div>
+
+          <h3 class="subtitulo">Status do atendimento</h3>
+          <div class="chip-row chip-row--wrap">
+            <button
+              type="button"
+              class="chip"
+              *ngFor="let st of statusOptions"
+              [class.chip--on]="statusChipAtivo(st)"
+              (click)="setStatusChip(st)"
             >
-              <option [ngValue]="null">— Preencher manualmente abaixo —</option>
-              <option *ngFor="let p of permissoesConcedidas" [ngValue]="p.cliente_id">
-                {{ p.cliente_nome || 'Cliente' }} (#{{ p.cliente_id }}) · {{ p.escopo }}
-              </option>
-            </select>
-          </label>
-          <label class="field" *ngIf="escopoPetsOk && petsDaPermissao.length">
-            <span>Pet</span>
-            <select
-              class="input"
-              [ngModel]="s.petId ?? null"
-              (ngModelChange)="onPetPermitidoChangeRaw($event)"
-              name="petPerm"
-            >
-              <option [ngValue]="null">— Escolher —</option>
-              <option *ngFor="let pet of petsDaPermissao" [ngValue]="pet.id">
-                {{ pet.nome }}<span *ngIf="pet.especie"> ({{ pet.especie }})</span>
-              </option>
-            </select>
-          </label>
-          <p class="field field--full panel__hint" *ngIf="s.clienteIdPermitido && !escopoPetsOk">
-            Permissão atual não inclui pets — informe o nome do animal manualmente na identificação.
+              {{ statusLabels[st] }}
+            </button>
+          </div>
+        </article>
+
+        <article class="card receita-card panel panel--map" id="panorama-mapa">
+          <div class="panel-head">
+            <span class="panel-step">2</span>
+            <div>
+              <h2 class="panel-title">Mapa e deslocamento</h2>
+              <p class="panel-hint">
+                Origem usa o endereço cadastrado para o parceiro; destino pode vir do tutor (LGPD). Ajuste pinos no mapa ou use geocodificação nos campos abaixo.
+              </p>
+            </div>
+          </div>
+
+          <div class="panorama-banner panorama-banner--warn" *ngIf="isParceiroShell && bannerSemEnderecoCadastro">
+            <strong>Sem endereço da clínica no cadastro.</strong>
+            <a class="panorama-banner__link" routerLink="/parceiros/minha-loja">Abrir configurações da loja</a>
+            para cadastrar o endereço principal.
+          </div>
+          <div class="panorama-banner panorama-banner--amber" *ngIf="isParceiroShell && bannerOrigemSemCoordenadas">
+            <strong>Coordenadas da origem não estão no cadastro.</strong>
+            O sistema tentou localizar pelo texto do endereço; você pode ajustar os pinos no mapa.
+          </div>
+
+          <p class="panel__hint panorama-origem-pill" *ngIf="isParceiroShell">
+            <span class="pill-muted">Origem</span> definida a partir do cadastro do parceiro.
+            <a class="panorama-inline-link" routerLink="/parceiros/minha-loja">Editar cadastro</a>
           </p>
-          <p class="field field--full panel__hint" *ngIf="carregandoTutorApi">Carregando dados do tutor…</p>
-        </div>
-      </article>
 
-      <article class="panel">
-        <h2 class="panel__title">Identificação</h2>
-        <div class="grid2">
-          <label class="field">
-            <span>Tutor</span>
-            <input class="input" [(ngModel)]="s.tutorNome" name="tutorNome" placeholder="Nome do tutor" />
-          </label>
-          <label class="field">
-            <span>Pet</span>
-            <input class="input" [(ngModel)]="s.petNome" name="petNome" placeholder="Nome do pet" />
-          </label>
-          <label class="field">
-            <span>Telefone / contato</span>
-            <input class="input" [(ngModel)]="s.tutorTelefone" name="tel" placeholder="WhatsApp" />
-          </label>
-          <label class="field">
-            <span>Status do atendimento</span>
-            <select class="input" [(ngModel)]="s.status" name="status">
-              <option value="rascunho">{{ statusLabels['rascunho'] }}</option>
-              <option value="agendado">{{ statusLabels['agendado'] }}</option>
-              <option value="deslocamento">{{ statusLabels['deslocamento'] }}</option>
-              <option value="em_atendimento">{{ statusLabels['em_atendimento'] }}</option>
-              <option value="concluido">{{ statusLabels['concluido'] }}</option>
-              <option value="cancelado">{{ statusLabels['cancelado'] }}</option>
-            </select>
-          </label>
-        </div>
-      </article>
-
-      <article class="panel panel--map">
-        <h2 class="panel__title">Mapa e deslocamento</h2>
-        <p class="panel__hint">
-          Descreva o endereço e use <strong>Buscar no mapa</strong> (geocodificação OpenStreetMap / Nominatim). Você também pode arrastar os pinos ou clicar no mapa com o modo
-          origem ou destino ativo.
-        </p>
-        <div class="chip-row">
-          <button type="button" class="chip" [class.chip--on]="mapaModo === 'origem'" (click)="mapaModo = 'origem'">Origem (O)</button>
-          <button type="button" class="chip" [class.chip--on]="mapaModo === 'destino'" (click)="mapaModo = 'destino'">Destino (D)</button>
-          <button type="button" class="btn-ghost" (click)="linhaRetaInfo()">Km em linha reta</button>
-          <button type="button" class="btn-primary" (click)="calcularRota()" [disabled]="calculandoRota">
-            {{ calculandoRota ? 'Calculando…' : 'Calcular rota (km)' }}
-          </button>
-        </div>
-
-        <div class="geo-block">
-          <label class="field field--grow">
-            <span>Endereço da origem (clínica / saída)</span>
-            <textarea
-              class="input input--textarea-sm"
-              rows="2"
-              [(ngModel)]="s.origemEnderecoTexto"
-              name="origTxt"
-              placeholder="Ex.: Rua das Flores 100, São Paulo, SP"
-            ></textarea>
-          </label>
-          <button type="button" class="btn-ghost geo-block__btn" (click)="geocodificar('origem')" [disabled]="geocodingOrigem">
-            {{ geocodingOrigem ? 'Buscando…' : 'Buscar no mapa' }}
-          </button>
-        </div>
-        <div class="geo-block">
-          <label class="field field--grow">
-            <span>Endereço do destino (domicílio)</span>
-            <textarea
-              class="input input--textarea-sm"
-              rows="2"
-              [(ngModel)]="s.destinoEnderecoTexto"
-              name="destTxt"
-              placeholder="Preenchido automaticamente quando há endereço do tutor permitido"
-            ></textarea>
-          </label>
-          <button type="button" class="btn-ghost geo-block__btn" (click)="geocodificar('destino')" [disabled]="geocodingDestino">
-            {{ geocodingDestino ? 'Buscando…' : 'Buscar no mapa' }}
-          </button>
-        </div>
-
-        <div class="coords grid2">
-          <label class="field">
-            <span>Origem lat</span>
-            <input class="input" type="number" step="any" [(ngModel)]="s.origemLat" name="olat" (change)="refreshMapa()" />
-          </label>
-          <label class="field">
-            <span>Origem lng</span>
-            <input class="input" type="number" step="any" [(ngModel)]="s.origemLng" name="olng" (change)="refreshMapa()" />
-          </label>
-          <label class="field">
-            <span>Destino lat</span>
-            <input class="input" type="number" step="any" [(ngModel)]="s.destinoLat" name="dlat" (change)="refreshMapa()" />
-          </label>
-          <label class="field">
-            <span>Destino lng</span>
-            <input class="input" type="number" step="any" [(ngModel)]="s.destinoLng" name="dlng" (change)="refreshMapa()" />
-          </label>
-        </div>
-        <div #mapHost class="map-host"></div>
-        <p class="msg-rota" *ngIf="msgRota">{{ msgRota }}</p>
-        <div class="km-resumo">
-          <span>Linha reta: <strong>{{ kmLinhaRetaAtual() | number : '1.2-2' }} km</strong></span>
-          <span *ngIf="s.kmRota != null">Rota (último cálculo): <strong>{{ s.kmRota | number : '1.2-2' }} km</strong></span>
-        </div>
-      </article>
-
-      <article class="panel">
-        <h2 class="panel__title">Valores</h2>
-        <div class="grid2">
-          <label class="field">
-            <span>Valor por km (R$)</span>
-            <input class="input" type="number" min="0" step="0.01" [(ngModel)]="s.valorPorKm" name="vpk" />
-          </label>
-          <label class="field">
-            <span>Km manual (opcional)</span>
-            <input
-              class="input"
-              type="number"
-              min="0"
-              step="0.1"
-              [(ngModel)]="s.kmManual"
-              name="kmman"
-              placeholder="Sobrescreve rota para cobrança"
-            />
-          </label>
-          <label class="field">
-            <span>Valor do atendimento / consulta (R$)</span>
-            <input class="input" type="number" min="0" step="0.01" [(ngModel)]="s.valorConsulta" name="vc" />
-          </label>
-          <label class="field">
-            <span>Taxa adicional (urgência, plantão…) R$</span>
-            <input class="input" type="number" min="0" step="0.01" [(ngModel)]="s.taxaAdicional" name="taxa" />
-          </label>
-          <label class="field">
-            <span>Desconto %</span>
-            <input class="input" type="number" min="0" max="100" step="0.5" [(ngModel)]="s.descontoPercent" name="desc" />
-          </label>
-          <label class="field">
-            <span>Forma de pagamento</span>
-            <input class="input" [(ngModel)]="s.formaPagamento" name="fpag" placeholder="Pix, cartão, convênio…" />
-          </label>
-        </div>
-
-        <h3 class="panel__subtitle">Extras</h3>
-        <button type="button" class="btn-ghost btn-tight" (click)="addExtra()">+ Linha extra</button>
-        <div class="extra-linha" *ngFor="let ex of s.extras">
-          <input class="input" [(ngModel)]="ex.descricao" [name]="'d' + ex.id" />
-          <input class="input input-valor" type="number" min="0" step="0.01" [(ngModel)]="ex.valor" [name]="'v' + ex.id" />
-          <button type="button" class="btn-icon" (click)="rmExtra(ex.id)" title="Remover">×</button>
-        </div>
-
-        <div class="totais">
-          <div class="tot-row">
-            <span>Deslocamento ({{ kmUsadoNaCobranca() | number : '1.2-2' }} km × {{ s.valorPorKm | number : '1.2-2' }})</span>
-            <span>R$ {{ valorDeslocamento() | number : '1.2-2' }}</span>
+          <div class="chip-row">
+            <button type="button" class="chip" [class.chip--on]="mapaModo === 'origem'" (click)="mapaModo = 'origem'">Origem (O)</button>
+            <button type="button" class="chip" [class.chip--on]="mapaModo === 'destino'" (click)="mapaModo = 'destino'">Destino (D)</button>
+            <button type="button" class="btn-ghost btn-compact" (click)="linhaRetaInfo()">Km em linha reta</button>
+            <button type="button" class="btn-primary btn-compact" (click)="calcularRota()" [disabled]="calculandoRota">
+              {{ calculandoRota ? 'Calculando…' : 'Calcular rota (km)' }}
+            </button>
           </div>
-          <div class="tot-row">
-            <span>Consulta + taxas + extras</span><span>R$ {{ subtotalBruto() - valorDeslocamento() | number : '1.2-2' }}</span>
-          </div>
-          <div class="tot-row tot-sub"><span>Subtotal</span><span>R$ {{ subtotalBruto() | number : '1.2-2' }}</span></div>
-          <div class="tot-row" *ngIf="s.descontoPercent > 0">
-            <span>Desconto ({{ s.descontoPercent }}%)</span><span>− R$ {{ valorDesconto() | number : '1.2-2' }}</span>
-          </div>
-          <div class="tot-row tot-total"><span>Total estimado</span><span>R$ {{ totalLiquido() | number : '1.2-2' }}</span></div>
-        </div>
-      </article>
 
-      <article class="panel">
-        <h2 class="panel__title">Exames (tutor / laboratório)</h2>
-        <p class="panel__hint">Checklist local; quando o fluxo estiver no prontuário, estes itens podem ser alinhados ao sistema.</p>
-        <button type="button" class="btn-ghost btn-tight" (click)="addExame()">+ Exame</button>
-        <div class="exame-card" *ngFor="let ex of s.exames">
-          <div class="exame-top">
-            <input class="input" [(ngModel)]="ex.nome" [name]="'en' + ex.id" placeholder="Nome do exame" />
-            <select class="input" [(ngModel)]="ex.status" [name]="'es' + ex.id">
-              <option *ngFor="let st of exameStatusOptions" [value]="st">{{ exameStatusLabels[st] }}</option>
-            </select>
-            <button type="button" class="btn-icon" (click)="rmExame(ex.id)">×</button>
+          <div class="geo-block">
+            <label class="field field--grow">
+              <span>Endereço da origem (clínica / saída)</span>
+              <textarea
+                class="input input--textarea-sm input-busca"
+                rows="2"
+                [(ngModel)]="s.origemEnderecoTexto"
+                name="origTxt"
+                placeholder="Carregado do cadastro do parceiro"
+              ></textarea>
+            </label>
+            <button type="button" class="btn-ghost geo-block__btn" (click)="geocodificar('origem')" [disabled]="geocodingOrigem">
+              {{ geocodingOrigem ? 'Buscando…' : 'Buscar no mapa' }}
+            </button>
           </div>
-          <label class="field field--full">
-            <span>Observação / link / laboratório</span>
-            <input class="input" [(ngModel)]="ex.observacao" [name]="'eo' + ex.id" />
-          </label>
-          <label class="field field--full">
-            <span>Data de referência</span>
-            <input class="input" [(ngModel)]="ex.dataReferencia" [name]="'ed' + ex.id" placeholder="ex.: 2026-04-30" />
-          </label>
-        </div>
-      </article>
+          <div class="geo-block">
+            <label class="field field--grow">
+              <span>Endereço do destino (domicílio)</span>
+              <textarea
+                class="input input--textarea-sm input-busca"
+                rows="2"
+                [(ngModel)]="s.destinoEnderecoTexto"
+                name="destTxt"
+                (blur)="onDestinoEnderecoBlur()"
+                placeholder="Preenchido pelo tutor permitido ou manualmente"
+              ></textarea>
+            </label>
+            <button type="button" class="btn-ghost geo-block__btn" (click)="geocodificar('destino')" [disabled]="geocodingDestino">
+              {{ geocodingDestino ? 'Buscando…' : 'Buscar no mapa' }}
+            </button>
+          </div>
 
-      <article class="panel">
-        <h2 class="panel__title">Notas</h2>
-        <textarea class="input textarea" rows="3" [(ngModel)]="s.notas" name="notas" placeholder="Observações gerais do atendimento…"></textarea>
-      </article>
+          <div #mapHost class="map-host"></div>
+          <p class="msg-rota" *ngIf="msgRota">{{ msgRota }}</p>
+          <div class="km-resumo">
+            <span>Linha reta: <strong>{{ kmLinhaRetaAtual() | number : '1.2-2' }} km</strong></span>
+            <span *ngIf="s.kmRota != null">Rota (último cálculo): <strong>{{ s.kmRota | number : '1.2-2' }} km</strong></span>
+          </div>
+        </article>
+
+        <article class="card receita-card panel" id="panorama-valores">
+          <div class="panel-head">
+            <span class="panel-step">3</span>
+            <div>
+              <h2 class="panel-title">Valores</h2>
+              <p class="panel-hint">Cobrança estimada; salve como padrão para novos registros.</p>
+            </div>
+          </div>
+
+          <div class="panorama-banner panorama-banner--info" *ngIf="isParceiroShell && !preferenciasSalvasNoBackend">
+            Defina seus valores usuais e clique em <strong>Salvar como padrão</strong> — assim novos atendimentos já iniciam com esses números.
+          </div>
+
+          <div class="grid2">
+            <label class="field">
+              <span>Valor por km (R$)</span>
+              <input class="input input-busca" type="number" min="0" step="0.01" [(ngModel)]="s.valorPorKm" name="vpk" />
+            </label>
+            <label class="field">
+              <span>Km manual (opcional)</span>
+              <input
+                class="input input-busca"
+                type="number"
+                min="0"
+                step="0.1"
+                [(ngModel)]="s.kmManual"
+                name="kmman"
+                placeholder="Sobrescreve rota para cobrança"
+              />
+            </label>
+            <label class="field">
+              <span>Valor do atendimento / consulta (R$)</span>
+              <input class="input input-busca" type="number" min="0" step="0.01" [(ngModel)]="s.valorConsulta" name="vc" />
+            </label>
+            <label class="field">
+              <span>Taxa adicional (urgência, plantão…) R$</span>
+              <input class="input input-busca" type="number" min="0" step="0.01" [(ngModel)]="s.taxaAdicional" name="taxa" />
+            </label>
+            <label class="field">
+              <span>Desconto %</span>
+              <input class="input input-busca" type="number" min="0" max="100" step="0.5" [(ngModel)]="s.descontoPercent" name="desc" />
+            </label>
+          </div>
+
+          <h3 class="subtitulo">Forma de pagamento</h3>
+          <div class="chip-row chip-row--wrap">
+            <button
+              type="button"
+              class="chip"
+              *ngFor="let fp of formaPagamentoPresets"
+              [class.chip--on]="formaPagamentoChipAtivo(fp)"
+              (click)="setFormaPagamentoChip(fp)"
+            >
+              {{ fp }}
+            </button>
+            <button type="button" class="chip" [class.chip--on]="formaPagamentoEhOutra()" (click)="focarFormaPagamentoOutra()">
+              Outra
+            </button>
+          </div>
+          <label class="field field--full" *ngIf="formaPagamentoEhOutra()">
+            <span>Descreva a forma de pagamento</span>
+            <input class="input input-busca" [(ngModel)]="s.formaPagamento" name="fpag" placeholder="Ex.: transferência, parcelado…" />
+          </label>
+
+          <div class="valor-actions">
+            <button type="button" class="btn-ghost btn-tight" *ngIf="isParceiroShell" (click)="salvarComoPadrao()">Salvar como padrão</button>
+          </div>
+
+          <h3 class="panel__subtitle">Extras</h3>
+          <button type="button" class="btn-ghost btn-tight" (click)="addExtra()">+ Linha extra</button>
+          <div class="extra-linha" *ngFor="let ex of s.extras">
+            <input class="input input-busca" [(ngModel)]="ex.descricao" [name]="'d' + ex.id" />
+            <input class="input input-busca input-valor" type="number" min="0" step="0.01" [(ngModel)]="ex.valor" [name]="'v' + ex.id" />
+            <button type="button" class="btn-icon" (click)="rmExtra(ex.id)" title="Remover">×</button>
+          </div>
+
+          <div class="totais">
+            <div class="tot-row">
+              <span>Deslocamento ({{ kmUsadoNaCobranca() | number : '1.2-2' }} km × {{ s.valorPorKm | number : '1.2-2' }})</span>
+              <span>R$ {{ valorDeslocamento() | number : '1.2-2' }}</span>
+            </div>
+            <div class="tot-row">
+              <span>Consulta + taxas + extras</span><span>R$ {{ subtotalBruto() - valorDeslocamento() | number : '1.2-2' }}</span>
+            </div>
+            <div class="tot-row tot-sub"><span>Subtotal</span><span>R$ {{ subtotalBruto() | number : '1.2-2' }}</span></div>
+            <div class="tot-row" *ngIf="s.descontoPercent > 0">
+              <span>Desconto ({{ s.descontoPercent }}%)</span><span>− R$ {{ valorDesconto() | number : '1.2-2' }}</span>
+            </div>
+            <div class="tot-row tot-total"><span>Total estimado</span><span>R$ {{ totalLiquido() | number : '1.2-2' }}</span></div>
+          </div>
+        </article>
+
+        <article class="card receita-card panel" id="panorama-exames">
+          <div class="panel-head">
+            <span class="panel-step">4</span>
+            <div>
+              <h2 class="panel-title">Exames (tutor / laboratório)</h2>
+              <p class="panel-hint">Checklist local; pode ser alinhado ao prontuário depois.</p>
+            </div>
+          </div>
+          <button type="button" class="btn-ghost btn-tight" (click)="addExame()">+ Exame</button>
+          <div class="exame-card" *ngFor="let ex of s.exames">
+            <div class="exame-top">
+              <input class="input input-busca" [(ngModel)]="ex.nome" [name]="'en' + ex.id" placeholder="Nome do exame" />
+              <select class="input input-busca" [(ngModel)]="ex.status" [name]="'es' + ex.id">
+                <option *ngFor="let st of exameStatusOptions" [value]="st">{{ exameStatusLabels[st] }}</option>
+              </select>
+              <button type="button" class="btn-icon" (click)="rmExame(ex.id)">×</button>
+            </div>
+            <label class="field field--full">
+              <span>Observação / link / laboratório</span>
+              <input class="input input-busca" [(ngModel)]="ex.observacao" [name]="'eo' + ex.id" />
+            </label>
+            <label class="field field--full">
+              <span>Data de referência</span>
+              <input class="input input-busca" [(ngModel)]="ex.dataReferencia" [name]="'ed' + ex.id" placeholder="ex.: 2026-04-30" />
+            </label>
+          </div>
+        </article>
+
+        <article class="card receita-card panel" id="panorama-notas">
+          <div class="panel-head">
+            <span class="panel-step">5</span>
+            <div>
+              <h2 class="panel-title">Notas</h2>
+              <p class="panel-hint">Observações gerais do atendimento.</p>
+            </div>
+          </div>
+          <textarea class="input textarea input-busca" rows="3" [(ngModel)]="s.notas" name="notas" placeholder="Observações gerais…"></textarea>
+        </article>
+      </div>
     </div>
-  </div>
+  </ng-container>
 
-  <article class="panel panel--empty" *ngIf="!itens.length && !selecionado">
+  <article class="card receita-card panel panel--empty" *ngIf="!itens.length && !selecionado">
     <p>Nenhum panorama salvo ainda neste perfil.</p>
     <button type="button" class="btn-primary" (click)="novo()">Começar o primeiro</button>
   </article>

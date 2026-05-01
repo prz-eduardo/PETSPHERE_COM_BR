@@ -19,7 +19,7 @@
               [attr.aria-pressed]="heroFlipped"
               [attr.aria-label]="heroFlipped ? 'Voltar ao painel principal' : 'Mostrar resumo operacional'"
             >
-              <i class="fa fa-chevron-down hero-toggle-chevron" aria-hidden="true"></i>
+              <i class="fa fa-chevron-right hero-toggle-chevron" aria-hidden="true"></i>
             </button>
           </header>
 
@@ -105,7 +105,7 @@
               [attr.aria-pressed]="heroFlipped"
               aria-label="Voltar ao painel principal"
             >
-              <i class="fa fa-chevron-down hero-toggle-chevron" aria-hidden="true"></i>
+              <i class="fa fa-chevron-left hero-toggle-chevron hero-toggle-chevron--left" aria-hidden="true"></i>
             </button>
           </header>
 
@@ -293,11 +293,16 @@
           <span>Hotel & Creche</span>
           <span class="badge-soon">Em breve</span>
         </button>
-        <button class="item item--soon" *ngIf="matches('adestramento treinamento comportamento')" tabindex="0" disabled>
+        <a
+          class="item item--external"
+          routerLink="/adestramentos"
+          *ngIf="matches('adestramento treinamento comportamento')"
+        >
           <i class="fa fa-graduation-cap"></i>
           <span>Adestramento</span>
-          <span class="badge-soon">Em breve</span>
-        </button>
+          <span class="badge-soon">Preview</span>
+          <i class="fa fa-arrow-right item-arrow" aria-hidden="true"></i>
+        </a>
         <button class="item item--soon" *ngIf="matches('planos assinatura financeiro cobranca')" tabindex="0" disabled>
           <i class="fa fa-credit-card"></i>
           <span>Planos & Assinatura</span>

@@ -1,11 +1,18 @@
 import {
-  Component, OnInit, signal, computed, effect
+  Component,
+  DestroyRef,
+  ElementRef,
+  inject,
+  OnInit,
+  signal,
+  computed,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
-  Agendamento, AgendaConfig, AgendaFiltros, AgendaStatus,
-  PartnerType, Profissional, Recurso, Servico, SlotInfo, ViewMode
+  Agendamento, AgendaConfig, AgendaFiltros, AgendaSavePayload, AgendaStatus,
+  PartnerType, ParceiroServico, Profissional, Recurso, Servico, SlotInfo, ViewMode,
 } from '../../../../types/agenda.types';
 import { ParceiroAuthService } from '../../../../services/parceiro-auth.service';
 import { AgendaConfigService } from '../services/agenda-config.service';
@@ -44,6 +51,9 @@ import {
   styleUrls: ['./agenda-shell.component.scss'],
 })
 export class AgendaShellComponent implements OnInit {
+
+  private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   viewMode = signal<ViewMode>('DAY');
   selectedDate = signal<Date>(new Date());
@@ -181,6 +191,19 @@ export class AgendaShellComponent implements OnInit {
       }]);
       void this.reloadFromApi();
     }, { allowSignalWrites: true });
+
+    effect(() => {
+      const locked = this.sidebarOpen() || this.modalAgendamentoId() !== null;
+      const main = this.hostEl.nativeElement.closest('.parceiro-main') as HTMLElement | null;
+      if (!main) return;
+      if (locked) main.style.overflow = 'hidden';
+      else main.style.removeProperty('overflow');
+    });
+
+    this.destroyRef.onDestroy(() => {
+      const main = this.hostEl.nativeElement.closest('.parceiro-main') as HTMLElement | null;
+      main?.style.removeProperty('overflow');
+    });
   }
 
   async ngOnInit(): Promise<void> {
@@ -190,8 +213,13 @@ export class AgendaShellComponent implements OnInit {
       this.partnerType.set(parceiro.tipo);
     }
 
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      this.viewMode.set('LIST');
+    if (typeof window !== 'undefined') {
+      const narrow = window.innerWidth < 768;
+      if (parceiro?.tipo === 'DAYCARE' && !narrow) {
+        this.viewMode.set('DAY');
+      } else if (narrow) {
+        this.viewMode.set('LIST');
+      }
     }
     void this.reloadFromApi();
   }
@@ -226,6 +254,25 @@ export class AgendaShellComponent implements OnInit {
 
   private async reloadFromApi(): Promise<void> {
     try {
+      try {
+        const srvList = await this.api.getServicos();
+        const ativosSrv = (srvList || []).filter((s: ParceiroServico) => s.ativo !== false && Number(s.ativo) !== 0);
+        const mappedSrv: Servico[] = ativosSrv.map((s) => ({
+          id: String(s.id),
+          nome: String(s.nome || 'Serviço'),
+          duracaoMin: Number(s.duracao_minutos) || 30,
+          preco: s.preco != null ? Number(s.preco) : undefined,
+        }));
+        const cfgDur = this.config()?.defaultDuration ?? 30;
+        this.servicos.set(
+          mappedSrv.length ? mappedSrv : [{ id: 'srv-default', nome: 'Atendimento', duracaoMin: cfgDur }]
+        );
+      } catch {
+        const cfg = this.config();
+        const cfgDur = cfg?.defaultDuration ?? 30;
+        this.servicos.set([{ id: 'srv-default', nome: 'Atendimento', duracaoMin: cfgDur }]);
+      }
+
       const recursos = await this.api.getRecursos();
       const ativos = (recursos || []).filter((r: { ativo?: boolean | number }) => r.ativo !== false && r.ativo !== 0);
       const recursoById = new Map<number, { nome: string }>();
@@ -301,22 +348,57 @@ export class AgendaShellComponent implements OnInit {
     this.sidebarSlot.set(null);
   }
 
-  async onAgendamentoSaved(novo: Agendamento): Promise<void> {
+  async onAgendamentoSaved(evt: AgendaSavePayload | Agendamento): Promise<void> {
+    const novo = 'agendamento' in evt ? evt.agendamento : evt;
+    const tutorNotificacao =
+      evt && typeof evt === 'object' && 'tutorNotificacao' in evt ? evt.tutorNotificacao : undefined;
+
     const profId = Number(novo.profissional?.id);
     if (!Number.isFinite(profId)) return;
     const inicio = novo.inicio instanceof Date ? novo.inicio : new Date(novo.inicio);
     const fim = novo.fim instanceof Date ? novo.fim : new Date(novo.fim);
     const pet = novo.pet;
     const clienteNome = (pet?.tutor?.nome ?? '').trim() || 'Cliente';
+    const clienteId =
+      novo.cliente_id != null && Number.isFinite(Number(novo.cliente_id))
+        ? Number(novo.cliente_id)
+        : undefined;
+    const petId =
+      novo.pet_id != null && Number.isFinite(Number(novo.pet_id)) ? Number(novo.pet_id) : undefined;
+    const sidRaw = novo.servico_id ?? novo.servico?.id;
+    const servicoId =
+      sidRaw != null && /^[0-9]+$/.test(String(sidRaw)) ? Number(sidRaw) : undefined;
+
+    let tutor_payload:
+      | { enviar?: boolean; modo?: 'guest'; email_guest?: string }
+      | undefined;
+    if (tutorNotificacao) {
+      if (tutorNotificacao.enviar === false) tutor_payload = { enviar: false };
+      else if (tutorNotificacao.modo === 'guest') {
+        tutor_payload =
+          tutorNotificacao.emailGuest && tutorNotificacao.emailGuest.includes('@')
+            ? {
+                enviar: true,
+                modo: 'guest',
+                email_guest: tutorNotificacao.emailGuest.trim().toLowerCase(),
+              }
+            : { enviar: false };
+      } else tutor_payload = { enviar: true };
+    }
+
     try {
       await this.api.createAgendamento({
         recurso_id: profId,
+        cliente_id: clienteId,
+        pet_id: petId,
+        servico_id: servicoId,
         cliente_nome: clienteNome,
         cliente_telefone: pet?.tutor?.telefone || undefined,
         pet_nome: pet?.nome && pet.nome !== '—' ? pet.nome : undefined,
         inicio,
         fim,
         observacoes: novo.observacoes || undefined,
+        tutor_notificacao: tutor_payload,
       });
       await this.reloadFromApi();
       this.closeSidebar();

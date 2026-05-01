@@ -1,6 +1,7 @@
 import { Injectable, Inject, PLATFORM_ID, OnDestroy } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { TenantLojaService } from './tenant-loja.service';
 
 /**
  * Aurora Dock — Contexto adaptativo
@@ -26,12 +27,17 @@ export type DockActionId =
   | 'galeria'
   | 'sobre-nos'
   | 'planos-parceiro'
+  /** Landings B2B (domínio principal) */
+  | 'lp-veterinarios'
+  | 'lp-hotel-creche'
+  | 'lp-adestramentos'
   | 'prestador-login'
   /** Atalhos FAB — modo veterinário (dock profissional) */
   | 'vet-pacientes'
   | 'vet-receitas'
   | 'vet-gerar'
   | 'vet-panorama'
+  | 'vet-cockpit'
   /** Atalhos FAB — modo parceiro */
   | 'parceiro-painel'
   | 'parceiro-agenda'
@@ -40,7 +46,7 @@ export type DockActionId =
   | 'parceiro-cadastro';
 
 const FREQ_KEY = 'ps_dock_action_freq_v1';
-/** sessionStorage: última lente escolhida na pill Cliente | Profissionais (só no browser). */
+/** sessionStorage: última lente escolhida na pill Tutores | Profissionais (só no browser). */
 const NAV_LENS_KEY = 'ps_nav_lens';
 const NAV_LENS_PARCEIRO = 'parceiro';
 const NAV_LENS_CLIENTE = 'cliente';
@@ -60,7 +66,10 @@ export class DockContextService implements OnDestroy {
   private freq: Record<string, number> = {};
   private nightTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private tenantLoja: TenantLojaService,
+  ) {
     if (isPlatformBrowser(this.platformId)) {
       this.loadFrequencies();
       this.evaluateNight();
@@ -99,6 +108,7 @@ export class DockContextService implements OnDestroy {
   private isParceiroLensNeutralPath(path: string): boolean {
     const p = path.split('?')[0] || '';
     if (p === '/sobre-nos' || p.startsWith('/sobre-nos/')) return true;
+    if (p === '/adestramentos' || p.startsWith('/adestramentos/')) return true;
     if (p === '/institucional' || p.startsWith('/institucional/')) return true;
     if (p === '/loja' || p.startsWith('/loja/')) return true;
     if (p.startsWith('/produto/')) return true;
@@ -148,8 +158,15 @@ export class DockContextService implements OnDestroy {
      * (sessionStorage), manter esse dock mesmo em páginas partilhadas com tutores —
      * inclui cliente tutor logado em `/`, `/sobre-nos`, `/loja`, carrinho, etc.
      * Isto deve vir antes de `isCliente`, senão tutor logado regressava sempre à vista cliente.
+     *
+     * Na vitrine tenant (subdomínio/hospedagem do parceiro) essa persistência não aplica —
+     * evita dock "Prestador" com links de marketing Petsphere sobre a página inicial da loja.
      */
-    if (this.prefersParceiroNavLens() && this.isParceiroLensNeutralPath(r)) {
+    if (
+      !this.tenantLoja.isTenantLoja() &&
+      this.prefersParceiroNavLens() &&
+      this.isParceiroLensNeutralPath(r)
+    ) {
       return 'parceiro';
     }
 

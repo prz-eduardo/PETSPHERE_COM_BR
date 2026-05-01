@@ -40,6 +40,7 @@
             </div>
             <ul
               class="navbar-nav-tabs"
+              [class.navbar-nav-tabs--cliente-strip]="dockMode === 'guest' || dockMode === 'cliente'"
               [attr.aria-label]="
                 dockMode === 'parceiro'
                   ? 'Navegação Prestador'
@@ -63,18 +64,6 @@
               </li>
             </ul>
           </div>
-          <!-- Links secundários — só na lente cliente (na lente Profissionais as abas já cobrem tudo) -->
-          <div class="navbar-secondary" *ngIf="showDesktopSecondaryLinks">
-            <nav class="navbar-secondary-inner" aria-label="Loja e parceiros">
-              <a [routerLink]="lojaHref" class="navbar-secondary-link">Loja</a>
-              <span class="navbar-secondary-dot" aria-hidden="true">·</span>
-              <a routerLink="/sobre-nos" class="navbar-secondary-link">Sobre</a>
-              <ng-container *ngIf="showDesktopBusinessLink">
-                <span class="navbar-secondary-dot" aria-hidden="true">·</span>
-                <a routerLink="/parceiro/planos" class="navbar-secondary-link">Para negócios</a>
-              </ng-container>
-            </nav>
-          </div>
         </div>
 
         <div class="navbar-actions">
@@ -97,17 +86,17 @@
             class="ps-view-toggle"
             *ngIf="showClienteParceiroToggle"
             role="group"
-            aria-label="Alternar entre experiência cliente e área para profissionais"
+            aria-label="Alternar entre experiência para tutores e área para profissionais"
           >
             <button
               type="button"
               class="ps-view-toggle__btn"
               [class.ps-view-toggle__btn--active]="isClienteLensToggleActive"
               (click)="navigateToClienteAppHome()"
-              title="Ir para início — app cliente"
+              title="Ir para início — tutores"
               [attr.aria-current]="isClienteLensToggleActive ? 'page' : null"
             >
-              Cliente
+              Tutores
             </button>
             <button
               type="button"
@@ -120,13 +109,29 @@
               Profissionais
             </button>
           </div>
+          <a
+            *ngIf="showDesktopParceiroEntrarBtn"
+            routerLink="/parceiros/login"
+            class="navbar-parceiro-cta navbar-parceiro-cta--ghost"
+            aria-label="Entrar na área do prestador"
+          >
+            Entrar
+          </a>
+          <a
+            *ngIf="showDesktopParceiroPainelBtn"
+            routerLink="/parceiros/painel"
+            class="navbar-parceiro-cta navbar-parceiro-cta--primary"
+            aria-label="Abrir painel do prestador"
+          >
+            Painel
+          </a>
           <button *ngIf="!isAreaVetRoute"
                   #userBtn
                   class="user-trigger navbar-user-trigger"
                   type="button"
                   (click)="abrirClienteModal()"
-                  title="Área do cliente"
-                  aria-label="Abrir área do cliente">
+                  title="Área do tutor"
+                  aria-label="Abrir área do tutor">
             <ng-container *ngIf="userFoto; else defaultUserIcon">
               <img [src]="userFoto" alt="Foto do usuário" />
             </ng-container>
@@ -331,13 +336,18 @@
           </span>
         </button>
         <button
-          *ngIf="userFoto && dockMode === 'cliente'"
+          *ngIf="isCliente && !isAreaVetRoute"
           type="button"
           class="ps-fab__pet-ring"
           (click)="onFabAvatarClick($event)"
           aria-label="Minha conta"
         >
-          <img [src]="userFoto" alt="" />
+          <ng-container *ngIf="userFoto; else fabClienteAvatarFallback">
+            <img [src]="userFoto" alt="" />
+          </ng-container>
+          <ng-template #fabClienteAvatarFallback>
+            <ps-icon name="person" variant="filled" [size]="12"></ps-icon>
+          </ng-template>
         </button>
       </div>
     </div>
@@ -409,7 +419,7 @@
   </ng-container>
 </nav>
 
-<!-- Modal Área do Cliente (mantido) -->
+<!-- Modal Área do tutor (mantido) -->
 <ng-container *ngIf="showClienteModal">
   <div class="cliente-overlay" (click)="fecharClienteModal()" aria-hidden="true"></div>
   <div class="cliente-modal" (click)="$event.stopPropagation()">
@@ -417,7 +427,7 @@
       <button type="button" class="cliente-close" (click)="fecharClienteModal()" aria-label="Fechar">✕</button>
       <div class="cliente-loader" *ngIf="clienteLoading" aria-live="polite" aria-busy="true">
         <div class="spinner"></div>
-        <div class="loader-text">Carregando área do cliente…</div>
+        <div class="loader-text">Carregando área do tutor…</div>
       </div>
       <ng-template #clienteHost></ng-template>
       <div class="edge-fade" aria-hidden="true"></div>

@@ -46,6 +46,30 @@ export interface Cliente {
   telefone?: string;
   tipo: string;
   created_at?: string;
+  preferencias?: Record<string, unknown> | string | null;
+}
+
+/** Registro de vacina (carteira do pet). */
+export interface PetVacinaRow {
+  id: number;
+  pet_id: number;
+  nome: string;
+  data_aplicacao: string;
+  proxima_reforco?: string | null;
+  lote?: string | null;
+  aplicado_por?: string | null;
+  observacoes?: string | null;
+  comprovante_url?: string | null;
+  lembrete_ativo?: number | boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Resumo agregado para cards em Meus pets. */
+export interface PetVacinasResumo {
+  vacinas_count: number;
+  proxima_reforco: string | null;
+  status: 'sem_registros' | 'ok' | 'proxima' | 'atrasada';
 }
 
 export interface ClienteMeResponse {
@@ -85,6 +109,27 @@ export interface TelemedicinaConsulta {
   video_chamada_id?: number | null;
   sala_codigo?: string | null;
   video_status?: string | null;
+}
+
+/** Resposta de GET /public/telemedicina/catalogo */
+export interface TelemedicinaCatalogoVet {
+  id: string;
+  parceiro_account_id?: number;
+  nome: string;
+  especialidade?: string | null;
+  crmv?: string | null;
+  online?: boolean | null;
+  tempo_resposta_medio_min?: number;
+  preco_agendamento_centavos?: number | null;
+  source?: string;
+}
+
+export interface TelemedicinaCatalogoResponse {
+  loja_slug: string | null;
+  parceiro_id: number | null;
+  parceiro_nome?: string | null;
+  vets: TelemedicinaCatalogoVet[];
+  source: string;
 }
 
 export type PlaceSource = 'google' | 'petsphere';
@@ -279,7 +324,8 @@ export interface CriarAtendimentoPayload {
   atendimento: {
     queixaPrincipal?: string;
     anamnese?: string;
-    exameFisico?: string;
+    /** Texto livre legado ou JSON `petsphere_exame_fisico_v1` (stringify) com sinais vitais e sistemas. */
+    exameFisico?: string | Record<string, unknown>;
     diagnostico?: string;
     planoTerapeutico?: string;
     observacoes?: string;
@@ -310,6 +356,8 @@ export interface CriarAtendimentoPayload {
     alergias?: string[];
   };
   fluxo?: {
+    /** Quando `clinica_concluida`, backend define status_fluxo pausado sem receita. */
+    fase?: 'clinica_concluida';
     status_fluxo?: 'aberto' | 'em_andamento' | 'pausado' | 'aguardando_pagamento' | 'finalizado';
     tipo_execucao?: 'presencial' | 'domiciliar' | 'telemedicina' | 'encaminhamento';
     precisa_logistica?: boolean;
@@ -538,10 +586,38 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/atendimentos`, payload, { headers });
   }
 
+  getAtendimentoDetalhe(atendimentoId: number | string, token?: string): Observable<any> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.get(`${this.baseUrl}/atendimentos/${encodeURIComponent(String(atendimentoId))}`, { headers });
+  }
+
+  patchAtendimento(atendimentoId: number | string, body: Record<string, unknown>, token?: string): Observable<any> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.patch(
+      `${this.baseUrl}/atendimentos/${encodeURIComponent(String(atendimentoId))}`,
+      body,
+      { headers }
+    );
+  }
+
+  anexarReceitaAoAtendimento(atendimentoId: number | string, body: Record<string, unknown>, token?: string): Observable<any> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.post(
+      `${this.baseUrl}/atendimentos/${encodeURIComponent(String(atendimentoId))}/receita`,
+      body,
+      { headers }
+    );
+  }
+
   decidirExecucaoAtendimento(
     atendimentoId: number | string,
     payload: {
-      acao: 'finalizar_sem_cobranca' | 'gerar_cobranca_agora' | 'enviar_financeiro' | 'solicitar_deslocamento';
+      acao:
+        | 'finalizar_sem_cobranca'
+        | 'gerar_cobranca_agora'
+        | 'enviar_financeiro'
+        | 'solicitar_deslocamento'
+        | 'preparar_telemedicina';
       tipo_execucao?: 'presencial' | 'domiciliar' | 'telemedicina' | 'encaminhamento';
       status_fluxo?: 'aberto' | 'em_andamento' | 'pausado' | 'aguardando_pagamento' | 'finalizado';
       financeiro_status?: 'nao_iniciado' | 'pendente' | 'aguardando_pagamento' | 'pago' | 'cancelado';
@@ -735,6 +811,41 @@ export class ApiService {
       `${this.baseUrl}/clientes/me/telemedicina/consultas/${encodeURIComponent(String(consultaId))}/entrar`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  /** Catálogo público de profissionais para telemedicina (contexto da loja). */
+  getPublicTelemedicinaCatalogo(lojaSlug: string) {
+    return this.http.get<TelemedicinaCatalogoResponse>(`${this.baseUrl}/public/telemedicina/catalogo`, {
+      params: { loja_slug: lojaSlug },
+    });
+  }
+
+  createTelemedicinaIntencaoAgendamento(
+    token: string,
+    body: {
+      loja_slug: string;
+      pet_id: number;
+      vet_ref?: string | null;
+      automatico?: boolean;
+      slot_inicio: string;
+      slot_fim: string;
+      motivo?: string | null;
+      preco_centavos?: number | null;
+    },
+  ) {
+    return this.http.post<{ id: number; ok: boolean; message?: string }>(
+      `${this.baseUrl}/clientes/me/telemedicina/intencoes-agendamento`,
+      body,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+  }
+
+  cancelTelemedicinaIntencaoAgendamento(token: string, intencaoId: number) {
+    return this.http.patch<{ ok: boolean }>(
+      `${this.baseUrl}/clientes/me/telemedicina/intencoes-agendamento/${encodeURIComponent(String(intencaoId))}/cancelar`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } },
     );
   }
 
@@ -1055,6 +1166,32 @@ export class ApiService {
     return this.http.delete<{ ok: boolean; id: number }>(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
+  }
+
+  listPetVacinas(clienteId: number, petId: string | number, token: string) {
+    const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas`;
+    return this.http.get<PetVacinaRow[]>(url, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
+  createPetVacina(clienteId: number, petId: string | number, formData: FormData, token: string) {
+    const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas`;
+    return this.http.post<PetVacinaRow>(url, formData, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
+  updatePetVacina(
+    clienteId: number,
+    petId: string | number,
+    vacinaId: string | number,
+    formData: FormData,
+    token: string
+  ) {
+    const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas/${encodeURIComponent(String(vacinaId))}`;
+    return this.http.put<PetVacinaRow>(url, formData, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
+  deletePetVacina(clienteId: number, petId: string | number, vacinaId: string | number, token: string) {
+    const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas/${encodeURIComponent(String(vacinaId))}`;
+    return this.http.delete<{ ok: boolean; id: number }>(url, { headers: { Authorization: `Bearer ${token}` } });
   }
 
   // Atualizar Cliente (PUT)
@@ -1736,5 +1873,45 @@ export class ApiService {
   getParceiroHomeOverview(token: string | null | undefined): Observable<any> {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
     return this.http.get<any>(`${this.baseUrl}/parceiro/home-overview`, { headers });
+  }
+
+  /** Endereço principal do parceiro logado (panorama / mapa). */
+  getMeuEnderecoParceiro(token: string | null | undefined): Observable<{
+    endereco_texto: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    cidade: string | null;
+    estado: string | null;
+    cep: string | null;
+  }> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.get<any>(`${this.baseUrl}/parceiro/perfil/endereco`, { headers });
+  }
+
+  /** Preferências do panorama (valores padrão por parceiro). */
+  getPanoramaPreferencias(token: string | null | undefined): Observable<{
+    saved?: boolean;
+    valor_por_km: number;
+    valor_consulta: number;
+    taxa_adicional: number;
+    desconto_percent: number;
+    forma_pagamento: string | null;
+  }> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.get<any>(`${this.baseUrl}/parceiro/panorama/preferencias`, { headers });
+  }
+
+  putPanoramaPreferencias(
+    token: string | null | undefined,
+    body: {
+      valor_por_km?: number;
+      valor_consulta?: number;
+      taxa_adicional?: number;
+      desconto_percent?: number;
+      forma_pagamento?: string | null;
+    }
+  ): Observable<{ ok: boolean }> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.put<any>(`${this.baseUrl}/parceiro/panorama/preferencias`, body, { headers });
   }
 }

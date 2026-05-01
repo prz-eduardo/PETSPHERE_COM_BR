@@ -8,6 +8,7 @@ function slugToPartnerType(slug: string | null | undefined): PartnerType {
   if (s === 'clinic') return 'CLINIC';
   if (s === 'sitter') return 'SITTER';
   if (s === 'hotel') return 'HOTEL';
+  if (s === 'creche' || s === 'daycare') return 'DAYCARE';
   return 'PETSHOP';
 }
 import { environment } from '../../environments/environment';

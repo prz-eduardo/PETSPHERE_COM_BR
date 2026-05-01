@@ -1,0 +1,141 @@
+<div class="wrap">
+  <a routerLink="/parceiros/painel" class="back">← Painel</a>
+  <h1>Tutores, pets, turmas e aulas</h1>
+  <p class="muted">
+    Gestão da <strong>sua unidade</strong> — turmas, aulas e vínculos com tutores e pets. Dados de exemplo até conectar à API.
+  </p>
+
+  <p *ngIf="loading">Carregando…</p>
+
+  <nav class="tabs" *ngIf="!loading" role="tablist" aria-label="Seções da gestão">
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="tab === 'tutores'"
+      [class.active]="tab === 'tutores'"
+      (click)="setTab('tutores')"
+    >
+      Tutores
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="tab === 'pets'"
+      [class.active]="tab === 'pets'"
+      (click)="setTab('pets')"
+    >
+      Pets
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="tab === 'turmas'"
+      [class.active]="tab === 'turmas'"
+      (click)="setTab('turmas')"
+    >
+      Turmas
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="tab === 'aulas'"
+      [class.active]="tab === 'aulas'"
+      (click)="setTab('aulas')"
+    >
+      Aulas
+    </button>
+  </nav>
+
+  <section *ngIf="!loading && tab === 'tutores'" role="tabpanel">
+    <h2 class="sr-only">Tutores</h2>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>E-mail</th>
+          <th>Telefone</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of tutores">
+          <td>{{ row.nome }}</td>
+          <td>{{ row.email }}</td>
+          <td>{{ row.telefone }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section *ngIf="!loading && tab === 'pets'" role="tabpanel">
+    <h2 class="sr-only">Pets</h2>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Pet</th>
+          <th>Espécie / raça</th>
+          <th>Tutor</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of pets">
+          <td>{{ row.nome }}</td>
+          <td>{{ row.especie }}</td>
+          <td>{{ tutorNome(row.tutorId) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section *ngIf="!loading && tab === 'turmas'" role="tabpanel">
+    <h2 class="sr-only">Turmas</h2>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Turma</th>
+          <th>Nível</th>
+          <th>Vagas</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of turmas">
+          <td>{{ row.nome }}</td>
+          <td>{{ row.nivel }}</td>
+          <td>{{ row.inscritos }} / {{ row.vagas }}</td>
+          <td>
+            <span class="pill" [class.pill--off]="row.status === 'encerrada'">{{ row.status === 'aberta' ? 'Aberta' : 'Encerrada' }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section *ngIf="!loading && tab === 'aulas'" role="tabpanel">
+    <h2 class="sr-only">Aulas</h2>
+    <div class="filtro-inline">
+      <label>
+        Buscar turma ou aula
+        <input type="search" [(ngModel)]="filtroTurmaAulas" name="filtroAulas" placeholder="ex.: obedien ou tur1" />
+      </label>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Turma</th>
+          <th>Aula</th>
+          <th>Início</th>
+          <th>Duração</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of aulasFiltradas()">
+          <td>{{ turmaNome(row.turmaId) }}</td>
+          <td>{{ row.titulo }}</td>
+          <td>{{ fmtQuando(row.inicio) }}</td>
+          <td>{{ row.duracaoMin }} min</td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="aulasFiltradas().length === 0" class="muted">Nenhuma aula com esse filtro.</p>
+  </section>
+</div>

@@ -1,0 +1,87 @@
+<header class="public-top">
+  <a routerLink="/" class="public-top__brand">PetSphere</a>
+  <nav class="public-top__nav">
+    <a routerLink="/">Início</a>
+    <a routerLink="/restrito/login" class="public-top__cta">Entrar</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <h1>Passeio com segurança e transparência</h1>
+    <p class="lead">
+      Veja como acompanhamentos podem seguir uma rota planejada no mapa — experimente selecionar um passeio fictício e, se quiser,
+      ative o <strong>modo desenho</strong> para simular trajetos. Conteúdo ilustrativo.
+    </p>
+  </section>
+
+  <p *ngIf="loading" class="loading">Carregando demonstração…</p>
+
+  <div class="layout" *ngIf="!loading">
+    <section class="panel panel--list" aria-label="Exemplo de passeios">
+      <h2 class="panel-title">Exemplos na cidade</h2>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Pet</th>
+            <th>Profissional</th>
+            <th>Quando</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let p of passeios"
+            (click)="selectPasseio(p)"
+            (keydown.enter)="selectPasseio(p)"
+            (keydown.space)="$event.preventDefault(); selectPasseio(p)"
+            tabindex="0"
+            [class.row-active]="selected?.id === p.id"
+          >
+            <td>{{ p.petNome }}</td>
+            <td>{{ walkerNome(p.walkerId) }}</td>
+            <td>{{ fmtData(p.inicioPrevisto) }}</td>
+            <td><span class="badge" [class]="'badge--' + p.status">{{ statusLabel(p.status) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 class="subh">Equipe exemplo</h3>
+      <ul class="walker-list">
+        <li *ngFor="let w of walkers" [class.inactive]="!w.ativo">
+          <strong>{{ w.nome }}</strong>
+          <span class="meta">{{ w.regiao }}</span>
+          <span class="pill" *ngIf="!w.ativo">indisponível</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="panel panel--map" *ngIf="selected as sel" aria-label="Mapa da rota">
+      <div class="map-head">
+        <div>
+          <h2 class="panel-title">Rota — {{ sel.petNome }}</h2>
+          <p class="muted small">
+            {{ walkerNome(sel.walkerId) }} · {{ fmtData(sel.inicioPrevisto) }} ·
+            <strong>{{ distanciaAproxKm() }}</strong> (aprox., linha reta)
+          </p>
+        </div>
+        <div class="map-actions">
+          <button type="button" class="btn" [class.btn--on]="desenharModo" (click)="toggleDesenhar()">
+            {{ desenharModo ? 'Desenho ativo' : 'Modo desenho' }}
+          </button>
+          <button type="button" class="btn btn--ghost" (click)="undoPonto()" [disabled]="draftWaypoints.length === 0">
+            Desfazer ponto
+          </button>
+          <button type="button" class="btn btn--ghost" (click)="limparRota()">Limpar</button>
+          <button type="button" class="btn btn--ghost" (click)="centralizarRota()">Centralizar</button>
+        </div>
+      </div>
+      <p class="hint" *ngIf="desenharModo"><strong>Clique no mapa</strong> para adicionar pontos — só para demonstração.</p>
+      <div class="map-host" #mapHost role="application" aria-label="Mapa interativo"></div>
+    </section>
+
+    <section class="panel panel--empty" *ngIf="!selected">
+      <p class="muted">Escolha um passeio na tabela para visualizar o mapa.</p>
+    </section>
+  </div>
+</div>

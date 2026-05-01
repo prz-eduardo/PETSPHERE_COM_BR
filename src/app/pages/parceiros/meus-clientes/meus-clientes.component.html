@@ -1,128 +1,667 @@
 <section class="clientes-page">
   <header class="page-head">
-    <div>
+    <div class="page-head__title">
       <h1>Meus clientes</h1>
-      <p>Clientes vinculados a esta loja e status de permissao de dados.</p>
+      <p>Gerencie permissoes de dados (LGPD) dos clientes vinculados a sua loja.</p>
     </div>
-    <button type="button" class="ghost-btn" (click)="carregarClientes()" [disabled]="loading()">
-      {{ loading() ? 'Atualizando...' : 'Atualizar lista' }}
-    </button>
+
+    <div class="page-head__kpis" role="group" aria-label="Resumo">
+      <div class="kpi kpi--total">
+        <span class="kpi__label">Total</span>
+        <strong class="kpi__value">{{ kpis().total }}</strong>
+      </div>
+      <div class="kpi kpi--ok">
+        <span class="kpi__label">Concedidos</span>
+        <strong class="kpi__value">{{ kpis().concedidos }}</strong>
+        <span class="kpi__hint">{{ kpis().conversao }}% de conversao</span>
+      </div>
+      <div class="kpi kpi--warn">
+        <span class="kpi__label">Pendentes</span>
+        <strong class="kpi__value">{{ kpis().pendentes }}</strong>
+      </div>
+      <div class="kpi kpi--danger">
+        <span class="kpi__label">Revogados</span>
+        <strong class="kpi__value">{{ kpis().revogados }}</strong>
+      </div>
+    </div>
+
+    <div class="page-head__actions">
+      <button
+        type="button"
+        class="btn btn--ghost"
+        (click)="carregarClientes()"
+        [disabled]="loading()"
+        title="Atualizar lista"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"></path>
+          <path d="M21 3v5h-5"></path>
+          <path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"></path>
+          <path d="M3 21v-5h5"></path>
+        </svg>
+        <span>{{ loading() ? 'Atualizando...' : 'Atualizar' }}</span>
+      </button>
+      <button type="button" class="btn btn--primary" (click)="openInviteDrawer()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+        <span>Convidar cliente</span>
+      </button>
+    </div>
   </header>
 
-  <div class="grid">
-    <article class="card">
-      <h2>Solicitar permissao de dados</h2>
-      <p class="muted">
-        Envie um convite para o cliente autorizar o acesso aos dados da conta no contexto da sua loja.
-      </p>
+  @if (actionFeedback(); as fb) {
+    <div class="toast" [class.toast--ok]="fb.kind === 'ok'" [class.toast--error]="fb.kind === 'error'" role="status">
+      {{ fb.message }}
+    </div>
+  }
 
-      <label>
-        <span>Buscar cliente (e-mail, telefone ou CPF)</span>
-        <input
-          type="text"
-          [ngModel]="email()"
-          (ngModelChange)="onSearchChange($event)"
-          placeholder="Comece a digitar... (ex.: abc, 1199..., 12345678901)"
-        />
+  <nav class="tabs" role="tablist" aria-label="Filtrar por status">
+    <button
+      type="button"
+      role="tab"
+      class="tab"
+      [class.tab--active]="statusTab() === 'todos'"
+      (click)="setStatusTab('todos')"
+    >
+      Todos <span class="tab__badge">{{ contagemPorStatus().todos }}</span>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="tab tab--ok"
+      [class.tab--active]="statusTab() === 'concedido'"
+      (click)="setStatusTab('concedido')"
+    >
+      Concedidos <span class="tab__badge">{{ contagemPorStatus().concedido }}</span>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="tab tab--warn"
+      [class.tab--active]="statusTab() === 'pendente'"
+      (click)="setStatusTab('pendente')"
+    >
+      Pendentes <span class="tab__badge">{{ contagemPorStatus().pendente }}</span>
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="tab tab--danger"
+      [class.tab--active]="statusTab() === 'revogado'"
+      (click)="setStatusTab('revogado')"
+    >
+      Revogados <span class="tab__badge">{{ contagemPorStatus().revogado }}</span>
+    </button>
+  </nav>
+
+  <div class="toolbar">
+    <div class="search">
+      <svg class="search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="m21 21-4.3-4.3"></path>
+      </svg>
+      <input
+        type="text"
+        [ngModel]="filtro()"
+        (ngModelChange)="filtro.set($event)"
+        placeholder="Filtrar por nome, e-mail, escopo ou status"
+        aria-label="Filtrar clientes"
+      />
+      @if (filtro()) {
+        <button type="button" class="search__clear" (click)="filtro.set('')" aria-label="Limpar filtro">×</button>
+      }
+    </div>
+
+    <label class="sort">
+      <span class="sort__label">Ordenar por</span>
+      <select [ngModel]="ordenacao()" (ngModelChange)="ordenacao.set($event)">
+        <option value="recentes">Mais recentes</option>
+        <option value="nome">Nome (A-Z)</option>
+        <option value="status">Status</option>
+      </select>
+    </label>
+
+    <span class="toolbar__count">
+      {{ permissoesFiltradas().length }} de {{ permissoes().length }}
+    </span>
+  </div>
+
+  <div class="list-wrap">
+    @if (error()) {
+      <div class="state state--error">
+        <p>{{ error() }}</p>
+        <button type="button" class="btn btn--ghost" (click)="carregarClientes()">Tentar novamente</button>
+      </div>
+    } @else if (loading() && !permissoes().length) {
+      <ul class="client-list" aria-busy="true">
+        @for (i of [1,2,3,4,5]; track i) {
+          <li class="client-row client-row--skeleton">
+            <span class="avatar avatar--skeleton"></span>
+            <span class="skeleton skeleton--text" style="width: 60%"></span>
+            <span class="skeleton skeleton--chip"></span>
+            <span class="skeleton skeleton--chip"></span>
+            <span class="skeleton skeleton--btn"></span>
+          </li>
+        }
+      </ul>
+    } @else if (!permissoesFiltradas().length) {
+      <div class="state state--empty">
+        <div class="state__icon" aria-hidden="true">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 11h-6"></path>
+            <path d="M19 8v6"></path>
+          </svg>
+        </div>
+        @if (permissoes().length === 0) {
+          <h3>Nenhum cliente vinculado ainda</h3>
+          <p>Convide um cliente para autorizar o acesso aos dados da conta no contexto da sua loja.</p>
+          <button type="button" class="btn btn--primary" (click)="openInviteDrawer()">Convidar primeiro cliente</button>
+        } @else {
+          <h3>Nenhum cliente neste filtro</h3>
+          <p>Tente outro termo de busca ou alterne entre as abas de status.</p>
+          <button type="button" class="btn btn--ghost" (click)="filtro.set(''); setStatusTab('todos')">Limpar filtros</button>
+        }
+      </div>
+    } @else {
+      <ul class="client-list">
+        @for (row of permissoesFiltradas(); track trackByPermissao($index, row)) {
+          <li class="client-row" [class.client-row--loading]="rowActionLoadingId() === row.id">
+            <span
+              class="avatar"
+              [style.background]="avatarGradient(row.cliente_id)"
+              [attr.aria-label]="row.cliente_nome || 'Cliente'"
+            >
+              {{ iniciaisDe(row.cliente_nome) }}
+            </span>
+
+            <div class="client-row__info">
+              <strong class="client-row__name">{{ row.cliente_nome || 'Cliente sem nome' }}</strong>
+              <span class="client-row__email">{{ row.cliente_email || 'sem e-mail' }}</span>
+            </div>
+
+            <span class="chip chip--status" [attr.data-status]="row.status">
+              <span class="chip__dot"></span>
+              {{ statusLabel(row.status) }}
+            </span>
+
+            <span class="chip chip--escopo" [attr.data-escopo]="row.escopo">
+              {{ escopoLabel(row.escopo) }}
+            </span>
+
+            <div class="client-row__actions">
+              <button
+                type="button"
+                class="action-btn"
+                (click)="openDetails(row)"
+                title="Ver detalhes"
+                aria-label="Ver detalhes"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+
+              @if (row.status === 'concedido') {
+                <a
+                  class="action-btn action-btn--accent"
+                  [routerLink]="['/parceiros/mensagens', row.cliente_id]"
+                  title="Abrir chat"
+                  aria-label="Abrir chat"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </a>
+              }
+
+              @if (row.status === 'pendente' || row.status === 'revogado') {
+                <button
+                  type="button"
+                  class="action-btn"
+                  (click)="reenviarConvite(row)"
+                  [disabled]="rowActionLoadingId() === row.id"
+                  title="Reenviar convite"
+                  aria-label="Reenviar convite"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22 2 11 13"></path>
+                    <path d="m22 2-7 20-4-9-9-4 20-7z"></path>
+                  </svg>
+                </button>
+              }
+
+              <button
+                type="button"
+                class="action-btn"
+                (click)="copiarEmail(row, $event)"
+                [disabled]="!row.cliente_email"
+                [class.action-btn--success]="copyFeedbackId() === row.id"
+                title="Copiar e-mail"
+                aria-label="Copiar e-mail"
+              >
+                @if (copyFeedbackId() === row.id) {
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 6 9 17l-5-5"></path>
+                  </svg>
+                } @else {
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                }
+              </button>
+
+              @if (row.status === 'concedido') {
+                <button
+                  type="button"
+                  class="action-btn action-btn--danger"
+                  (click)="pedirConfirmacaoRevogar(row)"
+                  [disabled]="rowActionLoadingId() === row.id"
+                  title="Revogar permissao"
+                  aria-label="Revogar permissao"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m4.93 4.93 14.14 14.14"></path>
+                  </svg>
+                </button>
+              }
+            </div>
+
+            @if (confirmRevokeId() === row.id) {
+              <div class="row-confirm" role="alertdialog">
+                <p>
+                  Revogar a permissao de <strong>{{ row.cliente_nome || 'este cliente' }}</strong>?
+                  O acesso aos dados sera bloqueado imediatamente.
+                </p>
+                <div class="row-confirm__actions">
+                  <button type="button" class="btn btn--ghost" (click)="cancelarConfirmacao()">Cancelar</button>
+                  <button
+                    type="button"
+                    class="btn btn--danger"
+                    (click)="revogar(row)"
+                    [disabled]="rowActionLoadingId() === row.id"
+                  >
+                    {{ rowActionLoadingId() === row.id ? 'Revogando...' : 'Revogar' }}
+                  </button>
+                </div>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>
+
+<!-- DRAWER: convidar cliente -->
+<app-side-drawer
+  [open]="inviteDrawerOpen()"
+  [width]="'480px'"
+  (openChange)="inviteDrawerOpen.set($event)"
+  (closeRequest)="closeInviteDrawer()"
+>
+  <section class="drawer-content">
+    <header class="drawer-header">
+      <div>
+        <h2>Convidar cliente</h2>
+        <p class="drawer-subtitle">
+          Envie um convite para o cliente autorizar o acesso aos dados no contexto da sua loja.
+        </p>
+      </div>
+      <button type="button" class="drawer-close" (click)="closeInviteDrawer()" aria-label="Fechar">×</button>
+    </header>
+
+    <div class="drawer-body">
+      <label class="field">
+        <span>Buscar cliente</span>
+        <div class="field__input-wrap">
+          <svg class="field__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <input
+            type="text"
+            [ngModel]="email()"
+            (ngModelChange)="onSearchChange($event)"
+            placeholder="E-mail, telefone ou CPF"
+          />
+        </div>
+        <small class="field__hint">Comece a digitar (minimo 3 caracteres) para sugestoes.</small>
       </label>
+
       @if (searchLoading()) {
         <p class="muted">Buscando clientes...</p>
       }
       @if (searchError()) {
         <p class="feedback feedback--error">{{ searchError() }}</p>
       }
-      @if (candidates().length) {
+      @if (selectedCandidate(); as sel) {
+        <div class="selected-candidate">
+          <span
+            class="avatar avatar--sm"
+            [style.background]="avatarGradient(sel.cliente_id)"
+          >
+            {{ iniciaisDe(sel.nome_masked) }}
+          </span>
+          <div>
+            <strong>{{ sel.nome_masked }}</strong>
+            <small>
+              {{ sel.email_masked || '-' }} · {{ sel.telefone_masked || '-' }}
+            </small>
+          </div>
+          <button
+            type="button"
+            class="action-btn"
+            (click)="selectedCandidate.set(null); email.set('')"
+            aria-label="Remover selecao"
+          >×</button>
+        </div>
+      } @else if (candidates().length) {
         <div class="candidates">
-          @for (candidate of candidates(); track candidate.cliente_id) {
-            <button type="button" class="candidate-item" (click)="selectCandidate(candidate)">
-              <strong>{{ candidate.nome_masked }}</strong>
-              <span>
-                {{ candidate.email_masked || '-' }} • {{ candidate.telefone_masked || '-' }} • {{ candidate.cpf_masked || '-' }}
+          @for (candidate of candidates(); track trackByCandidate($index, candidate)) {
+            <button
+              type="button"
+              class="candidate"
+              (click)="selectCandidate(candidate)"
+            >
+              <span
+                class="avatar avatar--sm"
+                [style.background]="avatarGradient(candidate.cliente_id)"
+              >
+                {{ iniciaisDe(candidate.nome_masked) }}
               </span>
-              <small>
-                Status atual: {{ candidate.permissao_status || 'sem vínculo' }}
-              </small>
+              <div class="candidate__info">
+                <strong>{{ candidate.nome_masked }}</strong>
+                <small>
+                  {{ candidate.email_masked || '-' }} · {{ candidate.telefone_masked || '-' }}
+                </small>
+                @if (candidate.permissao_status) {
+                  <span class="chip chip--status chip--xs" [attr.data-status]="candidate.permissao_status">
+                    {{ statusLabel(candidate.permissao_status) }}
+                  </span>
+                }
+              </div>
             </button>
           }
         </div>
       }
 
-      <label>
-        <span>Escopo do acesso</span>
-        <select [ngModel]="escopo()" (ngModelChange)="escopo.set($event)">
-          <option value="dados_basicos">Dados basicos (nome e contato)</option>
-          <option value="pets">Dados basicos + pets</option>
-          <option value="completo">Acesso completo</option>
-        </select>
-      </label>
-
-      <button type="button" class="primary-btn" (click)="solicitarPermissao()" [disabled]="submitting()">
-        {{ submitting() ? 'Enviando...' : 'Solicitar permissao' }}
-      </button>
+      <fieldset class="segmented">
+        <legend>Escopo do acesso</legend>
+        <label
+          class="segment"
+          [class.segment--active]="escopo() === 'dados_basicos'"
+        >
+          <input
+            type="radio"
+            name="escopo"
+            value="dados_basicos"
+            [ngModel]="escopo()"
+            (ngModelChange)="escopo.set($event)"
+          />
+          <span class="segment__title">Dados basicos</span>
+          <span class="segment__hint">Nome e contato</span>
+        </label>
+        <label
+          class="segment"
+          [class.segment--active]="escopo() === 'pets'"
+        >
+          <input
+            type="radio"
+            name="escopo"
+            value="pets"
+            [ngModel]="escopo()"
+            (ngModelChange)="escopo.set($event)"
+          />
+          <span class="segment__title">Dados + pets</span>
+          <span class="segment__hint">Inclui dados dos pets</span>
+        </label>
+        <label
+          class="segment"
+          [class.segment--active]="escopo() === 'completo'"
+        >
+          <input
+            type="radio"
+            name="escopo"
+            value="completo"
+            [ngModel]="escopo()"
+            (ngModelChange)="escopo.set($event)"
+          />
+          <span class="segment__title">Completo</span>
+          <span class="segment__hint">Acesso integral</span>
+        </label>
+      </fieldset>
 
       @if (submitError()) {
         <p class="feedback feedback--error">{{ submitError() }}</p>
       }
       @if (submitSuccess()) {
-        <p class="feedback feedback--ok">{{ submitSuccess() }}</p>
-      }
-      @if (tokenHint()) {
-        <p class="token">
-          Convite criado com token de rastreio: <code>{{ tokenHint() }}</code><br />
-          O cliente pode responder em: <code>/convite-dados/{{ tokenHint() }}</code>
-        </p>
-      }
-    </article>
-
-    <article class="card card--list">
-      <div class="list-head">
-        <h2>Clientes da loja</h2>
-        <input
-          type="text"
-          [ngModel]="filtro()"
-          (ngModelChange)="filtro.set($event)"
-          placeholder="Filtrar por nome, email ou status"
-        />
-      </div>
-
-      @if (error()) {
-        <p class="feedback feedback--error">{{ error() }}</p>
-      } @else if (loading()) {
-        <p class="muted">Carregando clientes...</p>
-      } @else if (!permissoesFiltradas().length) {
-        <p class="muted">Nenhum cliente encontrado para esta loja.</p>
-      } @else {
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>E-mail</th>
-                <th>Status</th>
-                <th>Escopo</th>
-                <th>Chat</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of permissoesFiltradas(); track trackByPermissao($index, row)) {
-                <tr>
-                  <td>{{ row.cliente_nome || '-' }}</td>
-                  <td>{{ row.cliente_email || '-' }}</td>
-                  <td><span class="status">{{ row.status || '-' }}</span></td>
-                  <td>{{ row.escopo || '-' }}</td>
-                  <td>
-                    @if (row.status === 'concedido') {
-                      <a class="chat-link" [routerLink]="['/parceiros/mensagens', row.cliente_id]">Abrir chat</a>
-                    } @else {
-                      <span class="muted">—</span>
-                    }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <div class="success-card">
+          <p>{{ submitSuccess() }}</p>
+          @if (tokenHint()) {
+            <div class="success-card__link">
+              <code>{{ conviteLink(tokenHint()) }}</code>
+              <button
+                type="button"
+                class="btn btn--ghost btn--sm"
+                (click)="copiarLinkConvite(tokenHint()!)"
+              >
+                {{ inviteCopied() ? 'Copiado!' : 'Copiar link' }}
+              </button>
+            </div>
+          }
         </div>
       }
-    </article>
-  </div>
-</section>
+    </div>
+
+    <footer class="drawer-footer">
+      <button type="button" class="btn btn--ghost" (click)="closeInviteDrawer()">Fechar</button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        (click)="solicitarPermissao()"
+        [disabled]="submitting()"
+      >
+        {{ submitting() ? 'Enviando...' : 'Enviar convite' }}
+      </button>
+    </footer>
+  </section>
+</app-side-drawer>
+
+<!-- DRAWER: detalhes do cliente -->
+<app-side-drawer
+  [open]="detailsDrawerOpen()"
+  [width]="'520px'"
+  (openChange)="detailsDrawerOpen.set($event)"
+  (closeRequest)="closeDetailsDrawer()"
+>
+  <section class="drawer-content">
+    @if (selectedRow(); as row) {
+      <header class="drawer-header drawer-header--rich">
+        <div class="drawer-header__main">
+          <span class="avatar avatar--lg" [style.background]="avatarGradient(row.cliente_id)">
+            {{ iniciaisDe(row.cliente_nome) }}
+          </span>
+          <div>
+            <h2>{{ row.cliente_nome || 'Cliente sem nome' }}</h2>
+            <p class="drawer-subtitle">{{ row.cliente_email || 'sem e-mail' }}</p>
+            <div class="drawer-header__chips">
+              <span class="chip chip--status" [attr.data-status]="row.status">
+                <span class="chip__dot"></span>
+                {{ statusLabel(row.status) }}
+              </span>
+              <span class="chip chip--escopo" [attr.data-escopo]="row.escopo">
+                {{ escopoLabel(row.escopo) }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="drawer-close" (click)="closeDetailsDrawer()" aria-label="Fechar">×</button>
+      </header>
+
+      <div class="drawer-body">
+        <dl class="meta-grid">
+          <div>
+            <dt>Concedido em</dt>
+            <dd>{{ formatDate(row.data_concessao) }}</dd>
+          </div>
+          <div>
+            <dt>Revogado em</dt>
+            <dd>{{ formatDate(row.data_revogacao) }}</dd>
+          </div>
+          <div>
+            <dt>Vinculo criado</dt>
+            <dd>{{ formatDate(row.criado_em) }}</dd>
+          </div>
+        </dl>
+
+        @if (row.status !== 'concedido') {
+          <div class="info-box">
+            <strong>Detalhes restritos</strong>
+            <p>
+              Os dados completos do tutor, endereco e pets so ficam disponiveis quando
+              o cliente concede a permissao. Reenvie o convite para tentar novamente.
+            </p>
+            <button
+              type="button"
+              class="btn btn--primary btn--sm"
+              (click)="reenviarConvite(row)"
+              [disabled]="rowActionLoadingId() === row.id"
+            >
+              {{ rowActionLoadingId() === row.id ? 'Enviando...' : 'Reenviar convite' }}
+            </button>
+          </div>
+        } @else if (detailsLoading()) {
+          <div class="state state--loading">
+            <p class="muted">Carregando dados do cliente...</p>
+          </div>
+        } @else if (detailsError()) {
+          <p class="feedback feedback--error">{{ detailsError() }}</p>
+        } @else if (detailsData()) {
+          @if (detailsData(); as data) {
+          <section class="section">
+            <h3>Contato</h3>
+            <dl class="meta-grid">
+              <div>
+                <dt>Nome</dt>
+                <dd>{{ data.tutor.nome || '—' }}</dd>
+              </div>
+              <div>
+                <dt>E-mail</dt>
+                <dd>{{ data.tutor.email || '—' }}</dd>
+              </div>
+              <div>
+                <dt>Telefone</dt>
+                <dd>{{ data.tutor.telefone || '—' }}</dd>
+              </div>
+              <div>
+                <dt>CPF</dt>
+                <dd>{{ data.tutor.cpf || '—' }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="section">
+            <h3>Endereco</h3>
+            @if (data.endereco_texto) {
+              <p class="address">{{ data.endereco_texto }}</p>
+            } @else {
+              <p class="muted">Sem endereco cadastrado.</p>
+            }
+          </section>
+
+          <section class="section">
+            <h3>
+              Pets
+              @if (data.pets?.length) {
+                <span class="section__count">{{ data.pets.length }}</span>
+              }
+            </h3>
+            @if (!data.escopo_pets) {
+              <p class="muted">
+                Escopo atual nao inclui dados dos pets.
+              </p>
+            } @else if (!data.pets?.length) {
+              <p class="muted">Nenhum pet cadastrado.</p>
+            } @else {
+              <ul class="pets">
+                @for (pet of data.pets; track trackByPet($index, pet)) {
+                  <li class="pet">
+                    <span class="pet__avatar">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="11" cy="4" r="2"></circle>
+                        <circle cx="18" cy="8" r="2"></circle>
+                        <circle cx="4" cy="8" r="2"></circle>
+                        <circle cx="20" cy="14" r="2"></circle>
+                        <path d="M9 10c-2 0-4 2-4 4s2 4 4 4 4 2 6 2 4-2 4-4-2-4-4-4-2-2-3-2z"></path>
+                      </svg>
+                    </span>
+                    <div>
+                      <strong>{{ pet.nome }}</strong>
+                      <small>
+                        {{ pet.especie || '—' }}{{ pet.raca ? ' · ' + pet.raca : '' }}
+                      </small>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+          }
+        }
+      </div>
+
+      <footer class="drawer-footer">
+        @if (confirmRevokeId() === row.id) {
+          <div class="footer-confirm">
+            <p>Revogar a permissao deste cliente?</p>
+            <div class="footer-confirm__actions">
+              <button type="button" class="btn btn--ghost" (click)="cancelarConfirmacao()">Cancelar</button>
+              <button
+                type="button"
+                class="btn btn--danger"
+                (click)="revogar(row)"
+                [disabled]="rowActionLoadingId() === row.id"
+              >
+                {{ rowActionLoadingId() === row.id ? 'Revogando...' : 'Confirmar' }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          @if (row.status === 'concedido') {
+            <a
+              class="btn btn--ghost"
+              [routerLink]="['/parceiros/mensagens', row.cliente_id]"
+              (click)="closeDetailsDrawer()"
+            >
+              Abrir chat
+            </a>
+            <button
+              type="button"
+              class="btn btn--danger"
+              (click)="pedirConfirmacaoRevogar(row)"
+            >
+              Revogar permissao
+            </button>
+          } @else {
+            <button type="button" class="btn btn--ghost" (click)="closeDetailsDrawer()">Fechar</button>
+            <button
+              type="button"
+              class="btn btn--primary"
+              (click)="reenviarConvite(row)"
+              [disabled]="rowActionLoadingId() === row.id"
+            >
+              {{ rowActionLoadingId() === row.id ? 'Enviando...' : 'Reenviar convite' }}
+            </button>
+          }
+        }
+      </footer>
+    }
+  </section>
+</app-side-drawer>

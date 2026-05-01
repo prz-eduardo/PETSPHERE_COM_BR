@@ -8,13 +8,20 @@ import {
   HotelHospedagemCatalogBundle,
   HotelLeitoRow,
   HotelOfertaCatalogEntry,
+  HotelUsoOperacao,
 } from '../agenda/services/agenda-api.service';
+import {
+  HOSPEDAGEM_LEITO_PRESET_DAYCARE,
+  HOSPEDAGEM_LEITO_PRESET_HOTEL,
+  HospedagemLeitoPreset,
+} from '../reservas-hotel/hospedagem-modo-presets';
 
 /** Sim / não / indefinido (obrigatório só na vitrine) */
 export type Tripolicy = '' | 'sim' | 'nao';
 
 export interface EspacoWizardDraft {
   nome: string;
+  uso_operacao: HotelUsoOperacao;
   capacidade: number;
   capacidade_pequeno: string;
   capacidade_medio: string;
@@ -57,6 +64,7 @@ export interface EspacoWizardDraft {
 function emptyDraft(): EspacoWizardDraft {
   return {
     nome: '',
+    uso_operacao: 'hospedagem',
     capacidade: 1,
     capacidade_pequeno: '',
     capacidade_medio: '',
@@ -104,9 +112,16 @@ function boolToTripolicy(v: boolean | null | undefined): Tripolicy {
   return '';
 }
 
+function normalizeDraftUso(v: string | null | undefined): HotelUsoOperacao {
+  const s = String(v || 'hospedagem').toLowerCase();
+  if (s === 'daycare' || s === 'ambos' || s === 'hospedagem') return s;
+  return 'hospedagem';
+}
+
 function draftFromLeito(leito: HotelLeitoRow): EspacoWizardDraft {
   const base = emptyDraft();
   base.nome = leito.nome || '';
+  base.uso_operacao = normalizeDraftUso(leito.uso_operacao as string | undefined);
   base.capacidade = Number(leito.capacidade) >= 1 ? Number(leito.capacidade) : 1;
   base.capacidade_pequeno = leito.capacidade_pequeno != null ? String(leito.capacidade_pequeno) : '';
   base.capacidade_medio = leito.capacidade_medio != null ? String(leito.capacidade_medio) : '';
@@ -221,6 +236,32 @@ export class EspacoConfigWizardComponent {
 
   byCategoria(cat: string): HotelOfertaCatalogEntry[] {
     return this.catalogForLeito().filter((e) => (e.categoria || 'outros') === cat);
+  }
+
+  applyLeitoPreset(preset: HospedagemLeitoPreset): void {
+    this.draft.update((d) => {
+      const serv = new Set(d.servicos_slugs);
+      const aco = new Set(d.acomodacao_slugs);
+      for (const s of preset.servicos_slugs) serv.add(s);
+      for (const s of preset.acomodacao_slugs) aco.add(s);
+      return {
+        ...d,
+        uso_operacao: preset.uso_operacao,
+        servicos_slugs: [...serv],
+        acomodacao_slugs: [...aco],
+        chk_in_hora: preset.chk_in_hora,
+        chk_out_hora: preset.chk_out_hora,
+        limite_estadia: preset.limite_estadia_dias,
+      };
+    });
+  }
+
+  applyPresetHotel(): void {
+    this.applyLeitoPreset(HOSPEDAGEM_LEITO_PRESET_HOTEL);
+  }
+
+  applyPresetCreche(): void {
+    this.applyLeitoPreset(HOSPEDAGEM_LEITO_PRESET_DAYCARE);
   }
 
   private async ensureCatalog(): Promise<void> {
@@ -406,6 +447,7 @@ export class EspacoConfigWizardComponent {
 
       const fd = new FormData();
       fd.append('nome', d.nome.trim());
+      fd.append('uso_operacao', d.uso_operacao);
       fd.append('capacidade', String(Math.max(1, Math.trunc(d.capacidade))));
       fd.append('acomodacao_tipos', JSON.stringify(d.acomodacao_slugs));
       fd.append('servicos_oferta', JSON.stringify(d.servicos_slugs));

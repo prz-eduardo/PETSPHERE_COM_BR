@@ -2,42 +2,126 @@
 
 <div class="sidebar">
   <header class="sidebar-header">
-    <h2>Novo Agendamento</h2>
-    <button class="close-btn" (click)="close.emit()" aria-label="Fechar">✕</button>
+    <h2>Novo agendamento</h2>
+    <button class="close-btn" (click)="close.emit()" type="button" aria-label="Fechar">✕</button>
   </header>
 
   <div class="sidebar-body">
 
-    <!-- Sugestão de horário -->
     <div class="sugestao" *ngIf="sugeridoHorario() && !slot">
-      <span class="sugestao-icon">🕐</span>
-      <span>Próximo slot livre: <strong>{{ sugeridoHorario() }}</strong></span>
-      <button class="sugestao-btn" (click)="useSugestao()">Usar</button>
+      <span class="sugestao-icon" aria-hidden="true">🕐</span>
+      <span>Próximo horário disponível na grade: <strong>{{ sugeridoHorario() }}</strong></span>
+      <button type="button" class="sugestao-btn" (click)="useSugestao()">Usar</button>
     </div>
 
-    <!-- Pet autocomplete -->
-    <div class="field">
-      <label>Pet *</label>
+    <!-- ── Tutor / cliente ─────────────────────────────────────────────── -->
+    <div class="field section-block">
+      <div class="section-head">
+        <label class="section-label">Cliente / tutor *</label>
+        <button
+          type="button"
+          class="link-muted"
+          (click)="toggleGuestWalkIn()"
+        >
+          {{ guestWalkInMode() ? 'Buscar na base PetSphere…' : 'Sem cadastro rápido' }}
+        </button>
+      </div>
+
+      <div *ngIf="!guestWalkInMode()" class="tutor-search">
+        <input
+          type="search"
+          class="wide"
+          autocomplete="off"
+          placeholder="Busque por nome, e-mail ou telefone (mín. 3 letras ou números)…"
+          [ngModel]="tutorQuery()"
+          (ngModelChange)="onTutorQueryChange($event)"
+          [readonly]="selectedCliente()"
+        />
+
+        <div class="muted-hint">
+          Perfis vindos da busca aparecem com parte dos dados mascarados por segurança. Escolhendo uma pessoa já vinculada
+          aos seus consentimentos, carregamos os pets quando permitido pela LGPD.
+        </div>
+
+        <button
+          type="button"
+          class="pill-clear"
+          *ngIf="selectedCliente()"
+          (click)="clearClienteSelection()"
+        >
+          ✕ Alterar cliente
+        </button>
+
+        <div class="muted-hint discovery-state" *ngIf="discoverLoading()">
+          Buscando na base PetSphere…
+        </div>
+        <div class="muted-hint err" *ngIf="discoverError()">{{ discoverError() }}</div>
+
+        <div class="tutor-chip" *ngIf="selectedCliente() as sc">
+          <div class="tutor-chip-main">
+            <strong>{{ sc.nome_masked || 'Cliente' }}</strong>
+            <span class="muted" *ngIf="sc.telefone_masked">{{ sc.telefone_masked }}</span>
+          </div>
+          <span class="status-pill" *ngIf="permissaoBadge()">{{ permissaoBadge() }}</span>
+        </div>
+
+        <div class="candidate-list" *ngIf="!selectedCliente() && tutorCandidates().length">
+          <button
+            type="button"
+            class="candidate-row"
+            *ngFor="let c of tutorCandidates(); trackBy: trackCandidate"
+            (click)="selectClienteDiscovered(c)"
+          >
+            <div class="candidate-name">{{ c.nome_masked || 'Cliente' }}</div>
+            <div class="muted small">
+              <span *ngIf="c.email_masked">{{ c.email_masked }}</span>
+              <span *ngIf="c.telefone_masked">{{ c.telefone_masked }}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="guestWalkInMode()" class="manual-walkin">
+        <div class="field">
+          <label>Nome da pessoa ou referência na loja</label>
+          <input
+            type="text"
+            [ngModel]="tutorQuery()"
+            (ngModelChange)="tutorQuery.set($event)"
+            placeholder="Ex.: Sofia — primeira visita sem cadastro PetSphere…"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Pet ─────────────────────────────────────────────────────────── -->
+    <div class="field section-block">
+      <label class="section-label">Pet *</label>
+
       <div class="autocomplete-wrap">
         <input
           type="text"
-          placeholder="Buscar pet ou tutor..."
+          placeholder="Nome do pet ou busque pela lista quando carregar pets…"
           [ngModel]="searchPet()"
           (ngModelChange)="searchPet.set($event); showPetDropdown.set(true)"
           (blur)="showPetDropdown.set(false)"
-          [disabled]="!!selectedPet()"
+          [readonly]="!!selectedPet()"
         />
-        <button class="clear-pet" *ngIf="selectedPet()" (click)="clearPet()">✕</button>
+        <button type="button" class="clear-pet" *ngIf="selectedPet()" (click)="clearPet()" aria-label="Limpar pet">✕</button>
+
+        <div class="loading-inline" *ngIf="panoramaLoading()">
+          Carregando pets sob consentimento concedido ao estabelecimento…
+        </div>
 
         <div class="pet-dropdown" *ngIf="showPetDropdown() && filteredPets().length">
           <div
-            *ngFor="let pet of filteredPets()"
             class="pet-option"
+            *ngFor="let pet of filteredPets()"
             (mousedown)="selectPet(pet)"
           >
             <div class="pet-opt-main">
               <span class="pet-opt-name">{{ pet.nome }}</span>
-              <span class="pet-opt-race">{{ pet.raca }}</span>
+              <span class="pet-opt-race" *ngIf="pet.raca">{{ pet.raca }}</span>
             </div>
             <div class="pet-opt-tutor">👤 {{ pet.tutor.nome }}</div>
           </div>
@@ -45,11 +129,11 @@
       </div>
     </div>
 
-    <!-- Pet info (after selection) -->
+    <!-- Pet info (legacy + panorama) -->
     <div class="pet-info" *ngIf="selectedPet()">
       <div class="info-row">
         <span class="info-label">Tutor</span>
-        <span>{{ selectedPet()!.tutor.nome }} · {{ selectedPet()!.tutor.telefone }}</span>
+        <span>{{ selectedPet()!.tutor.nome }} · {{ selectedPet()!.tutor.telefone || 'telefone sob consentimento LGPD' }}</span>
       </div>
       <div class="info-row" *ngIf="selectedPet()!.alergias.length">
         <span class="info-label">Alergias</span>
@@ -61,40 +145,32 @@
         <span class="info-label">Medicação</span>
         <span class="tag info">💊 Sim</span>
       </div>
-      <div class="info-row" *ngIf="selectedPet()!.observacoes">
-        <span class="info-label">Obs.</span>
-        <span class="obs-text">{{ selectedPet()!.observacoes }}</span>
-      </div>
-      <div *ngIf="selectedPet()!.historicoRecente.length" class="historico">
-        <div class="historico-label">Últimas visitas</div>
-        <div class="historico-item" *ngFor="let h of selectedPet()!.historicoRecente">
-          <span class="hist-date">{{ h.data | date:'dd/MM/yy' }}</span>
-          <span>{{ h.servico }}</span>
-          <span class="hist-prof">{{ h.profissional }}</span>
+      <div class="perm-request" *ngIf="permissionStatus() && !selectedCliente()">
+        <div *ngIf="permissionStatus() === 'concedido'" class="perm-hint">
+          Você já tem consentimento suficiente para visualizar fichas compatíveis.
         </div>
-      </div>
-      <div class="perm-request">
-        <div *ngIf="permissionStatus() === 'concedido'" class="perm-hint">Acesso concedido: você pode ver e selecionar pets.</div>
-        <div *ngIf="permissionStatus() === 'pendente'" class="perm-hint">Convite enviado — aguardando resposta do cliente.</div>
-        <div *ngIf="permissionStatus() === 'revogado'" class="perm-hint">Acesso revogado.</div>
+        <div *ngIf="permissionStatus() === 'pendente'" class="perm-hint">
+          Você já enviou convite aos dados dos pets neste cenário anteriormente — só aguardando o tutor.
+        </div>
         <div *ngIf="permissionStatus() === null" class="perm-actions">
-          <button class="btn" (click)="openRequestModal()">Solicitar acesso aos pets do cliente</button>
+          <button type="button" class="btn" (click)="openRequestModal()">Solicitar acesso aos pets do cliente</button>
         </div>
       </div>
     </div>
 
-    <!-- Solicitar acesso modal -->
     <div class="request-modal-overlay" *ngIf="showRequestModal()">
       <div class="request-modal" role="dialog" aria-modal="true">
         <h3>Solicitar acesso aos dados e pets?</h3>
-        <p>Ao solicitar, o cliente receberá um e-mail com um convite para permitir o acesso.</p>
+        <p>O cliente receberá um e-mail PetSphere autorizando o compartilhamento antes de aparecer dados completos.</p>
         <div *ngIf="!selectedPet()?.tutor?.email" class="field">
           <label>E-mail do cliente</label>
           <input type="email" [ngModel]="emailInput()" (ngModelChange)="emailInput.set($event)" />
         </div>
         <div class="actions">
-          <button class="btn" (click)="closeRequestModal()">Cancelar</button>
-          <button class="btn primary" (click)="doInvite()" [disabled]="requesting()">Solicitar</button>
+          <button type="button" class="btn" (click)="closeRequestModal()">Cancelar</button>
+          <button type="button" class="btn primary" (click)="doInvite()" [disabled]="requesting()">
+            Solicitar
+          </button>
         </div>
       </div>
     </div>
@@ -115,38 +191,74 @@
     <div class="field">
       <label>Serviço *</label>
       <select [ngModel]="selectedServicoId()" (ngModelChange)="onServicoChange($event)">
-        <option *ngFor="let s of servicos" [value]="s.id">
-          {{ s.nome }} ({{ s.duracaoMin }}min — R${{ s.preco }})
-        </option>
+        <ng-container *ngFor="let s of servicos">
+          <option [value]="s.id">
+            {{ s.nome }} — {{ s.duracaoMin }} min<span *ngIf="s.preco != null"> —
+              {{ s.preco | currency : 'BRL' : 'symbol' : '1.2-2' }}</span>
+          </option>
+        </ng-container>
       </select>
+      <small class="service-hint" *ngIf="getSelectedServico()">
+        Ao escolher o serviço, a duração padrão do cadastro já entra nos minutos ao lado —
+        fique tranquilo caso precise ajustá-la antes de registrar.
+      </small>
     </div>
 
     <!-- Profissional -->
     <div class="field" *ngIf="profissionais.length > 1">
-      <label>Profissional *</label>
+      <label>Recurso / profissional *</label>
       <select [ngModel]="selectedProfId()" (ngModelChange)="selectedProfId.set($event)">
         <option *ngFor="let p of profissionais" [value]="p.id">{{ p.nome }}</option>
       </select>
     </div>
 
-    <!-- Duração -->
     <div class="field">
-      <label>Duração (min)</label>
+      <label>Duração (minutos)</label>
       <input type="number" min="15" step="15" [ngModel]="durMin()" (ngModelChange)="durMin.set($event)" />
     </div>
 
-    <!-- Observações -->
+    <!-- Tutor notifications -->
+    <div class="notify-card">
+      <label class="check-row">
+        <input type="checkbox" [ngModel]="notificarPorEmail()" (ngModelChange)="notificarPorEmail.set($event)" />
+        <span>Enviar e-mail ao tutor com o próximo passo para confirmar o horário</span>
+      </label>
+
+      <div class="notify-details" *ngIf="notificarPorEmail()">
+        <div *ngIf="clienteJaComContaParaNotificacao()" class="notify-hint">
+          Esta pessoa já compartilha dados com você: o e-mail leva ao login na PetSphere com os detalhes.
+        </div>
+        <div *ngIf="!clienteJaComContaParaNotificacao()" class="field">
+          <label>E-mail do tutor *</label>
+          <input
+            type="email"
+            autocomplete="email"
+            placeholder="usuario@servidor.com.br"
+            [ngModel]="tutorEmailGuest()"
+            (ngModelChange)="tutorEmailGuest.set($event)"
+          />
+          <small class="notify-hint">
+            Como ainda não temos conta vinculada com consentimento, o mesmo e-mail vai receber
+            links rápidos para confirmar ou recusar, além das instruções para criar conta se quiser.
+          </small>
+        </div>
+      </div>
+    </div>
+
     <div class="field">
-      <label>Observações</label>
-      <textarea rows="3" placeholder="Observações para este atendimento..." [ngModel]="obs()" (ngModelChange)="obs.set($event)"></textarea>
+      <label>Observações para a equipe</label>
+      <textarea
+        rows="3"
+        placeholder="Detalhes adicionais: humor do pet, lembretes, etc."
+        [ngModel]="obs()"
+        (ngModelChange)="obs.set($event)"
+      ></textarea>
     </div>
 
   </div>
 
   <footer class="sidebar-footer">
-    <button class="btn-cancel" (click)="close.emit()">Cancelar</button>
-    <button class="btn-save" [disabled]="!canSave()" (click)="onSave()">
-      Agendar
-    </button>
+    <button type="button" class="btn-cancel" (click)="close.emit()">Cancelar</button>
+    <button type="button" class="btn-save" [disabled]="!canSave()" (click)="onSave()">Agendar</button>
   </footer>
 </div>

@@ -103,6 +103,21 @@
       <h2>Fila de notificacoes emergenciais</h2>
       <p class="muted">Mockup de notificacoes em tempo real. Sem push real ou websocket nesta fase.</p>
 
+      <label class="fila-visao-field">
+        <span>Visão do profissional (mock)</span>
+        <select
+          class="fila-visao-select"
+          [ngModel]="queueMock.parceiroViewerVetId() ?? ''"
+          (ngModelChange)="queueMock.setParceiroViewerVetId($event || null)"
+        >
+          <option value="">Todos os profissionais</option>
+          <option *ngFor="let v of queueMock.vets()" [value]="v.id">{{ v.nome }}</option>
+        </select>
+      </label>
+      <p class="muted fila-visao-hint" *ngIf="queueMock.parceiroViewerVetId() as vid">
+        Exibindo pedidos da fila do tutor direcionados a <strong>{{ vetNomeNoPainel(vid) }}</strong> e demais notificações gerais.
+      </p>
+
       <div class="request-list" *ngIf="requestList().length > 0; else noRequests">
         <div class="request-card" *ngFor="let item of requestList()">
           <header>
@@ -111,6 +126,7 @@
           </header>
 
           <h3>{{ item.tutor.petNome }} · {{ item.tutor.petEspecie }} ({{ item.tutor.petRaca }})</h3>
+          <p class="muted" *ngIf="queueMock.isTutorLiveRequest(item.id)"><strong>Paciente aguardando atendimento</strong> — pedido vindo da fila do tutor (simulacao).</p>
           <p>{{ item.sintomas }}</p>
 
           <div class="meta">
@@ -260,10 +276,10 @@
 
   <section class="view-grid" *ngIf="activeTab() === 'dashboard'">
     <article class="card card-kpis">
-      <div class="kpi"><span>Atendimentos hoje</span><strong>{{ dashboardSeed().atendimentosHoje }}</strong></div>
-      <div class="kpi"><span>Taxa de aceite</span><strong>{{ dashboardSeed().taxaAceitePct }}%</strong></div>
-      <div class="kpi"><span>Tempo medio aceite</span><strong>{{ dashboardSeed().tempoMedioAceiteMin }} min</strong></div>
-      <div class="kpi"><span>Receita estimada</span><strong>{{ formatMoney(dashboardSeed().receitaEstimadaHoje) }}</strong></div>
+      <div class="kpi"><span>Atendimentos hoje</span><strong>{{ queueMock.dashboardSeed().atendimentosHoje }}</strong></div>
+      <div class="kpi"><span>Taxa de aceite</span><strong>{{ queueMock.dashboardSeed().taxaAceitePct }}%</strong></div>
+      <div class="kpi"><span>Tempo medio aceite</span><strong>{{ queueMock.dashboardSeed().tempoMedioAceiteMin }} min</strong></div>
+      <div class="kpi"><span>Receita estimada</span><strong>{{ formatMoney(queueMock.dashboardSeed().receitaEstimadaHoje) }}</strong></div>
     </article>
 
     <article class="card">
@@ -271,7 +287,7 @@
       <p class="muted">Mock visual para orientar layout de analytics antes da integracao real.</p>
 
       <div class="hour-load">
-        <div class="hour-row" *ngFor="let h of dashboardSeed().horas">
+        <div class="hour-row" *ngFor="let h of queueMock.dashboardSeed().horas">
           <span class="hour-label">{{ h.faixa }}</span>
           <div class="bar-wrap"><span class="bar" [style.width.%]="hourlyBarWidth(h.volume)"></span></div>
           <strong>{{ h.volume }}</strong>

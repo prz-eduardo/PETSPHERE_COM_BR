@@ -45,6 +45,16 @@ export class AgendaConfigService {
           workStart: 0,
           workEnd: 24,
         };
+      case 'DAYCARE':
+        return {
+          multiProfessional: false,
+          allowOverlap: true,
+          defaultDuration: 60,
+          servicesEnabled: false,
+          viewModes: ['DAY', 'WEEK', 'LIST'],
+          workStart: 7,
+          workEnd: 20,
+        };
     }
   }
 

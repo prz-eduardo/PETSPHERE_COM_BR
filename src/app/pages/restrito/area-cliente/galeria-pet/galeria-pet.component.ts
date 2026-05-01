@@ -5,6 +5,27 @@ import { ApiService, PetImagemPatchPayload } from '../../../../services/api.serv
 import { AuthService } from '../../../../services/auth.service';
 import { ToastService } from '../../../../services/toast.service';
 
+type GaleriaItem = {
+  id: number;
+  pet_id: string;
+  pet_nome: string;
+  url: string;
+  colecao_id?: number | null;
+  legenda?: string | null;
+  galeria_publica?: number | boolean | string | null;
+};
+
+type Colecao = { id: number; titulo: string };
+
+type CollectionTab = {
+  id: string;
+  kind: 'all' | 'unassigned' | 'collection';
+  label: string;
+  count: number;
+  pet_id?: string;
+  colecao_id?: number;
+};
+
 @Component({
   selector: 'app-galeria-pet',
   standalone: true,
@@ -19,12 +40,13 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
   @Output() close = new EventEmitter<void>();
   @Output() petsChanged = new EventEmitter<void>();
 
-  selectedPetId: string | null = null;
-  selectedPet: any = null;
+  selectedPetIds: string[] = [];
+  activeCollectionTabId = 'all';
 
   // Gallery state
-  galeriaItens: Array<{ id: number; url: string; colecao_id?: number | null; legenda?: string | null; galeria_publica?: number | boolean | string | null }> = [];
-  colecoes: Array<{ id: number; titulo: string }> = [];
+  galeriaItens: GaleriaItem[] = [];
+  colecoesByPet: Record<string, Colecao[]> = {};
+  collectionTabs: CollectionTab[] = [];
   novoTituloColecao = '';
 
   // Upload
@@ -32,7 +54,7 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
   fotoPreviews: string[] = [];
 
   // Gallery item editing
-  selectedGalleryItem: { id: number; url: string; colecao_id?: number | null; legenda?: string | null; galeria_publica?: number | boolean | string | null } | null = null;
+  selectedGalleryItem: GaleriaItem | null = null;
   galleryDraft: { colecao_id: number | null; legenda: string; galeria_publica: boolean } = { colecao_id: null, legenda: '', galeria_publica: true };
   savingGalleryItem = false;
   deletingGalleryItem = false;
@@ -73,64 +95,92 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnDestroy() {}
 
+  get selectedPets(): any[] {
+    const selected = new Set(this.selectedPetIds);
+    return (Array.isArray(this.pets) ? this.pets : []).filter((p) => selected.has(String(p.id || p._id)));
+  }
+
+  get hasSelectedPets(): boolean {
+    return this.selectedPetIds.length > 0;
+  }
+
+  get visibleGaleriaItens(): GaleriaItem[] {
+    return this.galeriaItens.filter((item) => this.itemMatchesActiveTab(item));
+  }
+
+  get uploadTargetPetId(): string | null {
+    return this.selectedPetIds[0] || null;
+  }
+
   private syncPetSelectionWithInputs() {
     const pets = Array.isArray(this.pets) ? this.pets : [];
     if (!pets.length) {
-      this.selectedPetId = null;
-      this.selectedPet = null;
+      this.selectedPetIds = [];
       this.galeriaItens = [];
+      this.colecoesByPet = {};
+      this.collectionTabs = [];
       return;
     }
 
-    if (this.selectedPetId) {
-      const keep = pets.find((p) => String(p.id || p._id) === String(this.selectedPetId));
-      if (keep) {
-        this.selectedPet = keep;
-        this.carregarGaleria();
-        return;
-      }
-    }
-
-    this.onPetSelect(pets[0].id || pets[0]._id);
+    const validIds = new Set(pets.map((p) => String(p.id || p._id)));
+    const kept = this.selectedPetIds.filter((id) => validIds.has(id));
+    this.selectedPetIds = kept.length ? kept : pets.map((p) => String(p.id || p._id));
+    this.carregarGaleria();
   }
 
-  onPetSelect(petId: string | number | null | undefined) {
+  togglePetSelection(petId: string | number | null | undefined) {
     if (!petId) return;
-    this.selectedPetId = String(petId);
-    this.selectedPet = this.pets.find(p => String(p.id || p._id) === this.selectedPetId);
-    
-    // Limpar estados antigos
-    this.galeriaItens = [];
-    this.colecoes = [];
-    this.fotoFiles = [];
-    this.fotoPreviews = [];
-    this.selectedGalleryItem = null;
-    this.novoTituloColecao = '';
-
-    if (this.selectedPet) {
-      this.carregarGaleria();
+    const id = String(petId);
+    if (this.selectedPetIds.includes(id)) {
+      this.selectedPetIds = this.selectedPetIds.filter((x) => x !== id);
+    } else {
+      this.selectedPetIds = [...this.selectedPetIds, id];
     }
+    if (!this.selectedPetIds.length) {
+      this.activeCollectionTabId = 'all';
+      this.collectionTabs = [{ id: 'all', kind: 'all', label: 'Todas', count: 0 }];
+      this.galeriaItens = [];
+      this.colecoesByPet = {};
+      this.selectedGalleryItem = null;
+      return;
+    }
+    this.selectedGalleryItem = null;
+    this.carregarGaleria();
+  }
+
+  isPetSelected(petId: string | number | null | undefined): boolean {
+    if (!petId) return false;
+    return this.selectedPetIds.includes(String(petId));
   }
 
   private carregarGaleria() {
-    if (!this.selectedPetId || !this.token) return;
+    const pets = this.selectedPets;
+    if (!pets.length) {
+      this.galeriaItens = [];
+      this.colecoesByPet = {};
+      this.collectionTabs = [{ id: 'all', kind: 'all', label: 'Todas', count: 0 }];
+      return;
+    }
 
-    const gi = this.selectedPet?.galeria_imagens;
-    if (Array.isArray(gi) && gi.length) {
-      this.galeriaItens = gi
-        .map((x: any) => ({
+    this.galeriaItens = pets
+      .flatMap((pet) => {
+        const petId = String(pet.id || pet._id);
+        const petNome = String(pet.nome || 'Pet sem nome');
+        const gi = pet?.galeria_imagens;
+        if (!Array.isArray(gi)) return [];
+        return gi.map((x: any) => ({
           id: Number(x.id),
+          pet_id: petId,
+          pet_nome: petNome,
           url: x.url,
           colecao_id: x.colecao_id != null ? Number(x.colecao_id) : null,
           legenda: x.legenda ?? null,
           galeria_publica: x.galeria_publica ?? 1,
-        }))
-        .filter((x: any) => x.url && String(x.url).trim() && !isNaN(x.id));
-    } else {
-      this.galeriaItens = [];
-    }
+        }));
+      })
+      .filter((x) => x.url && String(x.url).trim() && !isNaN(x.id));
 
-    this.carregarColecoes();
+    this.carregarColecoesSelecionadas();
   }
 
   onFileChange(ev: Event) {
@@ -174,28 +224,43 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
     this.fotoPreviews = [];
   }
 
-  carregarColecoes() {
-    if (!this.selectedPetId || !this.token) return;
-    this.api.listPetColecoes(this.selectedPetId, this.token).subscribe({
-      next: (r: any) => { this.colecoes = Array.isArray(r) ? r : []; },
-      error: () => { this.colecoes = []; }
+  carregarColecoesSelecionadas() {
+    if (!this.token || !this.selectedPetIds.length) {
+      this.colecoesByPet = {};
+      this.rebuildCollectionTabs();
+      return;
+    }
+    const selected = [...this.selectedPetIds];
+    this.colecoesByPet = {};
+    selected.forEach((petId) => {
+      this.api.listPetColecoes(petId, this.token!).subscribe({
+        next: (r: any) => {
+          this.colecoesByPet[petId] = Array.isArray(r) ? r : [];
+          this.rebuildCollectionTabs();
+        },
+        error: () => {
+          this.colecoesByPet[petId] = [];
+          this.rebuildCollectionTabs();
+        }
+      });
     });
   }
 
   criarColecao() {
-    if (!this.selectedPetId || !this.token) return;
+    const petId = this.uploadTargetPetId;
+    if (!petId || !this.token) return;
     const tit = (this.novoTituloColecao || '').trim() || 'Coleção';
-    this.api.createPetColecao(this.selectedPetId, { titulo: tit }, this.token).subscribe({
+    this.api.createPetColecao(petId, { titulo: tit }, this.token).subscribe({
       next: () => {
         this.novoTituloColecao = '';
         this.toast.success('Coleção criada. Atribua as fotos abaixo.');
-        this.carregarColecoes();
+        this.carregarColecoesSelecionadas();
       },
       error: (e: any) => this.toast.error(e?.error?.error || 'Não foi possível criar a coleção', 'Erro')
     });
   }
 
-  openGalleryItemSettings(item: { id: number; url: string; colecao_id?: number | null; legenda?: string | null; galeria_publica?: number | boolean | string | null }) {
+  openGalleryItemSettings(item: GaleriaItem) {
     if (!item?.id) return;
     this.selectedGalleryItem = item;
     this.galleryDraft = {
@@ -219,9 +284,8 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   saveGalleryItemSettings() {
-    if (!this.selectedPetId || !this.token) return;
     const item = this.selectedGalleryItem;
-    if (!item?.id) return;
+    if (!item?.id || !item.pet_id || !this.token) return;
 
     const payload: PetImagemPatchPayload = {
       colecao_id: this.galleryDraft.colecao_id,
@@ -230,11 +294,11 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
     };
 
     this.savingGalleryItem = true;
-    this.api.patchPetImagem(this.selectedPetId, item.id, payload, this.token).subscribe({
+    this.api.patchPetImagem(item.pet_id, item.id, payload, this.token).subscribe({
       next: (res: any) => {
         const imagem = (res as any)?.imagem;
         if (imagem) {
-          const idx = this.galeriaItens.findIndex((g) => g.id === item.id);
+          const idx = this.galeriaItens.findIndex((g) => g.id === item.id && g.pet_id === item.pet_id);
           if (idx >= 0) {
             this.galeriaItens[idx] = {
               ...this.galeriaItens[idx],
@@ -247,6 +311,7 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
         this.savingGalleryItem = false;
         this.toast.success('Configuração da foto salva.');
         this.selectedGalleryItem = null;
+        this.rebuildCollectionTabs();
       },
       error: (err: any) => {
         this.savingGalleryItem = false;
@@ -255,20 +320,22 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
     });
   }
 
-  onColecaoImagemChange(g: { id: number; url: string; colecao_id?: number | null }, raw: any) {
-    if (!this.selectedPetId || !this.token || !g?.id) return;
+  onColecaoImagemChange(g: GaleriaItem, raw: any) {
+    if (!g?.pet_id || !this.token || !g?.id) return;
     const v = raw == null || raw === '' || raw === 'null' || (typeof raw === 'string' && raw === '') ? null : Number(raw);
-    this.api.patchPetImagem(this.selectedPetId, g.id, { colecao_id: v as any }, this.token).subscribe({
+    this.api.patchPetImagem(g.pet_id, g.id, { colecao_id: v as any }, this.token).subscribe({
       next: (res) => {
         g.colecao_id = (res as any)?.imagem?.colecao_id != null ? Number((res as any).imagem.colecao_id) : v;
         this.toast.info('Coleção atualizada.');
+        this.rebuildCollectionTabs();
       },
       error: (e: any) => this.toast.error(e?.error?.error || 'Falha ao mover foto', 'Erro')
     });
   }
 
   salvarFotos() {
-    if (!this.selectedPetId || !this.token || !this.getClienteIdNum()) {
+    const petId = this.uploadTargetPetId;
+    if (!petId || !this.token || !this.getClienteIdNum()) {
       this.toast.error('Sessão inválida. Faça login novamente.', 'Erro');
       return;
     }
@@ -284,7 +351,7 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     this.carregando = true;
-    this.api.updatePet(this.getClienteIdNum()!, this.selectedPetId, fd, this.token).subscribe({
+    this.api.updatePet(this.getClienteIdNum()!, petId, fd, this.token).subscribe({
       next: (_res: any) => {
         this.toast.success('Fotos enviadas com sucesso!');
         this.fotoFiles = [];
@@ -299,18 +366,19 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
     });
   }
 
-  excluirFoto(item: { id: number; url: string } | null) {
+  excluirFoto(item: GaleriaItem | null) {
     if (!item || !item.id) return;
-    if (!this.selectedPetId || !this.token) return;
+    if (!item.pet_id || !this.token) return;
     if (typeof window !== 'undefined' && !window.confirm('Excluir esta foto da galeria? Essa ação não pode ser desfeita.')) {
       return;
     }
     this.deletingGalleryItem = true;
-    this.api.deletePetImagem(this.selectedPetId, item.id, this.token).subscribe({
+    this.api.deletePetImagem(item.pet_id, item.id, this.token).subscribe({
       next: () => {
-        this.galeriaItens = this.galeriaItens.filter((g) => g.id !== item.id);
+        this.galeriaItens = this.galeriaItens.filter((g) => !(g.id === item.id && g.pet_id === item.pet_id));
         this.toast.success('Foto removida.');
         this.selectedGalleryItem = null;
+        this.rebuildCollectionTabs();
         this.refreshPetsFromServer(() => { this.deletingGalleryItem = false; });
       },
       error: (err: any) => {
@@ -321,11 +389,11 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
     });
   }
 
-  definirComoCapa(item: { id: number; url: string } | null) {
+  definirComoCapa(item: GaleriaItem | null) {
     if (!item || !item.id) return;
-    if (!this.selectedPetId || !this.token) return;
+    if (!item.pet_id || !this.token) return;
     this.settingCoverGalleryItem = true;
-    this.api.patchPetImagem(this.selectedPetId, item.id, { set_as_cover: true }, this.token).subscribe({
+    this.api.patchPetImagem(item.pet_id, item.id, { set_as_cover: true }, this.token).subscribe({
       next: () => {
         this.toast.success('Foto definida como capa do pet.');
         this.settingCoverGalleryItem = false;
@@ -350,9 +418,12 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
     }
     this.api.getPetsByCliente(cid, tk).subscribe({
       next: (lista: any[]) => {
+        const prevSelected = [...this.selectedPetIds];
         this.pets = Array.isArray(lista) ? lista : [];
-        if (this.selectedPetId) {
-          this.selectedPet = this.pets.find((p) => String(p.id || p._id) === String(this.selectedPetId)) || null;
+        const validIds = new Set(this.pets.map((p) => String(p.id || p._id)));
+        this.selectedPetIds = prevSelected.filter((id) => validIds.has(id));
+        if (!this.selectedPetIds.length) {
+          this.selectedPetIds = this.pets.map((p) => String(p.id || p._id));
         }
         this.carregarGaleria();
         try { this.petsChanged.emit(); } catch {}
@@ -363,6 +434,67 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
         if (done) done();
       }
     });
+  }
+
+  openUploadPicker(input: HTMLInputElement) {
+    if (!this.hasSelectedPets) {
+      this.toast.info('Selecione ao menos um pet para enviar novas fotos.', 'Atenção');
+      return;
+    }
+    input.click();
+  }
+
+  private itemMatchesActiveTab(item: GaleriaItem): boolean {
+    if (this.activeCollectionTabId === 'all') return true;
+    if (this.activeCollectionTabId === 'unassigned') return item.colecao_id == null;
+    const tab = this.collectionTabs.find((x) => x.id === this.activeCollectionTabId && x.kind === 'collection');
+    if (!tab || !tab.pet_id || tab.colecao_id == null) return true;
+    return item.pet_id === tab.pet_id && Number(item.colecao_id) === Number(tab.colecao_id);
+  }
+
+  selectCollectionTab(tabId: string) {
+    this.activeCollectionTabId = tabId;
+  }
+
+  getColecoesDoItemSelecionado(): Colecao[] {
+    const petId = this.selectedGalleryItem?.pet_id;
+    if (!petId) return [];
+    return this.colecoesByPet[petId] || [];
+  }
+
+  private rebuildCollectionTabs() {
+    const tabs: CollectionTab[] = [
+      { id: 'all', kind: 'all', label: 'Todas', count: this.galeriaItens.length },
+      {
+        id: 'unassigned',
+        kind: 'unassigned',
+        label: 'Sem coleção',
+        count: this.galeriaItens.filter((item) => item.colecao_id == null).length,
+      },
+    ];
+
+    this.selectedPetIds.forEach((petId) => {
+      const pet = this.pets.find((p) => String(p.id || p._id) === petId);
+      const petNome = String(pet?.nome || 'Pet');
+      const colecoes = this.colecoesByPet[petId] || [];
+      colecoes.forEach((colecao) => {
+        tabs.push({
+          id: `collection:${petId}:${colecao.id}`,
+          kind: 'collection',
+          label: `${petNome}: ${colecao.titulo}`,
+          pet_id: petId,
+          colecao_id: Number(colecao.id),
+          count: this.galeriaItens.filter(
+            (item) => item.pet_id === petId && Number(item.colecao_id) === Number(colecao.id),
+          ).length,
+        });
+      });
+    });
+
+    this.collectionTabs = tabs;
+    if (!this.collectionTabs.some((tab) => tab.id === this.activeCollectionTabId)) {
+      this.activeCollectionTabId = 'all';
+    }
   }
 
   fechar() {

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 import {
   Recurso,
@@ -163,6 +163,12 @@ export class AgendaApiService {
     data_hora_inicio?: string | Date;
     data_hora_fim?: string | Date;
     observacoes?: string;
+    /** Fluxo opcional de e-mail para o tutor (backend envia modelo certo conforme modo). */
+    tutor_notificacao?: {
+      enviar?: boolean;
+      modo?: 'guest';
+      email_guest?: string;
+    };
   }): Promise<Agendamento> {
     const inicioValue = data.data_hora_inicio ?? data.inicio;
     const fimValue = data.data_hora_fim ?? data.fim;
@@ -530,6 +536,17 @@ export class AgendaApiService {
     return response.permissoes || [];
   }
 
+  async revokePermissaoDados(id: number): Promise<PermissaoDadosRow | null> {
+    const response = await lastValueFrom(
+      this.http.patch<{ permissao: PermissaoDadosRow | null }>(
+        `${API_BASE}/parceiro/permissoes-dados/${id}/revogar`,
+        {},
+        { headers: this.getHeaders() }
+      )
+    );
+    return response.permissao || null;
+  }
+
   /** Tutor + endereço + pets com permissão LGPD concedida ao parceiro. */
   async getClientePanoramaDados(clienteId: number): Promise<PanoramaClientePermitidoResponse> {
     return await lastValueFrom(
@@ -605,12 +622,15 @@ export class AgendaApiService {
     data_inicio?: string;
     data_fim?: string;
     search?: string;
+    /** Filtra por uso do espaço vinculado (`hospedagem` | `daycare`); `ambos` inclui nos dois. */
+    uso?: 'hospedagem' | 'daycare';
   }): Promise<HotelReservaRow[]> {
-    const params: Record<string, string> = {};
-    if (filters?.status) params['status'] = filters.status;
-    if (filters?.data_inicio) params['data_inicio'] = filters.data_inicio;
-    if (filters?.data_fim) params['data_fim'] = filters.data_fim;
-    if (filters?.search) params['search'] = filters.search;
+    let params = new HttpParams();
+    if (filters?.status) params = params.set('status', filters.status);
+    if (filters?.data_inicio) params = params.set('data_inicio', filters.data_inicio);
+    if (filters?.data_fim) params = params.set('data_fim', filters.data_fim);
+    if (filters?.search) params = params.set('search', filters.search);
+    if (filters?.uso) params = params.set('uso', filters.uso);
 
     const response = await lastValueFrom(
       this.http.get<{ reservas: HotelReservaRow[] }>(
@@ -703,11 +723,13 @@ export class AgendaApiService {
     return response.reserva || null;
   }
 
-  async listHotelLeitos(): Promise<HotelLeitoRow[]> {
+  async listHotelLeitos(filters?: { uso?: 'hospedagem' | 'daycare' }): Promise<HotelLeitoRow[]> {
+    let params = new HttpParams();
+    if (filters?.uso) params = params.set('uso', filters.uso);
     const response = await lastValueFrom(
       this.http.get<{ leitos: HotelLeitoRow[] }>(
         `${PARCEIRO_HOSPEDAGEM}/leitos`,
-        { headers: this.getHeaders() }
+        { headers: this.getHeaders(), params }
       )
     );
     return response.leitos || [];
@@ -740,6 +762,7 @@ export class AgendaApiService {
           nome: string;
           tipo?: string;
           capacidade?: number;
+          uso_operacao?: HotelUsoOperacao;
           foto_url?: string | null;
           exibir_na_vitrine?: boolean | number;
           preco_diaria?: number | null;
@@ -765,6 +788,7 @@ export class AgendaApiService {
           nome: string;
           tipo: string;
           capacidade: number;
+          uso_operacao: HotelUsoOperacao;
           foto_url: string | null;
           exibir_na_vitrine: boolean | number;
           preco_diaria: number | null;
@@ -782,11 +806,13 @@ export class AgendaApiService {
     return response.leito || null;
   }
 
-  async getHotelResumo(): Promise<HotelResumoRow | null> {
+  async getHotelResumo(filters?: { uso?: 'hospedagem' | 'daycare' }): Promise<HotelResumoRow | null> {
+    let params = new HttpParams();
+    if (filters?.uso) params = params.set('uso', filters.uso);
     const response = await lastValueFrom(
       this.http.get<{ resumo: HotelResumoRow | null }>(
         `${PARCEIRO_HOSPEDAGEM}/resumo`,
-        { headers: this.getHeaders() }
+        { headers: this.getHeaders(), params }
       )
     );
     return response.resumo || null;
@@ -801,6 +827,9 @@ export interface PermissaoDadosRow {
   escopo: string;
   cliente_nome?: string | null;
   cliente_email?: string | null;
+  data_concessao?: string | null;
+  data_revogacao?: string | null;
+  criado_em?: string | null;
 }
 
 export interface PanoramaClientePermitidoPet {
@@ -930,11 +959,15 @@ export interface HotelMidiaPorAmbiente {
 
 export type HotelVitrineNivel = 'basico' | 'destaque' | 'top';
 
+export type HotelUsoOperacao = 'hospedagem' | 'daycare' | 'ambos';
+
 export interface HotelLeitoRow {
   id: number;
   nome: string;
   tipo: string;
   capacidade: number;
+  /** Uso principal do espaço (hotel pernoite, creche diurna ou ambos). */
+  uso_operacao?: HotelUsoOperacao | string | null;
   foto_url?: string | null;
   exibir_na_vitrine?: number | boolean;
   preco_diaria?: number | null;

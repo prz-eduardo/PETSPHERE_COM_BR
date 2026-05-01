@@ -1,15 +1,18 @@
 @use '../../../shared/styles/admin-tokens' as *;
 
 :host {
-  display: block;
-  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
 }
 
 .parceiro-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  height: 100vh; /* fallback */
+  flex: 1 1 0%;
+  min-height: 0;
   overflow: hidden;
   background: var(--admin-bg-gradient);
   color: var(--admin-text);
@@ -219,6 +222,41 @@
   flex-shrink: 0;
 }
 
+/* ── Wizard session badge ── */
+.wizard-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+
+  &:hover { background: #bfdbfe; }
+
+  &__dot {
+    color: #3b82f6;
+    font-size: 0.72rem;
+    animation: wizard-pulse 1.5s infinite;
+  }
+}
+
+@keyframes wizard-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.nav-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+
 .header-user-area {
   display: flex;
   align-items: center;
@@ -343,10 +381,16 @@
   display: none;
 }
 
+/* Conteúdo roteado: permite scroll; sem isso páginas longas (ex.: Transporte pet) cortam o rodapé */
 .parceiro-main > :not(router-outlet) {
   flex: 1 1 0%;
   min-width: 0;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Mobile hamburger — desktop: oculto */
@@ -539,7 +583,7 @@
     min-width: 0;
   }
 
-  .mobile-group-btn__leading .fa-flask {
+  .mobile-group-btn__leading i {
     width: 20px;
     text-align: center;
     color: var(--admin-muted-2);
@@ -561,7 +605,7 @@
     background: rgba(255, 255, 255, 0.06);
   }
 
-  .mobile-group-btn:hover .fa-flask {
+  .mobile-group-btn:hover .mobile-group-btn__leading i {
     color: var(--admin-primary);
   }
 

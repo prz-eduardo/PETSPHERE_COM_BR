@@ -214,6 +214,34 @@
   background: rgba(239, 154, 154, 0.16);
 }
 
+.fila-visao-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0 8px;
+  font-size: 13px;
+  color: rgba(231, 236, 243, 0.88);
+
+  span {
+    font-weight: 600;
+  }
+}
+
+.fila-visao-select {
+  max-width: 360px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  color: #e7ecf3;
+  font: inherit;
+}
+
+.fila-visao-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+
 .request-list {
   margin-top: 12px;
   display: grid;

@@ -12,7 +12,11 @@ import {
 } from '../agenda/services/agenda-api.service';
 import { SideDrawerComponent } from '../../../shared/side-drawer/side-drawer.component';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
+import { PartnerType } from '../../../types/agenda.types';
 import { EspacoConfigWizardComponent } from '../espaco-config-wizard/espaco-config-wizard.component';
+import { defaultCheckInOutForModo, type HospedagemModoFiltro } from './hospedagem-modo-presets';
+
+const LS_HOSPEDAGEM_MODO = 'petsphere_hospedagem_modo';
 
 type PeriodoFiltro = 'todos' | 'hoje' | '7dias' | '30dias';
 type AbaAtiva = 'reservas' | 'leitos';
@@ -95,6 +99,15 @@ export class ReservasHotelComponent implements OnInit {
   readonly espacoWizardOpen = signal(false);
   readonly espacoWizardLeito = signal<HotelLeitoRow | null>(null);
 
+  readonly partnerTipo = signal<PartnerType>('PETSHOP');
+  /** Para parceiros hotel (mistos): segmento ativo. Creche-only fixa em daycare. */
+  readonly modoSegmento = signal<HospedagemModoFiltro>('hospedagem');
+
+  readonly isDaycarePartner = computed(() => this.partnerTipo() === 'DAYCARE');
+  readonly effectiveModoFiltro = computed<HospedagemModoFiltro>(() =>
+    this.partnerTipo() === 'DAYCARE' ? 'daycare' : this.modoSegmento()
+  );
+
   /** Rascunho no drawer de detalhes para salvar notas operacionais */
   readonly detailObservacoes = signal('');
   readonly detailCuidados = signal('');
@@ -126,7 +139,45 @@ export class ReservasHotelComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
+    await this.auth.refreshPartnerProfile();
+    const tipo = this.auth.getCurrentParceiro()?.tipo ?? 'PETSHOP';
+    this.partnerTipo.set(tipo);
+    if (tipo === 'DAYCARE') {
+      this.modoSegmento.set('daycare');
+    } else {
+      try {
+        const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(LS_HOSPEDAGEM_MODO) : null;
+        if (raw === 'hospedagem' || raw === 'daycare') this.modoSegmento.set(raw);
+      } catch {
+        /* noop */
+      }
+    }
     await Promise.all([this.loadHospedagemCatalog(), this.reload()]);
+  }
+
+  setModoSegmento(m: HospedagemModoFiltro): void {
+    if (this.partnerTipo() === 'DAYCARE') return;
+    this.modoSegmento.set(m);
+    try {
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(LS_HOSPEDAGEM_MODO, m);
+    } catch {
+      /* noop */
+    }
+    void this.reload();
+  }
+
+  private checkInOutIsoForPayload(checkInYmd: string, checkOutYmd: string): { check_in: string; check_out: string } {
+    const modo = this.effectiveModoFiltro();
+    if (modo === 'daycare') {
+      return {
+        check_in: `${checkInYmd}T08:00:00`,
+        check_out: `${checkOutYmd}T18:00:00`,
+      };
+    }
+    return {
+      check_in: `${checkInYmd}T14:00:00`,
+      check_out: `${checkOutYmd}T12:00:00`,
+    };
   }
 
   private async loadHospedagemCatalog(): Promise<void> {
@@ -163,8 +214,9 @@ export class ReservasHotelComponent implements OnInit {
     this.draftTutor.set('');
     this.draftPet.set('');
     this.draftLeitoId.set(this.leitos()[0]?.id ?? null);
-    this.draftCheckIn.set('');
-    this.draftCheckOut.set('');
+    const def = defaultCheckInOutForModo(this.effectiveModoFiltro());
+    this.draftCheckIn.set(def.checkInDate);
+    this.draftCheckOut.set(def.checkOutDate);
     this.draftObservacoes.set('');
     this.draftCuidadosEspeciais.set('');
     this.draftAlimentacaoObs.set('');
@@ -219,6 +271,14 @@ export class ReservasHotelComponent implements OnInit {
     const v = String(leito.vitrine_nivel || 'basico').toLowerCase();
     if (v === 'destaque') return 'Destaque';
     if (v === 'top') return 'Top';
+    return null;
+  }
+
+  leitoUsoLabel(leito: HotelLeitoRow): string | null {
+    const u = String(leito.uso_operacao || 'hospedagem').toLowerCase();
+    if (u === 'daycare') return 'Creche / dia';
+    if (u === 'ambos') return 'Hotel e creche';
+    if (u === 'hospedagem') return 'Hospedagem';
     return null;
   }
 
@@ -498,14 +558,15 @@ export class ReservasHotelComponent implements OnInit {
       this.saving.set(true);
       this.formError.set(null);
       const nights = Math.max(1, this.diffDays(checkIn, checkOut));
+      const { check_in, check_out } = this.checkInOutIsoForPayload(checkIn, checkOut);
       const created = await this.agendaApi.createHotelReserva({
         leito_id: this.draftLeitoId() || null,
         cliente_id: clienteId && permissao === 'concedido' ? clienteId : null,
         pet_id: clienteId && permissao === 'concedido' ? petId || null : null,
         cliente_nome_snapshot: tutorNome,
         pet_nome_snapshot: petNome,
-        check_in: `${checkIn}T12:00:00`,
-        check_out: `${checkOut}T12:00:00`,
+        check_in,
+        check_out,
         status: 'pendente',
         valor_total: nights * 135,
         observacoes: this.draftObservacoes().trim() || null,
@@ -578,10 +639,11 @@ export class ReservasHotelComponent implements OnInit {
     this.loading.set(true);
     this.loadError.set(null);
     try {
+      const uso = this.effectiveModoFiltro();
       const [reservas, leitos, resumo] = await Promise.all([
-        this.agendaApi.listHotelReservas(),
-        this.agendaApi.listHotelLeitos(),
-        this.agendaApi.getHotelResumo(),
+        this.agendaApi.listHotelReservas({ uso }),
+        this.agendaApi.listHotelLeitos({ uso }),
+        this.agendaApi.getHotelResumo({ uso }),
       ]);
       this.reservas.set(reservas);
       this.leitos.set(leitos);

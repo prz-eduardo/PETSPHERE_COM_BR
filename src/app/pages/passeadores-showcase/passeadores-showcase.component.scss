@@ -1,0 +1,276 @@
+@import 'leaflet/dist/leaflet.css';
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.public-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.public-top__brand {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.public-top__nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.public-top__nav a {
+  color: #e2e8f0;
+  text-decoration: none;
+}
+
+.public-top__nav a:hover {
+  text-decoration: underline;
+}
+
+.public-top__cta {
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  background: #0ea5e9;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.public-top__cta:hover {
+  background: #0284c7;
+  text-decoration: none !important;
+}
+
+.wrap {
+  padding: 1.25rem 1.5rem 2rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.hero {
+  margin-bottom: 1rem;
+}
+
+.hero h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  color: #0f172a;
+}
+
+.lead {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #475569;
+  max-width: 58ch;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.muted {
+  color: #64748b;
+}
+
+.small {
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+}
+
+.subh {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.loading {
+  margin-top: 1rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.2fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1rem 1.25rem;
+  color: #0f172a;
+}
+
+.panel--empty {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.tbl th,
+.tbl td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.5rem 0.35rem;
+  text-align: left;
+}
+
+.tbl tbody tr {
+  cursor: pointer;
+}
+
+.tbl tbody tr:hover {
+  background: rgba(14, 165, 233, 0.06);
+}
+
+.row-active {
+  background: rgba(14, 165, 233, 0.12) !important;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.badge--agendado {
+  background: #dbeafe;
+  color: #1e3a5f;
+}
+
+.badge--em_andamento {
+  background: #fef3c7;
+  color: #78350f;
+}
+
+.badge--concluido {
+  background: #d1fae5;
+  color: #064e3b;
+}
+
+.walker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.88rem;
+}
+
+.walker-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.walker-list li.inactive {
+  opacity: 0.65;
+}
+
+.walker-list .meta {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.pill {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+}
+
+.map-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: #94a3b8;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--ghost {
+  background: transparent;
+}
+
+.btn--on {
+  border-color: #0ea5e9;
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: #0369a1;
+}
+
+.map-host {
+  height: min(52vh, 420px);
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  z-index: 0;
+}
+
+:host ::ng-deep .leaflet-container {
+  font-family: inherit;
+}

@@ -1,13 +1,32 @@
 import {
-  Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, signal, computed
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  signal,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  Agendamento, AgendaConfig, AgendaStatus,
-  PetResumido, Profissional, Servico, SlotInfo
+  Agendamento,
+  AgendaSavePayload,
+  AgendaConfig,
+  AgendaStatus,
+  PetResumido,
+  Profissional,
+  Servico,
+  SlotInfo,
 } from '../../../../types/agenda.types';
-import { AgendaApiService } from '../services/agenda-api.service';
+import {
+  AgendaApiService,
+  DiscoveryCandidateRow,
+  PanoramaClientePermitidoPet,
+  PermissaoDadosRow,
+} from '../services/agenda-api.service';
 import { getTime } from '../utils/date-helpers';
 
 @Component({
@@ -22,15 +41,31 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
   @Input() profissionais: Profissional[] = [];
   @Input() servicos: Servico[] = [];
   @Input() config!: AgendaConfig;
-  /** Pets derivados dos agendamentos retornados pela API (quando o tutor compartilhou dados). */
+  /** Pets derivados dos agendamentos retornados pela API (fallback quando não há panorama). */
   @Input() catalogPets: PetResumido[] = [];
   @Input() existingAgendamentos: Agendamento[] = [];
-  @Output() save = new EventEmitter<Agendamento>();
+  @Output() save = new EventEmitter<AgendaSavePayload>();
   @Output() close = new EventEmitter<void>();
 
-  // Form fields
   searchPet = signal('');
   selectedPet = signal<PetResumido | null>(null);
+
+  tutorQuery = signal('');
+  tutorCandidates = signal<DiscoveryCandidateRow[]>([]);
+  discoverLoading = signal(false);
+  discoverError = signal<string | null>(null);
+
+  selectedCliente = signal<DiscoveryCandidateRow | null>(null);
+
+  panoramaLoading = signal(false);
+  panoramaPets = signal<PanoramaClientePermitidoPet[]>([]);
+
+  /** Fluxo rápido sem discovery (nome + pet + telefone/email). */
+  guestWalkInMode = signal(false);
+
+  tutorEmailGuest = signal('');
+  notificarPorEmail = signal(true);
+
   selectedProfId = signal('');
   selectedServicoId = signal('');
   dateStr = signal('');
@@ -38,19 +73,27 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
   durMin = signal(60);
   obs = signal('');
 
-  allPets = signal<PetResumido[]>([]);
+  allPetsCatalog = signal<PetResumido[]>([]);
+
   filteredPets = computed(() => {
-    const q = this.searchPet().toLowerCase();
-    if (!q) return this.allPets().slice(0, 8);
-    return this.allPets().filter(p =>
-      p.nome.toLowerCase().includes(q) || p.tutor.nome.toLowerCase().includes(q)
-    ).slice(0, 8);
+    const panorama = this.panoramaPets().map((p) => this.fromPanoramaPet(p));
+    if (panorama.length) return panorama;
+    const q = this.searchPet().toLowerCase().trim();
+    const base = this.allPetsCatalog();
+    if (!q) return base.slice(0, 12);
+    return base.filter(
+      (pet) =>
+        pet.nome.toLowerCase().includes(q) ||
+        pet.tutor.nome.toLowerCase().includes(q) ||
+        (pet.tutor.email && pet.tutor.email.toLowerCase().includes(q)) ||
+        (pet.tutor.telefone && pet.tutor.telefone.replace(/\D/g, '').includes(q.replace(/\D/g, ''))),
+    ).slice(0, 12);
   });
 
   sugeridoHorario = computed(() => {
     const now = new Date();
     const busy = this.existingAgendamentos
-      .filter(a => a.status !== 'CANCELADO')
+      .filter((a) => a.status !== 'CANCELADO')
       .sort((a, b) => getTime(a.inicio) - getTime(b.inicio));
 
     for (let h = Math.max(now.getHours(), this.config?.workStart ?? 8); h < (this.config?.workEnd ?? 19); h++) {
@@ -60,7 +103,7 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
         if (candidate <= now) continue;
         const dur = this.durMin() * 60000;
         const conflict = busy.find(
-          a => a.inicio < new Date(candidate.getTime() + dur) && a.fim > candidate
+          (a) => a.inicio < new Date(candidate.getTime() + dur) && a.fim > candidate,
         );
         if (!conflict) {
           return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -72,34 +115,33 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
 
   showPetDropdown = signal(false);
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['catalogPets']) {
-      this.allPets.set(this.catalogPets || []);
-    }
-  }
-  // Permission request state
   permissionStatus = signal<'pendente' | 'concedido' | 'revogado' | null>(null);
   showRequestModal = signal(false);
   requesting = signal(false);
   inviteSent = signal(false);
-  inviteInfo: any = null;
+  inviteInfo: unknown = null;
   emailInput = signal('');
+
+  private discoveryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private agendaApi: AgendaApiService) {}
 
-  ngOnInit(): void {
-    this.allPets.set(this.catalogPets || []);
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['catalogPets']) {
+      this.allPetsCatalog.set(this.catalogPets || []);
+    }
+  }
 
-    // Pre-fill from slot
+  ngOnInit(): void {
+    this.allPetsCatalog.set(this.catalogPets || []);
+
     if (this.slot) {
       const d = this.slot.hora;
       this.dateStr.set(d.toISOString().substring(0, 10));
       this.timeStr.set(
-        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
       );
-      if (this.slot.profissionalId) {
-        this.selectedProfId.set(this.slot.profissionalId);
-      }
+      if (this.slot.profissionalId) this.selectedProfId.set(this.slot.profissionalId);
     } else {
       const today = new Date();
       this.dateStr.set(today.toISOString().substring(0, 10));
@@ -116,11 +158,104 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
     }
   }
 
-  selectPet(pet: PetResumido): void {
-    this.selectedPet.set(pet);
-    this.searchPet.set(pet.nome);
-    this.showPetDropdown.set(false);
-    void this.loadPermissaoForSelectedPet();
+  onTutorQueryChange(value: string): void {
+    this.tutorQuery.set(value);
+    this.discoverError.set(null);
+
+    if (this.discoveryTimer) clearTimeout(this.discoveryTimer);
+    const q = value.trim();
+
+    if (this.guestWalkInMode()) {
+      return;
+    }
+
+    if (!q.length) {
+      this.tutorCandidates.set([]);
+      return;
+    }
+    if (q.length < 3) {
+      this.tutorCandidates.set([]);
+      return;
+    }
+
+    this.discoveryTimer = setTimeout(() => void this.runDiscovery(q), 280);
+  }
+
+  private async runDiscovery(q: string): Promise<void> {
+    if (this.guestWalkInMode()) return;
+    this.discoverLoading.set(true);
+    try {
+      const rows = await this.agendaApi.discoverClientes(q);
+      this.tutorCandidates.set(Array.isArray(rows) ? rows : []);
+      this.discoverError.set(null);
+    } catch (e: unknown) {
+      const msg =
+        (e as { error?: { error?: string } })?.error?.error || 'Não foi possível buscar tutores.';
+      this.discoverError.set(msg);
+      this.tutorCandidates.set([]);
+    } finally {
+      this.discoverLoading.set(false);
+    }
+  }
+
+  async selectClienteDiscovered(row: DiscoveryCandidateRow): Promise<void> {
+    this.selectedCliente.set(row);
+    this.selectedPet.set(null);
+    this.searchPet.set('');
+    this.tutorQuery.set(row.nome_masked || row.telefone_masked || row.email_masked || '');
+    this.tutorCandidates.set([]);
+    this.panoramaPets.set([]);
+
+    void this.loadPermissaoForSelectedCliente(row);
+    this.prefillNotificationsFromCliente(row);
+    await this.maybeLoadPanorama(Number(row.cliente_id), row);
+  }
+
+  /** Carrega lista de pets permitidos quando o consentimento permite. */
+  private async maybeLoadPanorama(clienteId: number, cand?: DiscoveryCandidateRow | null): Promise<void> {
+    const effective = cand ?? this.selectedCliente();
+    if (!rowClienteHasConcedido(effective)) return;
+    this.panoramaLoading.set(true);
+    try {
+      const pan = await this.agendaApi.getClientePanoramaDados(clienteId);
+      const pets = Array.isArray(pan?.pets) ? pan.pets : [];
+      this.panoramaPets.set(pets);
+      if (pets.length === 1) this.selectPet(this.fromPanoramaPet(pets[0]));
+    } catch {
+      this.panoramaPets.set([]);
+    } finally {
+      this.panoramaLoading.set(false);
+    }
+  }
+
+  /** Usa conta da própria plataforma: notificação no e-mail oficial do cliente quando possível. */
+  clienteJaComContaParaNotificacao(): boolean {
+    return rowClienteHasConcedido(this.selectedCliente());
+  }
+
+  private prefillNotificationsFromCliente(row: DiscoveryCandidateRow | null): void {
+    const emailMasked = row?.email_masked;
+    const looksEmail = emailMasked && emailMasked.includes('@');
+    const low = typeof emailMasked === 'string' && looksEmail ? emailMasked.toLowerCase().trim() : '';
+
+    /** Quando já cadastrados e há e-mail válido disponível pela descoberta, guest mail não obrigatório. */
+    if (low.includes('@')) {
+      this.tutorEmailGuest.set(low.includes('*') ? '' : low);
+      return;
+    }
+    const q = this.tutorQuery().trim();
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q)) this.tutorEmailGuest.set(q.toLowerCase());
+    else if (looksEmail === false || !low.includes('@')) {
+      /** sem e-mail válido disponível aqui → depende da digitação do parceiro (convidados). */
+      this.tutorEmailGuest.set('');
+    }
+  }
+
+  clearClienteSelection(): void {
+    this.selectedCliente.set(null);
+    this.panoramaPets.set([]);
+    this.permissionStatus.set(null);
+    this.tutorEmailGuest.set('');
   }
 
   clearPet(): void {
@@ -128,48 +263,169 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
     this.searchPet.set('');
   }
 
+  toggleGuestWalkIn(): void {
+    const next = !this.guestWalkInMode();
+    this.guestWalkInMode.set(next);
+    if (next) {
+      this.selectedCliente.set(null);
+      this.tutorCandidates.set([]);
+      this.panoramaPets.set([]);
+      this.permissionStatus.set(null);
+      this.selectedPet.set(null);
+    }
+  }
+
+  /** PetResumido a partir da linha de panorama autorizado pelo tutor. */
+  private fromPanoramaPet(p: PanoramaClientePermitidoPet): PetResumido {
+    const c = this.selectedCliente();
+    const nomeTutor = c?.nome_masked || 'Tutor';
+
+    let tutorId = '';
+    if (c?.cliente_id) tutorId = String(c.cliente_id);
+
+    const especieNorm = (String(p.especie || '').toLowerCase()) as string;
+    const especie: PetResumido['especie'] =
+      especieNorm.startsWith('gato') ? 'Gato' : especieNorm.startsWith('c') ? 'Cão' : 'Outro';
+
+    return {
+      id: String(p.id),
+      nome: String(p.nome || 'Pet'),
+      especie,
+      raca: p.raca || undefined,
+      alergias: [],
+      observacoes: '',
+      temMedicacao: false,
+      temRestricao: false,
+      temAlimentacaoEspecial: false,
+      historicoRecente: [],
+      tutor: {
+        id: tutorId,
+        nome: nomeTutor.replace(/\*+/g, '').trim() || 'Tutor',
+        telefone:
+          c?.telefone_masked && !/[•*]/.test(c.telefone_masked)
+            ? c.telefone_masked
+            : '',
+        email: extractEmailGuess(c?.email_masked),
+      },
+    };
+  }
+
+  selectPet(pet: PetResumido): void {
+    this.selectedPet.set(pet);
+    this.searchPet.set(pet.nome);
+    this.showPetDropdown.set(false);
+
+    const fromPanorama =
+      !!this.selectedCliente()?.cliente_id &&
+      this.panoramaPets().some((pp) => String(pp.id) === pet.id);
+    if (fromPanorama) {
+      void this.loadPermissaoForSelectedCliente(this.selectedCliente());
+      return;
+    }
+
+    void this.loadPermissaoLegacyCatalogPet(pet);
+  }
+
   onServicoChange(id: string): void {
     this.selectedServicoId.set(id);
-    const s = this.servicos.find(s => s.id === id);
+    const s = this.servicos.find((serv) => serv.id === id);
     if (s) this.durMin.set(s.duracaoMin);
   }
 
   useSugestao(): void {
-    if (this.sugeridoHorario()) {
-      this.timeStr.set(this.sugeridoHorario()!);
-    }
+    if (this.sugeridoHorario()) this.timeStr.set(this.sugeridoHorario()!);
   }
 
   getSelectedServico(): Servico | null {
-    return this.servicos.find(s => s.id === this.selectedServicoId()) ?? null;
+    return this.servicos.find((s) => s.id === this.selectedServicoId()) ?? null;
   }
 
   getSelectedProfissional(): Profissional | null {
-    return this.profissionais.find(p => p.id === this.selectedProfId()) ?? null;
+    return this.profissionais.find((p) => p.id === this.selectedProfId()) ?? null;
+  }
+
+  podeEnviarNotificacao(): boolean {
+    if (!this.notificarPorEmail()) return false;
+    if (this.clienteJaComContaParaNotificacao()) return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.tutorEmailGuest().trim());
+  }
+
+  podeAgendarSomenteSnapshots(): boolean {
+    /** Permissão pendente ou sem vínculo: parceiro ainda marca na grade com nome contato manual. */
+    return this.guestWalkInMode();
   }
 
   canSave(): boolean {
-    const nomeCliente =
-      (this.selectedPet()?.tutor.nome ?? this.searchPet().trim());
-    return !!(
-      nomeCliente.length >= 2 &&
-      this.selectedProfId() &&
-      this.selectedServicoId() &&
-      this.dateStr() &&
-      this.timeStr()
-    );
+    const servOk = !!(this.selectedProfId() && this.selectedServicoId() && this.dateStr() && this.timeStr());
+
+    let tutorOk = false;
+    if (this.selectedPet()) tutorOk = true;
+    else if (this.guestWalkInMode()) {
+      tutorOk = this.tutorQuery().trim().length >= 2;
+    } else {
+      const nomeRef = this.tutorQuery().trim();
+      tutorOk = nomeRef.length >= 2 || this.selectedCliente() != null;
+    }
+
+    if (!servOk || !tutorOk) return false;
+
+    if (this.notificarPorEmail() && !this.podeEnviarNotificacao()) return false;
+
+    return true;
+  }
+
+  private buildNotificationsPayload(): AgendaSavePayload['tutorNotificacao'] | undefined {
+    if (!this.notificarPorEmail()) return { enviar: false };
+
+    if (this.clienteJaComContaParaNotificacao() && rowClienteHasConcedido(this.selectedCliente())) {
+      return { enviar: true, modo: 'cadastrado' };
+    }
+    const em = this.tutorEmailGuest().trim().toLowerCase();
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      return { enviar: true, modo: 'guest', emailGuest: em };
+    }
+    /** fallback: mesmo sem formato perfeito, não bloqueia agendamento de mesa quando notificação falhar */
+    return { enviar: false, modo: 'guest' };
+  }
+
+  private buildClienteIdSnapshotPetId(): {
+    clienteId?: number;
+    petId?: number | null;
+  } {
+    const row = this.selectedCliente();
+    if (!rowClienteHasConcedido(row)) return {};
+
+    const pet = this.selectedPet();
+    let petIdNum: number | null = null;
+    if (pet && this.panoramaPets().length) {
+      const matched = this.panoramaPets().some((pp) => String(pp.id) === String(pet.id));
+      const numericOk = /^[0-9]+$/.test(String(pet.id));
+      if (matched && numericOk) petIdNum = Number(pet.id);
+    }
+
+    return {
+      clienteId: row!.cliente_id,
+      petId: petIdNum,
+    };
   }
 
   onSave(): void {
     if (!this.canSave()) return;
 
-    // If a pet was selected but partner doesn't have granted permission,
-    // prompt to request access instead of saving directly.
-    if (this.selectedPet() && this.permissionStatus() !== 'concedido') {
-      if (this.permissionStatus() === 'pendente') {
-        // Invitation already sent — do not create full pet-linked appointment
-        return;
-      }
+    /* Catálogo local (pets das visitas sem discovery): igual fluxo antigo LGPD */
+    if (
+      this.selectedPet() &&
+      this.permissionStatus() === 'pendente' &&
+      !this.selectedCliente()
+    ) {
+      return;
+    }
+    if (
+      this.selectedPet() &&
+      this.permissionStatus() !== 'concedido' &&
+      this.permissionStatus() != null &&
+      !this.selectedCliente()
+    ) {
       this.openRequestModal();
       return;
     }
@@ -184,27 +440,39 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
     const serv = this.getSelectedServico();
     if (!prof || !serv) return;
 
-    const nomeCliente =
-      (this.selectedPet()?.tutor.nome ?? this.searchPet().trim());
-    const pet: PetResumido = this.selectedPet() ?? {
-      id: 'manual',
-      nome: '—',
-      especie: 'Outro',
-      alergias: [],
-      temMedicacao: false,
-      temRestricao: false,
-      temAlimentacaoEspecial: false,
-      historicoRecente: [],
-      tutor: {
+    const nomeCliente = (
+      this.selectedPet()?.tutor?.nome ??
+      this.tutorQuery().trim() ??
+      ''
+    ).trim();
+
+    const tutorMeta = this.buildClienteIdSnapshotPetId();
+
+    const petManual: PetResumido =
+      this.selectedPet() ??
+      ({
         id: 'manual',
-        nome: nomeCliente,
-        telefone: '',
-      },
-    };
+        nome: this.searchPet().trim() || '—',
+        especie: 'Outro',
+        alergias: [],
+        temMedicacao: false,
+        temRestricao: false,
+        temAlimentacaoEspecial: false,
+        historicoRecente: [],
+        tutor: {
+          id: 'manual',
+          nome: nomeCliente || 'Cliente',
+          telefone: '',
+          email:
+            tutorMeta.clienteId != null
+              ? extractEmailGuess(this.selectedCliente()?.email_masked)
+              : this.tutorEmailGuest().trim() || undefined,
+        },
+      } as PetResumido);
 
     const novo: Agendamento = {
       id: 'new-' + Date.now(),
-      pet,
+      pet: petManual,
       profissional: prof,
       servico: serv,
       inicio,
@@ -212,32 +480,18 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
       status: 'AGENDADO' as AgendaStatus,
       observacoes: this.obs() || undefined,
       recorrente: false,
+      cliente_id: tutorMeta.clienteId,
+      pet_id: tutorMeta.petId ?? null,
+      servico_id: /^[0-9]+$/.test(String(serv.id)) ? Number(serv.id) : undefined,
     };
 
-    this.save.emit(novo);
+    this.save.emit({
+      agendamento: novo,
+      tutorNotificacao: this.buildNotificationsPayload(),
+    });
   }
 
-  async loadPermissaoForSelectedPet(): Promise<void> {
-    this.permissionStatus.set(null);
-    this.inviteSent.set(false);
-    this.inviteInfo = null;
-    const pet = this.selectedPet();
-    if (!pet) return;
-    this.emailInput.set(pet.tutor?.email || '');
-    try {
-      const permissoes = await this.agendaApi.listPermissoesDados();
-      let found: any = null;
-      if (pet.tutor?.email) {
-        found = permissoes.find((p: any) => p.cliente_email === pet.tutor.email || String(p.cliente_id) === String(p.tutor.id));
-      } else if (pet.tutor?.id) {
-        found = permissoes.find((p: any) => String(p.cliente_id) === String(p.tutor.id));
-      }
-      if (found) this.permissionStatus.set(found.status || null);
-      else this.permissionStatus.set(null);
-    } catch (e) {
-      this.permissionStatus.set(null);
-    }
-  }
+  /* ── Solicitações de permissão LGPD (catálogo legado) ─────────────────── */
 
   openRequestModal(): void {
     this.emailInput.set(this.selectedPet()?.tutor?.email || '');
@@ -246,6 +500,54 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
 
   closeRequestModal(): void {
     this.showRequestModal.set(false);
+  }
+
+  private async loadPermissaoLegacyCatalogPet(pet: PetResumido): Promise<void> {
+    this.permissionStatus.set(null);
+    this.inviteSent.set(false);
+    this.inviteInfo = null;
+    this.emailInput.set(pet.tutor?.email || '');
+    try {
+      const permissoes = await this.agendaApi.listPermissoesDados();
+      let found: PermissaoDadosRow | undefined;
+      if (pet.tutor?.email) {
+        found = permissoes.find(
+          (pp: PermissaoDadosRow) =>
+            pp.cliente_email === pet.tutor!.email ||
+            String(pp.cliente_id) === String(pet.tutor.id),
+        );
+      } else if (pet.tutor?.id) {
+        found = permissoes.find((pp: PermissaoDadosRow) => String(pp.cliente_id) === String(pet.tutor.id));
+      }
+      this.permissionStatus.set((found?.status ?? null) as 'pendente' | 'concedido' | 'revogado' | null);
+    } catch {
+      this.permissionStatus.set(null);
+    }
+  }
+
+  private async loadPermissaoForSelectedCliente(row: DiscoveryCandidateRow | null): Promise<void> {
+    if (!row) return;
+
+    /** Status vem já da linha discovery; sincroniza com permissões detalhadas quando possível */
+    this.permissionStatus.set((row.permissao_status ?? null) as 'pendente' | 'concedido' | 'revogado' | null);
+
+    try {
+      const permissoes = await this.agendaApi.listPermissoesDados();
+      const found = permissoes.find(
+        (pp: { cliente_id?: number }) => String(pp.cliente_id) === String(row.cliente_id),
+      );
+      const st =
+        ((found?.status ?? row.permissao_status ?? null) as 'pendente' | 'concedido' | 'revogado' | null);
+
+      const effective = row.permissao_status === 'pendente'
+        ? 'pendente'
+        : st ??
+          ((row.permissao_status ?? null) as 'pendente' | 'concedido' | 'revogado' | null);
+
+      this.permissionStatus.set(effective);
+    } catch {
+      this.permissionStatus.set((row.permissao_status ?? null) as never);
+    }
   }
 
   async doInvite(): Promise<void> {
@@ -258,10 +560,42 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
       this.inviteSent.set(true);
       this.permissionStatus.set('pendente');
       this.showRequestModal.set(false);
-    } catch (err) {
-      console.error('inviteClient failed', err);
+    } catch {
+      //
     } finally {
       this.requesting.set(false);
     }
   }
+
+  permissaoBadge(): string | null {
+    const st =
+      rowClienteHasConcedido(this.selectedCliente()) ? 'concedido' : this.permissionStatus();
+
+    switch (st) {
+      case 'concedido':
+        return null;
+      case 'pendente':
+        return '⏳ Aguardando consentimento do cliente';
+      case 'revogado':
+        return '⛔ Consentimento revogado anteriormente';
+
+      default:
+        return '📭 Cliente existe na base, mas ainda não vinculamos dados LGPD.';
+    }
+  }
+
+  trackCandidate(_idx: number, row: DiscoveryCandidateRow): number {
+    return row.cliente_id;
+  }
+}
+
+/** Descoberta: linha sugere conta ativa quando o parceiro já tem vínculo de dados válido. */
+function rowClienteHasConcedido(row: DiscoveryCandidateRow | null): boolean {
+  return row != null && row.permissao_status === 'concedido';
+}
+
+function extractEmailGuess(mask?: string | null): string | undefined {
+  if (!mask) return undefined;
+  if (mask.includes('@') && !/[•*■]/.test(mask)) return mask.trim().toLowerCase();
+  return undefined;
 }

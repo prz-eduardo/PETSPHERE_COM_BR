@@ -6,11 +6,12 @@ import { ApiService, ClienteMeResponse, PetTraitLookup } from '../../services/ap
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { NavmenuComponent } from '../../navmenu/navmenu.component';
+import { PetVacinasPanelComponent } from './pet-vacinas-panel.component';
 
 @Component({
   selector: 'app-novo-pet',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NavmenuComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NavmenuComponent, PetVacinasPanelComponent],
   templateUrl: './novo-pet.component.html',
   styleUrls: ['./novo-pet.component.scss']
 })
@@ -26,6 +27,9 @@ export class NovoPetComponent implements OnInit {
   @Output() petDeleted = new EventEmitter<void>();
   // form fields
   nome = '';
+  apelido = '';
+  corPelagem = '';
+  microchip = '';
   especie = '';
   raca = '';
   sexo: 'Macho' | 'Fêmea' | '' = '';
@@ -77,6 +81,9 @@ export class NovoPetComponent implements OnInit {
   especies = ['Cachorro', 'Gato', 'Outro'];
   sexos = ['Macho', 'Fêmea'];
 
+  /** Navegação por âncoras no formulário */
+  activeSection: 'identificacao' | 'saude' | 'vacinas' | 'privacidade' = 'identificacao';
+
   constructor(
     private api: ApiService,
     private auth: AuthService,
@@ -88,6 +95,44 @@ export class NovoPetComponent implements OnInit {
 
   get token(): string | null {
     return isPlatformBrowser(this.platformId) ? this.auth.getToken() : null;
+  }
+
+  /** Preferência global do perfil (lembretes de vacinas). */
+  get lembretesVacinasGlobais(): boolean {
+    const raw = this.clienteMe?.user?.preferencias as unknown;
+    let p: Record<string, unknown> | null = null;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) p = raw as Record<string, unknown>;
+    else if (typeof raw === 'string') {
+      try {
+        const x = JSON.parse(raw);
+        if (x && typeof x === 'object' && !Array.isArray(x)) p = x;
+      } catch {
+        p = null;
+      }
+    }
+    return !!(p && p['lembretesVacinas']);
+  }
+
+  scrollToSection(id: 'identificacao' | 'saude' | 'vacinas' | 'privacidade', ev?: Event) {
+    if (ev) {
+      ev.preventDefault();
+    }
+    this.activeSection = id;
+    if (!isPlatformBrowser(this.platformId)) return;
+    const elId =
+      id === 'identificacao'
+        ? 'np-sec-identificacao'
+        : id === 'saude'
+          ? 'np-sec-saude'
+          : id === 'vacinas'
+            ? 'np-sec-vacinas'
+            : 'np-sec-privacidade';
+    const el = document.getElementById(elId);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  setCastrado(v: '' | '0' | '1') {
+    this.castrado = v;
   }
 
   /** `ClienteMeResponse.user.id` ou user injetado pela área do cliente (`clienteDataInjected`) */
@@ -122,6 +167,9 @@ export class NovoPetComponent implements OnInit {
             const pet = (lista || []).find((p: any) => String(p.id || p._id) === String(id));
             if (pet) {
               this.nome = pet.nome || '';
+              this.apelido = pet.apelido || '';
+              this.corPelagem = pet.cor_pelagem || '';
+              this.microchip = pet.microchip || '';
               this.especie = pet.especie || '';
               this.raca = pet.raca || '';
               this.sexo = pet.sexo || '';
@@ -571,6 +619,12 @@ export class NovoPetComponent implements OnInit {
     }
     const fd = new FormData();
     fd.append('nome', this.nome.trim());
+    if ((this.apelido || '').trim()) fd.append('apelido', this.apelido.trim().slice(0, 80));
+    else fd.append('apelido', '');
+    if ((this.corPelagem || '').trim()) fd.append('cor_pelagem', this.corPelagem.trim().slice(0, 64));
+    else fd.append('cor_pelagem', '');
+    if ((this.microchip || '').trim()) fd.append('microchip', this.microchip.trim().slice(0, 32));
+    else fd.append('microchip', '');
     fd.append('especie', this.especie);
     if (this.raca) fd.append('raca', this.raca.trim());
     if (this.sexo) fd.append('sexo', this.sexo);

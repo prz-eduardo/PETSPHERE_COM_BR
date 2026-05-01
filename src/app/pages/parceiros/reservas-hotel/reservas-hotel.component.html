@@ -2,16 +2,46 @@
   <header class="page-hero">
     <div>
       <p class="eyebrow">Recepção de pets</p>
-      <h1>Hospedagem pet &amp; creche</h1>
-      <p class="subtitle">
-        Controle diário de estadias: entradas e saídas, ocupação dos espaços e reservas dos tutores.
-      </p>
+      @if (isDaycarePartner()) {
+        <h1>Creche &amp; day care</h1>
+        <p class="subtitle">
+          Controle diário de períodos diurnos: entradas e saídas, ocupação dos espaços e reservas dos tutores.
+        </p>
+      } @else {
+        <h1>Hospedagem pet &amp; creche</h1>
+        <p class="subtitle">
+          Controle diário de estadias: entradas e saídas, ocupação dos espaços e reservas dos tutores.
+        </p>
+      }
     </div>
     <button type="button" class="btn-primary" (click)="openCreateDrawer()" [disabled]="loading()">
       <i class="fa fa-plus"></i>
       Nova reserva
     </button>
   </header>
+
+  @if (!isDaycarePartner()) {
+    <div class="modo-segment tab-row" role="tablist" aria-label="Modo de operação">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="modoSegmento() === 'hospedagem'"
+        (click)="setModoSegmento('hospedagem')"
+        [attr.aria-selected]="modoSegmento() === 'hospedagem'"
+      >
+        Hospedagem (pernoite)
+      </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="modoSegmento() === 'daycare'"
+        (click)="setModoSegmento('daycare')"
+        [attr.aria-selected]="modoSegmento() === 'daycare'"
+      >
+        Creche (dia)
+      </button>
+    </div>
+  }
 
   <div class="banner-error" *ngIf="loadError()">
     <span>{{ loadError() }}</span>
@@ -165,7 +195,11 @@
             </div>
             <h3>{{ leito.nome }}</h3>
             <p>{{ leito.tipo }} · até {{ leito.capacidade }} pet(s)</p>
-            <div class="room-badges" *ngIf="confortoChipLabel(leito) || vitrineNivelLabel(leito)">
+            <div
+              class="room-badges"
+              *ngIf="leitoUsoLabel(leito) || confortoChipLabel(leito) || vitrineNivelLabel(leito)"
+            >
+              <span class="room-badge room-badge--uso" *ngIf="leitoUsoLabel(leito) as uo">{{ uo }}</span>
               <span class="room-badge room-badge--conforto" *ngIf="confortoChipLabel(leito) as c">{{ c }}</span>
               <span class="room-badge room-badge--vitrine" *ngIf="vitrineNivelLabel(leito) as vn">{{ vn }}</span>
             </div>

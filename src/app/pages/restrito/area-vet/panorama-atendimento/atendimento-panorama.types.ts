@@ -31,8 +31,24 @@ export interface PanoramaExtraLinha {
   valor: number;
 }
 
+/** Defaults injetados ao criar um novo registro (API parceiro + preferências). */
+export interface PanoramaDefaults {
+  origemEnderecoTexto?: string;
+  origemLat?: number;
+  origemLng?: number;
+  destinoLat?: number;
+  destinoLng?: number;
+  valorPorKm?: number;
+  valorConsulta?: number;
+  taxaAdicional?: number;
+  descontoPercent?: number;
+  formaPagamento?: string | null;
+}
+
 export interface PanoramaAtendimento {
   id: string;
+  /** Quando o cartão veio do fluxo clínico (evita duplicar ao reabrir ?atendimentoId=). */
+  linkedAtendimentoId?: number | null;
   criadoEm: string;
   atualizadoEm: string;
   tutorNome: string;

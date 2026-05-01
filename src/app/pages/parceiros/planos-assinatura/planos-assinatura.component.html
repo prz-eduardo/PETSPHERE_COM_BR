@@ -1,0 +1,142 @@
+<div class="assinatura-page">
+  <header class="page-head">
+    <h2>Plano, saldo e créditos</h2>
+    <p>
+      Consulte seu plano e assinatura, o saldo de créditos PetSphere e o extrato de movimentações (consumos e créditos). Para contratar ou
+      mudar de plano e comprar pacotes extras, use a vitrine de planos.
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button type="button" (click)="load()" [disabled]="loading">Atualizar</button>
+    <a routerLink="/parceiro/planos" class="btn-secondary">Comprar pacotes / ver vitrine</a>
+  </div>
+
+  <div class="alert error" *ngIf="error">{{ error }}</div>
+
+  <div class="loading" *ngIf="loading">Carregando…</div>
+
+  <ng-container *ngIf="!loading && assinatura">
+    <section class="cards-grid">
+      <article class="card card--highlight" *ngIf="assinatura.atual as a">
+        <h3>Plano atual</h3>
+        <div class="plan-title">
+          <span class="plan-name">{{ a.plano.nome }}</span>
+          <span class="badge" [class.badge--ok]="a.subscricao.status === 'ativo'" [class.badge--muted]="a.subscricao.status !== 'ativo'">
+            {{ statusLabel(a.subscricao.status) }}
+          </span>
+        </div>
+        <p class="muted" *ngIf="a.plano.descricao">{{ a.plano.descricao }}</p>
+        <ul class="facts">
+          <li><span>Valor mensal</span> <strong>{{ a.plano.preco_mensal === 0 ? 'Grátis' : formatBRL(a.plano.preco_mensal) }}</strong></li>
+          <li><span>Automações (WhatsApp, lembretes…)</span> <strong>{{ a.plano.permite_automacoes ? 'Inclusas' : 'Não inclusas' }}</strong></li>
+          <li><span>Créditos mensais do plano</span> <strong>{{ a.plano.creditos_mensais_inclusos }}</strong></li>
+          <li><span>Máx. colaboradores</span> <strong>{{ limiteLabel(a.plano.max_colaboradores) }}</strong></li>
+          <li><span>Máx. recursos (agenda)</span> <strong>{{ limiteLabel(a.plano.max_recursos) }}</strong></li>
+          <li><span>Máx. agendamentos / mês</span> <strong>{{ limiteLabel(a.plano.max_agendamentos_mes) }}</strong></li>
+          <li><span>Início</span> <strong>{{ formatData(a.subscricao.data_inicio) }}</strong></li>
+          <li *ngIf="a.subscricao.data_fim"><span>Término</span> <strong>{{ formatData(a.subscricao.data_fim) }}</strong></li>
+          <li><span>Origem</span> <strong class="origem">{{ a.subscricao.origem }}</strong></li>
+        </ul>
+      </article>
+
+      <article class="card" *ngIf="!assinatura.atual">
+        <h3>Plano atual</h3>
+        <p class="muted">Nenhuma assinatura registrada para este parceiro. Entre em contato com o suporte ou cadastre-se em um plano na vitrine.</p>
+        <a routerLink="/parceiro/planos" class="btn-inline">Conhecer planos</a>
+      </article>
+
+      <article class="card">
+        <h3>Saldo de créditos</h3>
+        <p class="saldo-valor" *ngIf="saldo !== null">{{ saldo | number }}</p>
+        <p class="muted" *ngIf="saldo === null">Não foi possível carregar o saldo agora.</p>
+        <p class="fine" *ngIf="saldoUpdatedAt">Atualizado em {{ formatData(saldoUpdatedAt) }}</p>
+        <p class="fine">
+          Os créditos são consumidos por automações e eventos conforme a tabela da plataforma. O extrato abaixo detalha cada movimento.
+          Pacotes extras na vitrine.
+        </p>
+      </article>
+    </section>
+
+    <section class="list-card extrato-card" *ngIf="!loading && !error">
+      <h3>Extrato de créditos</h3>
+      <p class="muted extrato-intro">Débitos, créditos, estornos e ajustes registrados para o seu estabelecimento.</p>
+
+      <div class="alert error" *ngIf="extratoError">{{ extratoError }}</div>
+
+      <div class="extrato-toolbar" *ngIf="extrato && !extratoLoading">
+        <span class="extrato-range">
+          <ng-container *ngIf="extrato.total > 0">
+            {{ extrato.offset + 1 }}–{{ extrato.offset + extrato.items.length }} de {{ extrato.total | number }} movimento(s)
+          </ng-container>
+          <ng-container *ngIf="extrato.total === 0">Nenhum movimento</ng-container>
+        </span>
+        <div class="extrato-nav">
+          <button type="button" class="btn-page" (click)="extratoPrev()" [disabled]="!extratoCanPrev()">Anterior</button>
+          <button type="button" class="btn-page" (click)="extratoNext()" [disabled]="!extratoCanNext()">Próxima</button>
+        </div>
+      </div>
+
+      <div class="loading extrato-loading" *ngIf="extratoLoading">Carregando extrato…</div>
+
+      <div class="table-wrap" *ngIf="extrato && !extratoLoading && extrato.items.length">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th class="cell-num">Δ</th>
+              <th class="cell-num">Saldo após</th>
+              <th>Descrição</th>
+              <th>Evento</th>
+              <th>Origem</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of extrato.items; trackBy: trackExtrato">
+              <td>{{ formatData(row.created_at) }}</td>
+              <td><code class="tipo-pill">{{ row.tipo }}</code></td>
+              <td class="cell-num">
+                <span [class.delta-pos]="row.delta > 0" [class.delta-neg]="row.delta < 0">{{ formatDelta(row.delta) }}</span>
+              </td>
+              <td class="cell-num">{{ row.saldo_apos | number }}</td>
+              <td>{{ row.descricao || '—' }}</td>
+              <td><code *ngIf="row.evento_codigo">{{ row.evento_codigo }}</code><span *ngIf="!row.evento_codigo">—</span></td>
+              <td><span class="source-pill">{{ row.source }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="muted fine" *ngIf="extrato && !extratoLoading && extrato.total === 0 && !extratoError">
+        Nenhum movimento registrado ainda para este estabelecimento.
+      </p>
+    </section>
+
+    <section class="list-card" *ngIf="assinatura.historico.length">
+      <h3>Histórico de assinaturas</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Plano</th>
+              <th>Status</th>
+              <th>Início</th>
+              <th>Fim</th>
+              <th>Origem</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of assinatura.historico; trackBy: trackHist">
+              <td>{{ row.plano.nome }}</td>
+              <td>{{ statusLabel(row.subscricao.status) }}</td>
+              <td>{{ formatData(row.subscricao.data_inicio) }}</td>
+              <td>{{ formatData(row.subscricao.data_fim) }}</td>
+              <td><code>{{ row.subscricao.origem }}</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+</div>

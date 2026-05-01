@@ -31,6 +31,7 @@
   --sp-shadow-lg:   0 36px 80px -36px rgba(15, 11, 46, 0.5);
   --sp-radius:      22px;
   --sp-radius-lg:   28px;
+  --sp-radius-xl:   36px;
 
   --sp-mint:        #bfe9d9;
   --sp-mint-700:    #3b5d50;
@@ -50,6 +51,7 @@
   box-sizing: border-box;
   position: relative;
   z-index: 1;
+  overflow-x: clip;
 }
 
 /* Shared ------------------------------------------------------------------- */
@@ -206,9 +208,15 @@
    ========================================================================== */
 .sobre-hero {
   position: relative;
-  border-radius: var(--sp-radius-lg);
-  padding: clamp(24px, 4vw, 44px);
-  margin-bottom: clamp(32px, 5vw, 56px);
+  box-sizing: border-box;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100vw - 2 * clamp(16px, 3vw, 32px));
+  max-width: calc(100vw - 2 * clamp(16px, 3vw, 32px));
+  border-radius: var(--sp-radius-xl);
+  padding: clamp(72px, 12vw, 144px) clamp(24px, 5vw, 80px) clamp(96px, 14vw, 160px);
+  margin-top: calc(clamp(16px, 3vw, 32px) - clamp(16px, 2.5vw, 28px));
+  margin-bottom: clamp(40px, 6vw, 88px);
   overflow: hidden;
   isolation: isolate;
 
@@ -291,7 +299,7 @@
   line-height: 1.4;
   color: rgba(255, 255, 255, 0.78);
   margin: 0 0 20px;
-  max-width: 640px;
+  max-width: 700px;
 }
 
 .hero-subtitle {
@@ -299,7 +307,7 @@
   color: rgba(255, 255, 255, 0.72);
   font-size: clamp(15px, 1.8vw, 17.5px);
   line-height: 1.6;
-  max-width: 640px;
+  max-width: 700px;
 }
 
 .hero-subtitle-tight {
@@ -1039,7 +1047,13 @@
 }
 
 @media (max-width: 640px) {
-  .sobre-hero { padding: 20px; border-radius: 20px; }
+  .sobre-hero {
+    width: calc(100vw - 2 * clamp(12px, 4vw, 20px));
+    max-width: calc(100vw - 2 * clamp(12px, 4vw, 20px));
+    padding: clamp(28px, 8vw, 48px) clamp(16px, 4vw, 22px) clamp(36px, 9vw, 56px);
+    border-radius: var(--sp-radius-lg);
+    margin-bottom: clamp(24px, 5vw, 40px);
+  }
   .sobre-hero::before, .sobre-hero::after { display: none; }
   .hero-title { font-size: clamp(26px, 8vw, 34px); }
   .hero-card-main.hero-card-ecossistema { width: min(300px, 86%); }

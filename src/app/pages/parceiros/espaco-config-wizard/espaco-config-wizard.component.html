@@ -24,7 +24,22 @@
             @switch (step()) {
               @case (1) {
                 <p class="esp-muted">Identifique esta unidade na operação diária.</p>
+                <div class="esp-preset-row">
+                  <button type="button" class="esp-btn esp-btn-ghost" (click)="applyPresetHotel()">Preset hospedagem (pernoite)</button>
+                  <button type="button" class="esp-btn esp-btn-ghost" (click)="applyPresetCreche()">Preset creche (dia)</button>
+                </div>
                 <div class="esp-fields">
+                  <label>
+                    Uso do espaço
+                    <select
+                      name="uso"
+                      [ngModel]="draft().uso_operacao"
+                      (ngModelChange)="patchDraft({ uso_operacao: $event })">
+                      <option value="hospedagem">Hospedagem (pernoite)</option>
+                      <option value="daycare">Creche / day care (dia)</option>
+                      <option value="ambos">Ambos (mesmo espaço)</option>
+                    </select>
+                  </label>
                   <label>
                     Nome do espaço
                     <input

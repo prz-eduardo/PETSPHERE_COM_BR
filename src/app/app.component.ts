@@ -84,6 +84,7 @@ export class AppComponent implements OnInit, OnDestroy {
         } catch {
           /* ignore */
         }
+        this.zone.run(() => this.syncShellVisibility(this.router.url));
       });
       try {
         document.documentElement.classList.add('force-light');
@@ -318,8 +319,9 @@ export class AppComponent implements OnInit, OnDestroy {
       (isParceirosPath && !parceirosShowGlobalDockNav);
     const isMapaPath = path === '/mapa' || path.startsWith('/mapa/');
     const hideFooterMapa = isMapaPath && (this.mapaTopNavMql?.matches ?? false);
+    const tenantStorefront = this.tenantLoja.isTenantLoja();
 
-    this.showFooter = !hide && !hideFooterMapa && !isParceirosPath;
+    this.showFooter = !hide && !hideFooterMapa && !isParceirosPath && !tenantStorefront;
     this.showNav = !hide;
   }
 

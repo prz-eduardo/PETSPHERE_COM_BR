@@ -15,12 +15,22 @@ import { isPlatformBrowser } from '@angular/common';
 import { Inject, PLATFORM_ID } from '@angular/core'
 import { ChangeDetectorRef } from '@angular/core'
 import { NavmenuComponent } from '../../../../navmenu/navmenu.component';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml, SafeStyle } from '@angular/platform-browser';
 import { MARCA_LOGO_PATH, MARCA_NOME } from '../../../../constants/loja-public';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { VetWizardSessionService } from '../../../../services/vet-wizard-session.service';
 import { filter } from 'rxjs/operators';
-
-
+import {
+  createEmptyExameFisico,
+  exameFisicoTemConteudo,
+  serializeExameFisico,
+  ExameFisicoEstruturadoV1,
+  ExameFisicoToggleKey,
+  ExameFisicoToggle,
+  novaLinhaCustomExameFisico,
+  EXAME_FISICO_SISTEMA_LABELS,
+  EXAME_FISICO_TOGGLE_KEYS,
+} from './exame-fisico.model';
 
 
 
@@ -41,6 +51,8 @@ interface Pet {
   peso: number;
   raca: string;
   sexo: 'Macho' | 'Fêmea';
+  /** Foto principal (URL) — ex.: cartão na lista de pets. */
+  photoURL?: string;
   alergias?: string[];
   alergias_predefinidas?: Array<{ nome: string; alergia_id: number | null; ativo_id: number | null; observacoes?: string | null }>;
 }
@@ -104,7 +116,9 @@ export class GerarReceitaComponent implements OnInit, AfterViewInit {
   observacoes = '';
   queixaPrincipal = '';
   anamnese = '';
-  exameFisico = '';
+  exameFisicoForm: ExameFisicoEstruturadoV1 = createEmptyExameFisico();
+  readonly exameFisicoSistemaOrdem = EXAME_FISICO_TOGGLE_KEYS;
+  readonly exameFisicoSistemaLabels = EXAME_FISICO_SISTEMA_LABELS;
   diagnostico = '';
   planoTerapeutico = '';
   examesSolicitados: AtendimentoExame[] = [{ nome: '', status: 'solicitado', observacoes: '' }];
@@ -168,6 +182,7 @@ isBrowser: any;
 
   carregandoTutor = false;
   private debouncedFiltrarAtivos: () => void;
+  private wizardClinicalPrefillApplied = false;
   // Scroll lock state for guided tour
   private bodyScrollY = 0;
   // Handlers to prevent user-initiated scrolling while allowing programmatic scrollIntoView
@@ -196,6 +211,14 @@ isBrowser: any;
   acaoFinalizacaoSelecionada: AcaoFinalizacao = 'finalizar_sem_cobranca';
   permitirFinalizarSemPagamento = false;
 
+  /** Fluxo em camadas: clínica obrigatória → gate → receita/assinatura opcional. */
+  workflowPhase: 'clinical' | 'receita' = 'clinical';
+  clinicalStep = 1;
+  readonly clinicalStepLabels = ['Tutor', 'Paciente', 'Anamnese', 'Exame', 'Dx e plano', 'Finalização'];
+  /** Atendimento criado ao concluir a fase clínica (gate e POST receita usam este id). */
+  atendimentoEmEdicaoId: number | null = null;
+  showPosClinicaGateModal = false;
+
   constructor(
     private apiService: ApiService,
     private toastService: ToastService,
@@ -206,6 +229,8 @@ isBrowser: any;
   private authService: AuthService,
   private parceiroAuth: ParceiroAuthService,
   private router: Router,
+  private route: ActivatedRoute,
+  private vetWizardSession: VetWizardSessionService,
     ) {
     this.debouncedFiltrarAtivos = debounce(this.filtrarAtivos.bind(this), 250);
     this.syncParceiroShellContext();
@@ -264,7 +289,51 @@ isBrowser: any;
       window.addEventListener('resize', this._onResizeUpdateMobile);
       this.loadAtivos();
       this.carregarVeterinario();
+      void this.tryPrefillClinicalFromWizardSession();
     }
+  }
+
+  /**
+   * Quando o fluxo vem do assistente de atendimento com CPF + pet já escolhidos,
+   * pula a etapa de busca no Consultório (sem pedir o CPF de novo).
+   */
+  private async tryPrefillClinicalFromWizardSession(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId) || this.wizardClinicalPrefillApplied) return;
+    if (this.route.snapshot.queryParamMap.get('wizardReturn') !== '1') return;
+    const wiz = this.vetWizardSession.snapshot;
+    if (!wiz?.tutorCpf || !wiz?.clienteId) return;
+
+    this.wizardClinicalPrefillApplied = true;
+    this.cpf = this.formatarCpf(wiz.tutorCpf);
+    await this.buscarTutor(true);
+    if (!this.tutorEncontrado || this.clienteIdSelecionado !== wiz.clienteId) {
+      this.toastService.info('Confirme o tutor e o paciente nesta tela.', 'Identificação');
+      return;
+    }
+    if (wiz.petId) {
+      const pet = this.tutorEncontrado.pets.find(p => p.id === wiz.petId);
+      if (pet) {
+        this.selecionarPet(pet);
+      } else {
+        this.toastService.info('Selecione o paciente para continuar.', 'Pet não localizado');
+      }
+    } else if ((wiz.petNome || '').trim()) {
+      this.petSelecionado = null;
+      this.originalPetSnapshot = null;
+      this.petSavePlan = null;
+      this.novosDadosPet = {
+        nome: wiz.petNome.trim(),
+        idade: 0,
+        peso: 0,
+        raca: '',
+        sexo: 'Macho',
+        especie: '',
+        alergias: [],
+      };
+      this.alergiasSelecionadasVet = [];
+    }
+    this.clinicalStep = 2;
+    this.cdr.detectChanges();
   }
 
   private _onResizeUpdateMobile = () => {
@@ -313,9 +382,32 @@ isBrowser: any;
     return pet.sexo === 'Macho' ? 'M' : pet.sexo === 'Fêmea' ? 'F' : '';
   }
 
-  onCpfInput() { if (this.cpf.replace(/\D/g, '').length === 11) this.buscarTutor(); }
+  /** URL da foto principal normalizada (mesma convenção da área do cliente). */
+  private petPhotoFromApiRow(pet: any): string | undefined {
+    if (!pet) return undefined;
+    const raw = (pet.photoURL || pet.foto || pet.photo || pet.photo_url || pet.imagem || '').toString().trim();
+    if (!raw) return undefined;
+    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:') || raw.startsWith('blob:')) {
+      return raw;
+    }
+    if (raw.startsWith('/')) return raw;
+    return '/' + raw.replace(/^\/+/, '');
+  }
 
-  async buscarTutor() {
+  getPetPrimaryPhotoUrl(pet: Pet | null | undefined): string | null {
+    return this.petPhotoFromApiRow(pet) ?? null;
+  }
+
+  petCardBackgroundImage(pet: Pet): SafeStyle | null {
+    const url = this.getPetPrimaryPhotoUrl(pet);
+    if (!url) return null;
+    const escaped = url.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    return this.sanitizer.bypassSecurityTrustStyle(`url("${escaped}")`);
+  }
+
+  onCpfInput() { if (this.cpf.replace(/\D/g, '').length === 11) void this.buscarTutor(); }
+
+  async buscarTutor(silentSuccess = false) {
     this.carregandoTutor = true;
     this.tutorEncontrado = null;
     this.petSelecionado = null;
@@ -359,6 +451,7 @@ isBrowser: any;
               peso: this.normalizePeso(pet),
               raca: pet.raca || '',
               sexo: pet.sexo || 'Macho',
+              photoURL: this.petPhotoFromApiRow(pet),
               alergias: this.extractAlergiasToStrings(pet),
               alergias_predefinidas: Array.isArray(pet.alergias_predefinidas) ? pet.alergias_predefinidas : []
             }))
@@ -369,7 +462,9 @@ isBrowser: any;
   const teAddr = (this.tutorEncontrado as Tutor | null)?.endereco || '';
   this.novoTutor.endereco = teAddr;
         // Não auto-seleciona pet; usuário escolhe manualmente
-        this.toastService.success(`Cliente ${response.cliente.nome} encontrado com sucesso!`, 'Sucesso');
+        if (!silentSuccess) {
+          this.toastService.success(`Cliente ${response.cliente.nome} encontrado com sucesso!`, 'Sucesso');
+        }
         this.cdr.detectChanges();
       } else {
         // Cliente não encontrado - habilitar cadastro manual
@@ -1050,6 +1145,530 @@ isBrowser: any;
     this.assinaturaICP = '';
   }
 
+  podeAvancarClinical(): boolean {
+    switch (this.clinicalStep) {
+      case 1:
+        if (this.cadastroManualTutor) {
+          const cpfOk = this.novoTutor.cpf.replace(/\D/g, '').length === 11;
+          return !!(this.novoTutor.nome?.trim() && cpfOk);
+        }
+        return !!this.tutorEncontrado;
+      case 2: {
+        const nomePet = (this.novosDadosPet.nome || '').trim();
+        const esp = (this.novosDadosPet.especie || '').trim();
+        return !!(this.petSelecionado || (nomePet && esp));
+      }
+      case 3:
+        return !!(this.queixaPrincipal?.trim() && this.anamnese?.trim());
+      case 4:
+        return exameFisicoTemConteudo(this.exameFisicoForm);
+      case 5:
+        return !!(this.diagnostico?.trim() && this.planoTerapeutico?.trim());
+      case 6:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  avancarClinical(): void {
+    if (!this.podeAvancarClinical()) {
+      this.toastService.info('Preencha os campos desta etapa para avançar.', 'Wizard clínico');
+      return;
+    }
+    if (this.clinicalStep < 6) this.clinicalStep++;
+    this.cdr.detectChanges();
+  }
+
+  voltarClinical(): void {
+    if (this.clinicalStep > 1) this.clinicalStep--;
+    this.cdr.detectChanges();
+  }
+
+  exameToggleVal(key: ExameFisicoToggleKey): ExameFisicoToggle {
+    return this.exameFisicoForm[key];
+  }
+
+  setExameToggle(key: ExameFisicoToggleKey, v: Exclude<ExameFisicoToggle, ''>): void {
+    this.exameFisicoForm[key] = this.exameFisicoForm[key] === v ? '' : v;
+  }
+
+  addExameCustomRow(): void {
+    this.exameFisicoForm.custom = [...(this.exameFisicoForm.custom || []), novaLinhaCustomExameFisico()];
+  }
+
+  removeExameCustomRow(i: number): void {
+    const c = [...(this.exameFisicoForm.custom || [])];
+    c.splice(i, 1);
+    this.exameFisicoForm.custom = c;
+  }
+
+  private validarRetornoOuToast(): boolean {
+    if (!this.retornoNotificarCliente) return true;
+    const d = (this.retornoData || '').trim();
+    if (!d) {
+      this.toastService.error('Informe a data sugerida para o retorno ou desmarque a notificação ao tutor.', 'Retorno');
+      return false;
+    }
+    const tutor = this.tutorEncontrado ?? this.novoTutor;
+    const temCliente = !!this.clienteIdSelecionado;
+    const temEmailTutor = !!(tutor?.email || '').trim();
+    if (!temCliente && !temEmailTutor) {
+      this.toastService.error('Para avisar o tutor, busque o CPF na base ou preencha o e-mail no cadastro manual.', 'Retorno');
+      return false;
+    }
+    return true;
+  }
+
+  /** Persistência de pet (novo/editar) compartilhada entre fase clínica e salvamento da receita. */
+  private async persistPetChangesIfNeeded(): Promise<{ ok: boolean; petUsado: Pet | null }> {
+    let petUsado: Pet | null = this.petSelecionado ? { ...this.petSelecionado } : null;
+    const token = this.getEffectiveToken();
+    try {
+      if (this.petSavePlan && !this.clienteIdSelecionado) {
+        this.toastService.error('Não é possível salvar o pet sem um cliente. Busque o CPF novamente.');
+        return { ok: false, petUsado: null };
+      }
+
+      if (this.petSavePlan === 'novo' && this.clienteIdSelecionado && token) {
+        const fd = this.buildPetFormData(this.novosDadosPet, true);
+        let alergiasPre = this.alergiasSelecionadasVet?.length ? this.alergiasSelecionadasVet : [];
+        if (!alergiasPre.length) {
+          const alergiasStr = this.alergiasList();
+          alergiasPre = await this.resolveAlergiasPredefinidas(alergiasStr, token);
+        }
+        fd.append('alergias_predefinidas', JSON.stringify(alergiasPre));
+        const created = await this.apiService.createPet(this.clienteIdSelecionado, fd, token).toPromise();
+        const novoId = String(created?.id ?? created?.pet?.id ?? `tmp-${Date.now()}`);
+        let novoPet: Pet | null = null;
+        try {
+          const lista = await this.apiService.getPetsByCliente(this.clienteIdSelecionado, token).toPromise();
+          const p = (Array.isArray(lista) ? lista : []).find((x: any) => String(x.id) === String(novoId));
+          if (p) {
+            novoPet = {
+              id: String(p.id),
+              nome: p.nome || '',
+              especie: p.especie || p.tipo || '',
+              idade: this.normalizeIdade(p),
+              peso: this.normalizePeso(p),
+              raca: p.raca || '',
+              sexo: p.sexo || 'Macho',
+              photoURL: this.petPhotoFromApiRow(p),
+              alergias: this.extractAlergiasToStrings(p),
+              alergias_predefinidas: Array.isArray(p.alergias_predefinidas) ? p.alergias_predefinidas : [],
+            };
+          }
+        } catch {}
+        if (!novoPet) {
+          novoPet = {
+            ...this.novosDadosPet,
+            id: novoId,
+            alergias: (alergiasPre || []).map((x) => x.nome),
+            alergias_predefinidas: alergiasPre as any,
+          } as any;
+        }
+        const novoPetSeguro: Pet = novoPet as Pet;
+        if (this.tutorEncontrado) {
+          const others = (this.tutorEncontrado.pets || []).filter((p: any) => String(p.id) !== String(novoId));
+          this.tutorEncontrado.pets = [...others, novoPetSeguro];
+        }
+        this.selecionarPet(novoPetSeguro);
+        petUsado = novoPetSeguro;
+        this.toastService.success('Novo pet cadastrado (pendente de aceitação do tutor).');
+      }
+
+      if (this.petSavePlan === 'editar' && this.clienteIdSelecionado && token && this.petSelecionado?.id != null) {
+        const fd = this.buildPetFormData(this.novosDadosPet, false);
+        let alergiasPre = this.alergiasSelecionadasVet?.length ? this.alergiasSelecionadasVet : [];
+        if (!alergiasPre.length) {
+          const alergiasStr = this.alergiasList();
+          alergiasPre = await this.resolveAlergiasPredefinidas(alergiasStr, token);
+        }
+        fd.append('alergias_predefinidas', JSON.stringify(alergiasPre));
+        await this.apiService.updatePet(this.clienteIdSelecionado, this.petSelecionado.id!, fd, token).toPromise();
+        try {
+          const lista = await this.apiService.getPetsByCliente(this.clienteIdSelecionado, token).toPromise();
+          const p = (Array.isArray(lista) ? lista : []).find((x: any) => String(x.id) === String(this.petSelecionado!.id));
+          if (p) {
+            const atualizado: Pet = {
+              id: String(p.id),
+              nome: p.nome || '',
+              especie: p.especie || p.tipo || '',
+              idade: this.normalizeIdade(p),
+              peso: this.normalizePeso(p),
+              raca: p.raca || '',
+              sexo: p.sexo || 'Macho',
+              photoURL: this.petPhotoFromApiRow(p),
+              alergias: this.extractAlergiasToStrings(p),
+              alergias_predefinidas: Array.isArray(p.alergias_predefinidas) ? p.alergias_predefinidas : [],
+            };
+            if (this.tutorEncontrado) {
+              this.tutorEncontrado.pets = (this.tutorEncontrado.pets || []).map((orig: any) =>
+                String(orig.id) === String(atualizado.id) ? atualizado : orig
+              );
+            }
+            this.selecionarPet(atualizado);
+            petUsado = { ...atualizado };
+          } else {
+            Object.assign(this.petSelecionado, this.novosDadosPet, { alergias_predefinidas: alergiasPre as any });
+            petUsado = { ...this.petSelecionado };
+          }
+        } catch {
+          Object.assign(this.petSelecionado, this.novosDadosPet, { alergias_predefinidas: alergiasPre as any });
+          petUsado = { ...this.petSelecionado };
+        }
+        this.toastService.success('Pet atualizado com sucesso.');
+      }
+      return { ok: true, petUsado };
+    } catch (e: any) {
+      const msg = e?.error?.message || e?.message || 'Erro ao persistir alterações do pet';
+      this.toastService.error(msg, 'Erro');
+      return { ok: false, petUsado: null };
+    } finally {
+      this.petSavePlan = null;
+    }
+  }
+
+  async concluirFaseClinica(): Promise<void> {
+    if (this.salvandoAtendimento || this.workflowPhase !== 'clinical') return;
+    if (!this.validarRetornoOuToast()) return;
+    if (!this.podeAvancarClinical()) {
+      this.toastService.info('Revise os campos obrigatórios antes de concluir.', 'Wizard clínico');
+      return;
+    }
+    this.salvandoAtendimento = true;
+    const tutor = this.tutorEncontrado ?? this.novoTutor;
+    const petResult = await this.persistPetChangesIfNeeded();
+    if (!petResult.ok) {
+      this.salvandoAtendimento = false;
+      return;
+    }
+    const petUsado = petResult.petUsado;
+    const alergiasStrings = (
+      this.alergiasSelecionadasVet?.length
+        ? this.alergiasSelecionadasVet.map((a) => String(a.nome).trim()).filter(Boolean)
+        : ((petUsado?.alergias ?? this.novosDadosPet.alergias) || []).map((s) => String(s).trim()).filter(Boolean)
+    );
+    const basePet = petUsado ?? this.novosDadosPet;
+    const petIdNum = Number((basePet as any)?.id);
+    if (!Number.isFinite(petIdNum) || petIdNum <= 0) {
+      this.toastService.error('É necessário um paciente já salvo na base (busque o tutor por CPF ou cadastre o pet).', 'Paciente');
+      this.salvandoAtendimento = false;
+      return;
+    }
+    const petParaPayload = {
+      id: String(petIdNum),
+      nome: basePet?.nome || '',
+      especie: basePet?.especie || '',
+      raca: basePet?.raca || '',
+      sexo: basePet?.sexo || 'Macho',
+      idade: basePet?.idade ?? 0,
+      peso: basePet?.peso ?? 0,
+      alergias: alergiasStrings,
+    };
+    const fluxoClinico = {
+      fase: 'clinica_concluida' as const,
+      tipo_execucao: 'presencial' as const,
+      status_fluxo: 'pausado' as const,
+      financeiro_status: 'nao_iniciado' as const,
+      precisa_logistica: false,
+      precisa_orcamento: false,
+    };
+    const atendimentoPayload: CriarAtendimentoPayload = {
+      tutor: {
+        nome: tutor?.nome || '',
+        cpf: tutor?.cpf || '',
+        telefone: tutor?.telefone || '',
+        email: tutor?.email || '',
+        endereco: tutor?.endereco || '',
+      },
+      pet: petParaPayload,
+      atendimento: {
+        queixaPrincipal: this.queixaPrincipal,
+        anamnese: this.anamnese,
+        exameFisico: serializeExameFisico(this.exameFisicoForm),
+        diagnostico: this.diagnostico,
+        planoTerapeutico: this.planoTerapeutico,
+        observacoes: this.observacoes,
+        examesSolicitados: this.examesSolicitados
+          .map((ex) => ({
+            nome: (ex.nome || '').trim(),
+            status: (ex.status || 'solicitado').trim().toLowerCase(),
+            observacoes: (ex.observacoes || '').trim(),
+          }))
+          .filter((ex) => ex.nome),
+        fotos: this.fotosAtendimento.map((foto) => ({ descricao: foto.descricao, base64: foto.base64 })),
+        retorno: this.retornoNotificarCliente
+          ? {
+              notificarCliente: true,
+              data: (this.retornoData || '').trim(),
+              observacao: (this.retornoMensagemTutor || '').trim().slice(0, 500) || undefined,
+            }
+          : undefined,
+        tipo_execucao: 'presencial',
+        precisa_logistica: false,
+        precisa_orcamento: false,
+        financeiro_status: 'nao_iniciado',
+      },
+      receita: {
+        ativosSelecionados: [],
+        alerta_alergia: false,
+        observacoes: this.observacoes,
+        assinatura: { manual: '', cursiva: '', imagem: null, icp: '' },
+        alergias: alergiasStrings,
+      },
+      fluxo: fluxoClinico,
+    };
+    try {
+      const tokenReceita = this.getEffectiveToken() || undefined;
+      const created = await this.apiService.criarAtendimento(atendimentoPayload, tokenReceita).toPromise();
+      const aid = created?.id != null ? Number(created.id) : NaN;
+      if (!Number.isFinite(aid)) {
+        throw new Error('Resposta sem id do atendimento.');
+      }
+      this.atendimentoEmEdicaoId = aid;
+      const msgRetorno = this.retornoNotificarCliente ? ' O tutor foi notificado sobre o retorno.' : '';
+      this.toastService.success(`Fase clínica registrada.${msgRetorno}`);
+      this.showPosClinicaGateModal = true;
+      this.cdr.detectChanges();
+    } catch (e: any) {
+      const msg = e?.error?.message || e?.error?.error || e?.message || 'Falha ao registrar a fase clínica';
+      this.toastService.error(msg, 'Erro');
+    } finally {
+      this.salvandoAtendimento = false;
+    }
+  }
+
+  fecharGatePosClinica(): void {
+    this.showPosClinicaGateModal = false;
+  }
+
+  private decisaoPayloadBasico(acao: AcaoFinalizacao) {
+    const fluxo = this.buildFluxoFromAcao(acao);
+    return {
+      acao,
+      tipo_execucao: this.tipoExecucao,
+      status_fluxo: fluxo.status_fluxo,
+      financeiro_status: fluxo.financeiro_status,
+      precisa_logistica: fluxo.precisa_logistica,
+      precisa_orcamento: fluxo.precisa_orcamento,
+    };
+  }
+
+  async gateFinalizarSemOperacao(): Promise<void> {
+    const id = this.atendimentoEmEdicaoId;
+    const token = this.getEffectiveToken();
+    if (!id || !token) return;
+    this.salvandoAtendimento = true;
+    try {
+      const fluxo = this.buildFluxoFromAcao('finalizar_sem_cobranca');
+      await this.apiService
+        .decidirExecucaoAtendimento(
+          id,
+          {
+            acao: 'finalizar_sem_cobranca',
+            tipo_execucao: 'presencial',
+            status_fluxo: fluxo.status_fluxo,
+            financeiro_status: fluxo.financeiro_status,
+            precisa_logistica: fluxo.precisa_logistica,
+            precisa_orcamento: fluxo.precisa_orcamento,
+          },
+          token
+        )
+        .toPromise();
+      this.toastService.success('Atendimento finalizado sem cobrança.');
+      this.fecharGatePosClinica();
+      this.resetFluxoAposSucesso();
+    } catch (e: any) {
+      const msg = e?.error?.error || e?.error?.message || e?.message || 'Não foi possível finalizar.';
+      this.toastService.error(msg);
+    } finally {
+      this.salvandoAtendimento = false;
+    }
+  }
+
+  gateIrParaReceita(): void {
+    this.fecharGatePosClinica();
+    this.workflowPhase = 'receita';
+    this.onTipoExecucaoChange();
+    this.cdr.detectChanges();
+  }
+
+  gateIrWizardIa(): void {
+    const id = this.atendimentoEmEdicaoId;
+    if (!id) return;
+    this.fecharGatePosClinica();
+    const prefix = this.embedInParceiroShell ? '/parceiros' : '';
+    void this.router.navigateByUrl(`${prefix}/vet-atendimento-ia/${id}`);
+  }
+
+  async gateIniciarDomiciliar(): Promise<void> {
+    const id = this.atendimentoEmEdicaoId;
+    const token = this.getEffectiveToken();
+    if (!id || !token) return;
+    this.salvandoAtendimento = true;
+    try {
+      const fluxo = this.buildFluxoFromAcao('solicitar_deslocamento');
+      await this.apiService
+        .decidirExecucaoAtendimento(
+          id,
+          {
+            acao: 'solicitar_deslocamento',
+            tipo_execucao: 'domiciliar',
+            status_fluxo: fluxo.status_fluxo,
+            financeiro_status: fluxo.financeiro_status,
+            precisa_logistica: fluxo.precisa_logistica,
+            precisa_orcamento: fluxo.precisa_orcamento,
+          },
+          token
+        )
+        .toPromise();
+      this.fecharGatePosClinica();
+      const rota = this.embedInParceiroShell
+        ? `/parceiros/panorama-atendimento?atendimentoId=${id}`
+        : `/panorama-atendimento?atendimentoId=${id}`;
+      await this.router.navigateByUrl(rota);
+    } catch (e: any) {
+      const msg = e?.error?.error || e?.message || 'Não foi possível preparar o deslocamento.';
+      this.toastService.error(msg);
+    } finally {
+      this.salvandoAtendimento = false;
+    }
+  }
+
+  async gatePrepararTelemedicina(): Promise<void> {
+    const id = this.atendimentoEmEdicaoId;
+    const token = this.getEffectiveToken();
+    if (!id || !token) return;
+    this.salvandoAtendimento = true;
+    try {
+      await this.apiService
+        .decidirExecucaoAtendimento(
+          id,
+          {
+            acao: 'preparar_telemedicina',
+            tipo_execucao: 'telemedicina',
+          },
+          token
+        )
+        .toPromise();
+      this.fecharGatePosClinica();
+      this.toastService.success('Telemedicina preparada. Abra a agenda para continuar.');
+      const agenda = this.embedInParceiroShell ? '/parceiros/agenda' : '/area-vet';
+      await this.router.navigateByUrl(agenda);
+    } catch (e: any) {
+      const msg = e?.error?.error || e?.message || 'Não foi possível preparar a telemedicina.';
+      this.toastService.error(msg);
+    } finally {
+      this.salvandoAtendimento = false;
+    }
+  }
+
+  gateAgendarRetornoNav(): void {
+    const petId = this.petSelecionado?.id ?? (this.novosDadosPet as any)?.id;
+    const prefix = this.embedInParceiroShell ? '/parceiros' : '';
+    const qp = petId ? `?petId=${encodeURIComponent(String(petId))}` : '';
+    this.fecharGatePosClinica();
+    void this.router.navigateByUrl(`${prefix}/agenda${qp}`);
+  }
+
+  private resetFluxoAposSucesso(): void {
+    this.workflowPhase = 'clinical';
+    this.clinicalStep = 1;
+    this.atendimentoEmEdicaoId = null;
+    this.showPosClinicaGateModal = false;
+    this.cpf = '';
+    this.tutorEncontrado = null;
+    this.cadastroManualTutor = false;
+    this.novoTutor = { nome: '', cpf: '', telefone: '', email: '', endereco: '', pets: [] };
+    this.petSelecionado = null;
+    this.clienteIdSelecionado = null;
+    this.novosDadosPet = { nome: '', idade: 0, peso: 0, raca: '', sexo: 'Macho', alergias: [], especie: '' };
+    this.observacoes = '';
+    this.queixaPrincipal = '';
+    this.anamnese = '';
+    this.exameFisicoForm = createEmptyExameFisico();
+    this.diagnostico = '';
+    this.planoTerapeutico = '';
+    this.examesSolicitados = [{ nome: '', status: 'solicitado', observacoes: '' }];
+    this.fotosAtendimento = [];
+    this.retornoNotificarCliente = false;
+    this.retornoData = '';
+    this.retornoMensagemTutor = '';
+    this.ativosSelecionados = [];
+    this.limparAssinaturaCanvas();
+    this.tipoExecucao = 'presencial';
+    this.acaoFinalizacaoSelecionada = 'finalizar_sem_cobranca';
+    this.onTipoExecucaoChange();
+    this.cdr.detectChanges();
+  }
+
+  private async finalizarReceitaNoAtendimentoExistente(acaoFinalizacao: AcaoFinalizacao): Promise<void> {
+    const id = this.atendimentoEmEdicaoId;
+    const token = this.getEffectiveToken() || undefined;
+    if (!id || !token) {
+      this.toastService.error('Sessão ou atendimento inválido.');
+      return;
+    }
+    if (!this.ativosSelecionados.length) {
+      this.toastService.error('Selecione ao menos um medicamento na receita.', 'Prescrição');
+      return;
+    }
+    const petResult = await this.persistPetChangesIfNeeded();
+    if (!petResult.ok) return;
+
+    const tutor = this.tutorEncontrado ?? this.novoTutor;
+    const assinaturaImg = isPlatformBrowser(this.platformId) ? this.canvasRef?.nativeElement?.toDataURL() : null;
+    const petUsado = petResult.petUsado;
+    const alergiasStrings = (
+      this.alergiasSelecionadasVet?.length
+        ? this.alergiasSelecionadasVet.map((a) => String(a.nome).trim()).filter(Boolean)
+        : ((petUsado?.alergias ?? this.novosDadosPet.alergias) || []).map((s) => String(s).trim()).filter(Boolean)
+    );
+    const alertaAlergiaNoMomento = this.ativosSelecionados.some((xid) => this.isAtivoAlergenoParaPet(xid));
+    const fluxo = this.buildFluxoFromAcao(acaoFinalizacao);
+
+    const receitaBody = {
+      receita: {
+        ativosSelecionados: this.ativosSelecionados,
+        alerta_alergia: alertaAlergiaNoMomento,
+        observacoes: this.observacoes,
+        assinatura: {
+          manual: this.assinaturaManual,
+          cursiva: this.assinaturaCursiva,
+          imagem: assinaturaImg,
+          icp: this.assinaturaICP,
+        },
+        alergias: alergiasStrings,
+      },
+      tutor,
+      pet: petUsado ?? this.novosDadosPet,
+      observacoes: this.observacoes,
+    };
+
+    try {
+      await this.apiService.anexarReceitaAoAtendimento(id, receitaBody, token).toPromise();
+      await this.apiService.decidirExecucaoAtendimento(id, this.decisaoPayloadBasico(acaoFinalizacao), token).toPromise();
+      const msgRetorno = this.retornoNotificarCliente ? ' O tutor foi notificado sobre o retorno.' : '';
+      this.toastService.success(`Receita anexada com sucesso.${msgRetorno}`);
+      if (acaoFinalizacao === 'solicitar_deslocamento') {
+        const rota = this.embedInParceiroShell
+          ? `/parceiros/panorama-atendimento?atendimentoId=${id}`
+          : `/panorama-atendimento?atendimentoId=${id}`;
+        await this.router.navigateByUrl(rota);
+      }
+      this.alerta_alergia = false;
+      this.resetFluxoAposSucesso();
+    } catch (e: any) {
+      if (e?.status === 401) {
+        this.toastService.error('Sessão expirada ou não autenticado.', 'Não autorizado');
+      } else {
+        const msg = e?.error?.error || e?.error?.message || e?.message || 'Falha ao salvar receita';
+        this.toastService.error(msg, 'Erro');
+      }
+    }
+  }
+
   gerarAssinaturaCursiva(nome: string) {
     if (!this.ctx) return;
     const canvas = this.canvasRef.nativeElement;
@@ -1063,6 +1682,10 @@ isBrowser: any;
   }
 
   abrirModalFinalizacao(): void {
+    if (this.workflowPhase !== 'receita') {
+      this.toastService.info('Conclua primeiro a fase clínica.', 'Atendimento');
+      return;
+    }
     this.showFinalizacaoModal = true;
     this.onTipoExecucaoChange();
   }
@@ -1126,107 +1749,21 @@ isBrowser: any;
       }
     }
 
-    // Persistir alterações de pet se necessário
-    let petUsado: Pet | null = this.petSelecionado ? { ...this.petSelecionado } : null;
-    const token = this.getEffectiveToken();
-    try {
-      if (this.petSavePlan && !this.clienteIdSelecionado) {
-        this.toastService.error('Não é possível salvar o pet sem um cliente. Busque o CPF novamente.');
+    if (this.atendimentoEmEdicaoId) {
+      try {
+        await this.finalizarReceitaNoAtendimentoExistente(acaoFinalizacao);
+      } finally {
         this.salvandoAtendimento = false;
-        return;
       }
+      return;
+    }
 
-      if (this.petSavePlan === 'novo' && this.clienteIdSelecionado && token) {
-        const fd = this.buildPetFormData(this.novosDadosPet, true);
-        // Preferir a seleção direta do vet (predefinidas); fallback para resolução por nome
-        let alergiasPre = this.alergiasSelecionadasVet?.length ? this.alergiasSelecionadasVet : [];
-        if (!alergiasPre.length) {
-          const alergiasStr = this.alergiasList();
-          alergiasPre = await this.resolveAlergiasPredefinidas(alergiasStr, token);
-        }
-        fd.append('alergias_predefinidas', JSON.stringify(alergiasPre));
-        const created = await this.apiService.createPet(this.clienteIdSelecionado, fd, token).toPromise();
-        const novoId = String(created?.id ?? created?.pet?.id ?? `tmp-${Date.now()}`);
-        // Refetch para garantir estado final do backend
-  let novoPet: Pet | null = null;
-        try {
-          const lista = await this.apiService.getPetsByCliente(this.clienteIdSelecionado, token).toPromise();
-          const p = (Array.isArray(lista) ? lista : []).find((x: any) => String(x.id) === String(novoId));
-          if (p) {
-            novoPet = {
-              id: String(p.id),
-              nome: p.nome || '',
-              especie: p.especie || p.tipo || '',
-              idade: this.normalizeIdade(p),
-              peso: this.normalizePeso(p),
-              raca: p.raca || '',
-              sexo: p.sexo || 'Macho',
-              alergias: this.extractAlergiasToStrings(p),
-              alergias_predefinidas: Array.isArray(p.alergias_predefinidas) ? p.alergias_predefinidas : []
-            };
-          }
-        } catch {}
-        if (!novoPet) {
-          novoPet = { ...this.novosDadosPet, id: novoId, alergias: (alergiasPre || []).map(x => x.nome), alergias_predefinidas: alergiasPre as any } as any;
-        }
-        const novoPetSeguro: Pet = novoPet as Pet;
-        if (this.tutorEncontrado) {
-          const others = (this.tutorEncontrado.pets || []).filter((p: any) => String(p.id) !== String(novoId));
-          this.tutorEncontrado.pets = [...others, novoPetSeguro];
-        }
-        this.selecionarPet(novoPetSeguro);
-        petUsado = novoPetSeguro;
-        this.toastService.success('Novo pet cadastrado (pendente de aceitação do tutor).');
-      }
-
-      if (this.petSavePlan === 'editar' && this.clienteIdSelecionado && token && this.petSelecionado?.id != null) {
-        const fd = this.buildPetFormData(this.novosDadosPet, false);
-        let alergiasPre = this.alergiasSelecionadasVet?.length ? this.alergiasSelecionadasVet : [];
-        if (!alergiasPre.length) {
-          const alergiasStr = this.alergiasList();
-          alergiasPre = await this.resolveAlergiasPredefinidas(alergiasStr, token);
-        }
-        fd.append('alergias_predefinidas', JSON.stringify(alergiasPre));
-        await this.apiService.updatePet(this.clienteIdSelecionado, this.petSelecionado.id!, fd, token).toPromise();
-        // Refetch do pet para estado atualizado
-        try {
-          const lista = await this.apiService.getPetsByCliente(this.clienteIdSelecionado, token).toPromise();
-          const p = (Array.isArray(lista) ? lista : []).find((x: any) => String(x.id) === String(this.petSelecionado!.id));
-          if (p) {
-            const atualizado: Pet = {
-              id: String(p.id),
-              nome: p.nome || '',
-              especie: p.especie || p.tipo || '',
-              idade: this.normalizeIdade(p),
-              peso: this.normalizePeso(p),
-              raca: p.raca || '',
-              sexo: p.sexo || 'Macho',
-              alergias: this.extractAlergiasToStrings(p),
-              alergias_predefinidas: Array.isArray(p.alergias_predefinidas) ? p.alergias_predefinidas : []
-            };
-            if (this.tutorEncontrado) {
-              this.tutorEncontrado.pets = (this.tutorEncontrado.pets || []).map((orig: any) => String(orig.id) === String(atualizado.id) ? atualizado : orig);
-            }
-            this.selecionarPet(atualizado);
-            petUsado = { ...atualizado };
-          } else {
-            Object.assign(this.petSelecionado, this.novosDadosPet, { alergias_predefinidas: alergiasPre as any });
-            petUsado = { ...this.petSelecionado };
-          }
-        } catch {
-          Object.assign(this.petSelecionado, this.novosDadosPet, { alergias_predefinidas: alergiasPre as any });
-          petUsado = { ...this.petSelecionado };
-        }
-        this.toastService.success('Pet atualizado com sucesso.');
-      }
-    } catch (e: any) {
-      const msg = e?.error?.message || e?.message || 'Erro ao persistir alterações do pet';
-      this.toastService.error(msg, 'Erro');
+    const petResult = await this.persistPetChangesIfNeeded();
+    if (!petResult.ok) {
       this.salvandoAtendimento = false;
       return;
-    } finally {
-      this.petSavePlan = null;
     }
+    const petUsado = petResult.petUsado;
 
     // Monta alergias somente como strings (predefinidas) para a receita
     const alergiasStrings = (this.alergiasSelecionadasVet && this.alergiasSelecionadasVet.length)
@@ -1262,7 +1799,7 @@ isBrowser: any;
       atendimento: {
         queixaPrincipal: this.queixaPrincipal,
         anamnese: this.anamnese,
-        exameFisico: this.exameFisico,
+        exameFisico: serializeExameFisico(this.exameFisicoForm),
         diagnostico: this.diagnostico,
         planoTerapeutico: this.planoTerapeutico,
         observacoes: this.observacoes,

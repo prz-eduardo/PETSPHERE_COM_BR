@@ -2,17 +2,15 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { TelemedicinaQueueMockService } from '../../restrito/area-cliente/telemedicina/telemedicina-queue-mock.service';
 import {
   TELEMEDICINA_MOCK_CONFIG,
-  TELEMEDICINA_MOCK_DASHBOARD,
   TELEMEDICINA_MOCK_PRICING,
-  TELEMEDICINA_MOCK_REQUESTS,
 } from './telemedicina-emergencial.mock';
 import {
   EmergencyRequest,
   EmergencyRequestStatus,
   TelemedicinaConfig,
-  TelemedicinaDashboardSeed,
   TelemedicinaPricing,
   TelemedicinaTab,
 } from './telemedicina-emergencial.types';
@@ -37,10 +35,22 @@ export class TelemedicinaEmergencialComponent {
   readonly emergencyOnline = signal<boolean>(false);
   readonly inAttendance = signal<boolean>(false);
   readonly loadingSimulation = signal<boolean>(false);
-  readonly requestList = signal<EmergencyRequest[]>(this.cloneRequests(TELEMEDICINA_MOCK_REQUESTS));
+
+  /** Lista filtrada quando o mock “visão do profissional” está ativo (só pedidos TUT direcionados àquele vet). */
+  readonly requestList = computed(() => {
+    const all = this.queueMock.requests();
+    const vid = this.queueMock.parceiroViewerVetId();
+    if (!vid) return all;
+    return all.filter((item) => {
+      if (!this.queueMock.isTutorLiveRequest(item.id)) return true;
+      const dir = this.queueMock.getDirectedVetId(item.id);
+      if (!dir) return true;
+      return dir === vid;
+    });
+  });
+
   readonly config = signal<TelemedicinaConfig>({ ...TELEMEDICINA_MOCK_CONFIG });
   readonly pricing = signal<TelemedicinaPricing>({ ...TELEMEDICINA_MOCK_PRICING });
-  readonly dashboardSeed = signal<TelemedicinaDashboardSeed>({ ...TELEMEDICINA_MOCK_DASHBOARD });
 
   readonly pendingCount = computed(
     () => this.requestList().filter((item) => item.status === 'PENDENTE').length,
@@ -53,7 +63,7 @@ export class TelemedicinaEmergencialComponent {
   );
 
   readonly maxHourlyVolume = computed(() => {
-    const all = this.dashboardSeed().horas.map((item) => item.volume);
+    const all = this.queueMock.dashboardSeed().horas.map((item) => item.volume);
     return Math.max(...all, 1);
   });
 
@@ -71,7 +81,10 @@ export class TelemedicinaEmergencialComponent {
     return [...pending].sort((a, b) => rank[b.prioridade] - rank[a.prioridade] || a.aguardandoMin - b.aguardandoMin)[0];
   });
 
-  constructor(private readonly router: Router) {}
+  constructor(
+    private readonly router: Router,
+    readonly queueMock: TelemedicinaQueueMockService,
+  ) {}
 
   setTab(tab: TelemedicinaTab): void {
     this.activeTab.set(tab);
@@ -92,42 +105,15 @@ export class TelemedicinaEmergencialComponent {
   }
 
   setRequestStatus(id: string, status: EmergencyRequestStatus): void {
-    this.requestList.update((all) =>
-      all.map((item) => (item.id === id ? { ...item, status } : item)),
-    );
+    this.queueMock.applyVetDecision(id, status, this.pricing().consultaBase);
 
     if (status === 'ACEITA') {
       this.inAttendance.set(true);
-      this.dashboardSeed.update((seed) => ({
-        ...seed,
-        atendimentosHoje: seed.atendimentosHoje + 1,
-        receitaEstimadaHoje: seed.receitaEstimadaHoje + this.pricing().consultaBase,
-      }));
     }
   }
 
   simulateIncomingRequest(): void {
-    const nextIndex = this.requestList().length + 1;
-    const item: EmergencyRequest = {
-      id: `EMG-${4900 + nextIndex}`,
-      prioridade: nextIndex % 2 === 0 ? 'ALTA' : 'MEDIA',
-      sintomas:
-        nextIndex % 2 === 0
-          ? 'Dificuldade respiratoria apos episodio de ansiedade intensa.'
-          : 'Tremores e perda de apetite desde a madrugada.',
-      tutor: {
-        nome: nextIndex % 2 === 0 ? 'Carlos Meireles' : 'Luana Brito',
-        petNome: nextIndex % 2 === 0 ? 'Mika' : 'Zeus',
-        petEspecie: nextIndex % 2 === 0 ? 'Felino' : 'Canino',
-        petRaca: nextIndex % 2 === 0 ? 'Persa' : 'Golden Retriever',
-      },
-      distanciaKm: nextIndex % 2 === 0 ? 4.1 : 7.6,
-      aguardandoMin: 1,
-      faixaHorario: 'Agora',
-      status: 'PENDENTE',
-    };
-
-    this.requestList.update((all) => [item, ...all]);
+    this.queueMock.pushSimulatedPartnerRequest();
     this.activeTab.set('fila');
   }
 
@@ -179,7 +165,7 @@ export class TelemedicinaEmergencialComponent {
     this.pricing.update((current) => ({ ...current, [field]: value }));
   }
 
-  private cloneRequests(items: EmergencyRequest[]): EmergencyRequest[] {
-    return items.map((item) => ({ ...item, tutor: { ...item.tutor } }));
+  vetNomeNoPainel(vetId: string): string {
+    return this.queueMock.vets().find((v) => v.id === vetId)?.nome ?? vetId;
   }
 }

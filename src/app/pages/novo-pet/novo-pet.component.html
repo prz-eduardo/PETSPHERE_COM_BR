@@ -36,6 +36,7 @@
           <div class="pet-summary__content">
             <div class="pet-summary__eyebrow">Resumo do pet</div>
             <h2 class="pet-name">{{ nome || 'Sem nome' }}</h2>
+            <p class="pet-summary__aka" *ngIf="apelido && apelido.trim()">“{{ apelido }}”</p>
             <p class="pet-summary__subline">
               {{ especie || 'Espécie não definida' }}
               <span *ngIf="raca">· {{ raca }}</span>
@@ -61,6 +62,8 @@
             <div class="meta-item"><strong>Castrado</strong><div>{{ castradoLabel || '—' }}</div></div>
             <div class="meta-item"><strong>Porte</strong><div>{{ porteLabel || '—' }}</div></div>
             <div class="meta-item"><strong>Peso</strong><div>{{ pesoKg != null ? (pesoKg | number:'1.0-2') + ' kg' : '—' }}</div></div>
+            <div class="meta-item" *ngIf="corPelagem"><strong>Cor / pelagem</strong><div>{{ corPelagem }}</div></div>
+            <div class="meta-item" *ngIf="microchip"><strong>Microchip</strong><div>{{ microchip }}</div></div>
           </div>
 
           <div class="pet-alergias">
@@ -80,40 +83,79 @@
         </aside>
 
         <section class="main-form">
-          <section class="management-section">
+          <nav class="np-section-nav" aria-label="Seções do formulário">
+            <a
+              href="#np-sec-identificacao"
+              class="np-section-nav__link"
+              [class.np-section-nav__link--active]="activeSection === 'identificacao'"
+              (click)="scrollToSection('identificacao', $event)"
+            >Identificação</a>
+            <a
+              href="#np-sec-saude"
+              class="np-section-nav__link"
+              [class.np-section-nav__link--active]="activeSection === 'saude'"
+              (click)="scrollToSection('saude', $event)"
+            >Saúde e rotina</a>
+            <a
+              href="#np-sec-vacinas"
+              class="np-section-nav__link"
+              [class.np-section-nav__link--active]="activeSection === 'vacinas'"
+              (click)="scrollToSection('vacinas', $event)"
+            >Vacinas</a>
+            <a
+              href="#np-sec-privacidade"
+              class="np-section-nav__link"
+              [class.np-section-nav__link--active]="activeSection === 'privacidade'"
+              (click)="scrollToSection('privacidade', $event)"
+            >Privacidade</a>
+          </nav>
+
+          <section class="management-section" id="np-sec-identificacao">
             <div class="management-section__head">
               <div>
-                <div class="management-section__eyebrow">Dados principais</div>
-                <h3 class="management-section__title">Informações do pet</h3>
-                <p class="management-section__desc">Atualize os campos principais que aparecem no perfil e facilitam a identificação do pet.</p>
+                <div class="management-section__eyebrow">Identificação</div>
+                <h3 class="management-section__title">Quem é o pet</h3>
+                <p class="management-section__desc">Nome, espécie e detalhes que ajudam a identificar o animal em consultas e serviços.</p>
               </div>
             </div>
             <div class="grid">
               <div class="field">
                 <label>Nome *</label>
-                <input type="text" [(ngModel)]="nome" placeholder="Ex: Rex" />
+                <input type="text" [(ngModel)]="nome" placeholder="Ex: Rex" name="nomePet" />
+              </div>
+              <div class="field">
+                <label>Apelido</label>
+                <input type="text" [(ngModel)]="apelido" placeholder="Como chama no dia a dia" maxlength="80" name="apelidoPet" />
               </div>
               <div class="field">
                 <label>Espécie *</label>
-                <select [(ngModel)]="especie">
+                <select [(ngModel)]="especie" name="especiePet">
                   <option value="" disabled selected>Selecione</option>
                   <option *ngFor="let e of especies" [value]="e">{{ e }}</option>
                 </select>
               </div>
               <div class="field">
                 <label>Raça</label>
-                <input type="text" [(ngModel)]="raca" placeholder="Ex: Labrador" />
+                <input type="text" [(ngModel)]="raca" placeholder="Ex: Labrador" name="racaPet" />
+              </div>
+              <div class="field">
+                <label>Cor / pelagem</label>
+                <input type="text" [(ngModel)]="corPelagem" placeholder="Ex: dourado, tigrado" maxlength="64" name="corPelagemPet" />
+              </div>
+              <div class="field">
+                <label>Microchip</label>
+                <input type="text" [(ngModel)]="microchip" placeholder="Opcional" maxlength="32" name="microchipPet" />
               </div>
               <div class="field">
                 <label>Sexo *</label>
-                <select [(ngModel)]="sexo">
+                <select [(ngModel)]="sexo" name="sexoPet">
                   <option value="" disabled selected>Selecione</option>
                   <option *ngFor="let s of sexos" [value]="s">{{ s }}</option>
                 </select>
               </div>
               <div class="field">
                 <label>Peso (kg)</label>
-                <input type="number" step="0.1" min="0" [(ngModel)]="pesoKg" placeholder="Ex: 12.5" />
+                <input type="number" step="0.1" min="0" [(ngModel)]="pesoKg" placeholder="Ex: 12.5" name="pesoPet" />
               </div>
               <div class="field field--block">
                 <label>Como você prefere informar a idade?</label>
@@ -128,61 +170,47 @@
               </div>
               <div class="field" *ngIf="modoIdade === 'anos'">
                 <label>Idade (anos)</label>
-                <input type="number" min="0" [(ngModel)]="idadeAnos" placeholder="Ex: 5" />
+                <input type="number" min="0" [(ngModel)]="idadeAnos" placeholder="Ex: 5" name="idadeAnosPet" />
               </div>
               <div class="field" *ngIf="modoIdade === 'nascimento'">
                 <label>Data de nascimento</label>
-                <input type="date" [(ngModel)]="dataNascimento" [max]="hojeYmd()" />
+                <input type="date" [(ngModel)]="dataNascimento" [max]="hojeYmd()" name="dataNascPet" />
               </div>
-              <div class="field">
-                <label>Castrado(a)</label>
-                <select [(ngModel)]="castrado">
-                  <option value="">Não informado</option>
-                  <option value="1">Sim</option>
-                  <option value="0">Não</option>
-                </select>
+              <div class="field field--block">
+                <label id="castrado-lbl">Castrado(a)</label>
+                <div class="castrado-segment" role="radiogroup" aria-labelledby="castrado-lbl">
+                  <button type="button" class="castrado-segment__btn" [class.castrado-segment__btn--active]="castrado === ''" (click)="setCastrado('')">Não informado</button>
+                  <button type="button" class="castrado-segment__btn" [class.castrado-segment__btn--active]="castrado === '1'" (click)="setCastrado('1')">Sim</button>
+                  <button type="button" class="castrado-segment__btn" [class.castrado-segment__btn--active]="castrado === '0'" (click)="setCastrado('0')">Não</button>
+                </div>
               </div>
               <div class="field">
                 <label>Porte</label>
-                <select [(ngModel)]="porte">
+                <select [(ngModel)]="porte" name="portePet">
                   <option *ngFor="let pp of portes" [value]="pp.v">{{ pp.l }}</option>
                 </select>
               </div>
             </div>
           </section>
 
-          <section class="management-section">
+          <section class="management-section" id="np-sec-saude">
             <div class="management-section__head">
               <div>
-                <div class="management-section__eyebrow">Cuidados e visibilidade</div>
-                <h3 class="management-section__title">Saúde, observações e exibição</h3>
-                <p class="management-section__desc">Concentre aqui as informações clínicas e a decisão sobre exibir ou não o pet na galeria pública.</p>
+                <div class="management-section__eyebrow">Saúde e rotina</div>
+                <h3 class="management-section__title">Cuidados e comportamento</h3>
+                <p class="management-section__desc">Observações, alergias e hábitos úteis para veterinários, hotéis e passeadores.</p>
               </div>
-            </div>
-
-            <div class="field galeria-publica-field">
-              <label class="galeria-publica-toggle">
-                <input
-                  type="checkbox"
-                  [(ngModel)]="exibirGaleriaPublica"
-                  name="exibirGaleriaPublica"
-                />
-                <span class="galeria-publica-toggle__text">
-                  <strong>Exibir este pet na galeria pública</strong>
-                  <small class="muted">Ao marcar, suas fotos selecionadas como públicas poderão aparecer no feed da comunidade após a aprovação da equipe. Você pode desligar a qualquer momento.</small>
-                </span>
-              </label>
             </div>
 
             <div class="field">
               <label>Observações</label>
-              <textarea [(ngModel)]="observacoes" rows="3" placeholder="Alergias, comportamento, preferências..."></textarea>
+              <textarea [(ngModel)]="observacoes" rows="3" placeholder="Comportamento, preferências, notas gerais..." name="obsPet"></textarea>
             </div>
 
             <div class="field">
               <label>Alergias (pré-definidas)</label>
               <div class="alergias-row">
-                <input type="text" [(ngModel)]="alergiaBusca" (input)="filtrarSugestoes()" placeholder="Busque e selecione..." />
+                <input type="text" [(ngModel)]="alergiaBusca" (input)="filtrarSugestoes()" placeholder="Busque e selecione..." name="alergiaBuscaPet" />
               </div>
               <div class="dropdown" *ngIf="showSugestoes">
                 <div class="option" *ngFor="let s of sugestoes" (click)="adicionarSugestao(s)">{{ s.nome }}</div>
@@ -199,7 +227,7 @@
               <label>Comportamentos, rotina e preferências</label>
               <p class="muted small-hint">Itens opcionais do catálogo (social, bem-estar, etc.). Ajuda hotéis, passeadores e vets a entender seu pet.</p>
               <div class="alergias-row">
-                <input type="text" [(ngModel)]="traitBusca" (input)="filtrarSugestoesTraits()" placeholder="Busque e selecione..." />
+                <input type="text" [(ngModel)]="traitBusca" (input)="filtrarSugestoesTraits()" placeholder="Busque e selecione..." name="traitBuscaPet" />
               </div>
               <div class="dropdown" *ngIf="showSugestoesTraits">
                 <div class="option" *ngFor="let s of sugestoesTraits" (click)="adicionarSugestaoTrait(s)">
@@ -213,6 +241,50 @@
                   <button type="button" class="badge-remove" (click)="traitsSelecionados.splice(i,1)">x</button>
                 </span>
               </div>
+            </div>
+          </section>
+
+          <section class="management-section" id="np-sec-vacinas">
+            <div class="management-section__head">
+              <div>
+                <div class="management-section__eyebrow">Carteira de vacinação</div>
+                <h3 class="management-section__title">Histórico e comprovantes</h3>
+                <p class="management-section__desc">Registre doses aplicadas e anexe foto do comprovante. Disponível após salvar o pet.</p>
+              </div>
+            </div>
+            <app-pet-vacinas-panel
+              *ngIf="isEditMode && getEffectiveEditId() && getClienteIdNum() && token"
+              [clienteId]="getClienteIdNum()!"
+              [petId]="getEffectiveEditId()!"
+              [authToken]="token!"
+              [lembretesGlobaisAtivos]="lembretesVacinasGlobais"
+            ></app-pet-vacinas-panel>
+            <p *ngIf="!isEditMode" class="muted vacinas-placeholder">
+              Salve o cadastro primeiro para adicionar vacinas e comprovantes.
+            </p>
+          </section>
+
+          <section class="management-section" id="np-sec-privacidade">
+            <div class="management-section__head">
+              <div>
+                <div class="management-section__eyebrow">Privacidade</div>
+                <h3 class="management-section__title">Visibilidade na comunidade</h3>
+                <p class="management-section__desc">Controle se o pet pode aparecer na galeria pública após aprovação da equipe.</p>
+              </div>
+            </div>
+
+            <div class="field galeria-publica-field">
+              <label class="galeria-publica-toggle">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="exibirGaleriaPublica"
+                  name="exibirGaleriaPublica"
+                />
+                <span class="galeria-publica-toggle__text">
+                  <strong>Exibir este pet na galeria pública</strong>
+                  <small class="muted">Ao marcar, suas fotos selecionadas como públicas poderão aparecer no feed da comunidade após a aprovação da equipe. Você pode desligar a qualquer momento.</small>
+                </span>
+              </label>
             </div>
           </section>
 

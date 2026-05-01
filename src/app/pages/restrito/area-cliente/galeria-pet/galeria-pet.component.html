@@ -4,16 +4,25 @@
     <p class="galeria-pet__desc">Gerencie as fotos dos seus pets, organize em coleções e defina quais aparecem na galeria pública.</p>
   </div>
 
-  <!-- Pet Selector -->
-  <div class="pet-selector" *ngIf="pets.length > 1">
-    <label class="pet-selector__label">Selecione um pet:</label>
-    <select class="pet-selector__select" [(ngModel)]="selectedPetId" (change)="onPetSelect(selectedPetId)">
-      <option *ngFor="let p of pets" [value]="p.id || p._id">{{ p.nome || 'Pet sem nome' }}</option>
-    </select>
+  <div class="pet-selector" *ngIf="pets.length">
+    <label class="pet-selector__label">Pets exibidos:</label>
+    <div class="pet-selector__avatars">
+      <button
+        type="button"
+        class="pet-avatar"
+        *ngFor="let p of pets"
+        [class.pet-avatar--active]="isPetSelected(p.id || p._id)"
+        (click)="togglePetSelection(p.id || p._id)"
+        [title]="p.nome || 'Pet sem nome'"
+      >
+        <img *ngIf="p.foto_url || p.foto" [src]="p.foto_url || p.foto" [alt]="p.nome || 'Pet'" />
+        <span *ngIf="!(p.foto_url || p.foto)">{{ (p.nome || 'P').slice(0, 1) }}</span>
+      </button>
+    </div>
   </div>
 
   <!-- Main Gallery Section -->
-  <div class="gallery-container" *ngIf="selectedPet">
+  <div class="gallery-container" *ngIf="pets.length">
     <!-- Gallery Toolbar -->
     <div class="gallery-toolbar">
       <div class="gallery-toolbar__copy">
@@ -21,10 +30,7 @@
         <p class="gallery-toolbar__subhint">Clique em uma foto salva para abrir a configuração da imagem, ajustar legenda e definir se ela entra na galeria pública.</p>
       </div>
       <div class="gallery-toolbar__actions">
-        <label class="btn file-btn">
-          <input type="file" accept="image/*" multiple (change)="onFileChange($event)" hidden />
-          Adicionar fotos
-        </label>
+        <button type="button" class="btn btn-sec btn-sec--small" (click)="carregarColecoesSelecionadas()" [disabled]="!hasSelectedPets">Atualizar coleções</button>
         <button *ngIf="fotoPreviews.length" type="button" class="btn btn-sec" (click)="removerTodasNovas()">Limpar novas</button>
       </div>
     </div>
@@ -35,7 +41,7 @@
       <div class="gallery-panel gallery-panel--saved">
         <div class="gallery-panel__head">
           <h4>Fotos salvas</h4>
-          <span>{{ galeriaItens.length }} item(ns)</span>
+          <span>{{ visibleGaleriaItens.length }} item(ns)</span>
         </div>
         <p class="gallery-panel__hint">Use a coleção para definir se a foto aparece no feed como avulsa ou agrupada num álbum.</p>
 
@@ -43,7 +49,7 @@
         <div class="colecao-box">
           <div class="colecao-box__head">
             <strong>Gerenciar coleções</strong>
-            <button type="button" class="btn btn-sec btn-sec--small" (click)="carregarColecoes()">Atualizar lista</button>
+            <button type="button" class="btn btn-sec btn-sec--small" (click)="carregarColecoesSelecionadas()" [disabled]="!hasSelectedPets">Atualizar lista</button>
           </div>
           <p class="colecao-box__desc">Crie álbuns para montar carrosséis na galeria pública. Fotos sem coleção continuam entrando como fotos avulsas.</p>
           <div class="colecao-bar__row">
@@ -53,14 +59,27 @@
         </div>
 
         <!-- Gallery Items List -->
-        <div class="gallery-list" *ngIf="galeriaItens.length; else noFotoSalva">
-          <article class="gallery-item-card gallery-item-card--clickable" *ngFor="let g of galeriaItens" (click)="openGalleryItemSettings(g)" (keydown.enter)="openGalleryItemSettings(g)" tabindex="0">
+        <div class="collection-tabs" *ngIf="collectionTabs.length > 1">
+          <button
+            type="button"
+            class="collection-tab"
+            *ngFor="let tab of collectionTabs"
+            [class.collection-tab--active]="activeCollectionTabId === tab.id"
+            (click)="selectCollectionTab(tab.id)"
+          >
+            {{ tab.label }} ({{ tab.count }})
+          </button>
+        </div>
+
+        <div class="gallery-list" *ngIf="visibleGaleriaItens.length; else noFotoSalva">
+          <article class="gallery-item-card gallery-item-card--clickable" *ngFor="let g of visibleGaleriaItens" (click)="openGalleryItemSettings(g)" (keydown.enter)="openGalleryItemSettings(g)" tabindex="0">
             <div class="gallery-item-card__media">
               <img [src]="g.url" alt="Foto guardada" />
               <span class="g-badge">Salva</span>
             </div>
             <div class="gallery-item-card__body">
               <div class="gallery-item-card__title">Foto da galeria</div>
+              <div class="gallery-item-card__pet">{{ g.pet_nome }}</div>
               <div class="gallery-item-card__status">{{ galleryItemStatus(g) }}</div>
               <div class="gallery-item-card__meta" *ngIf="g.legenda">{{ g.legenda }}</div>
               <div class="gallery-item-card__cta">Clique para configurar esta foto</div>
@@ -68,7 +87,10 @@
           </article>
         </div>
         <ng-template #noFotoSalva>
-          <div class="gallery-empty">Nenhuma foto salva ainda. Adicione fotos abaixo.</div>
+          <div class="gallery-empty">
+            <span *ngIf="!hasSelectedPets">Nenhum pet selecionado. Toque nos avatares acima para filtrar.</span>
+            <span *ngIf="hasSelectedPets">Nenhuma foto salva para o filtro atual.</span>
+          </div>
         </ng-template>
       </div>
 
@@ -93,7 +115,11 @@
           </article>
         </div>
         <ng-template #noFotoNova>
-          <div class="gallery-empty">Nenhuma nova foto selecionada.</div>
+          <div class="gallery-empty gallery-empty--upload" (click)="openUploadPicker(fileInput)">
+            <input #fileInput type="file" accept="image/*" multiple (change)="onFileChange($event)" hidden />
+            <span *ngIf="hasSelectedPets">Nenhuma nova foto selecionada. Clique aqui para adicionar fotos.</span>
+            <span *ngIf="!hasSelectedPets">Selecione pelo menos um pet para adicionar novas fotos.</span>
+          </div>
         </ng-template>
       </div>
     </div>
@@ -108,7 +134,7 @@
   </div>
 
   <!-- No Pet Selected -->
-  <div class="gallery-empty" *ngIf="!selectedPet && pets.length === 0">
+  <div class="gallery-empty" *ngIf="pets.length === 0">
     <p>Você não tem pets cadastrados. Cadastre um pet para gerenciar suas fotos.</p>
   </div>
 
@@ -135,7 +161,7 @@
             <label>Coleção</label>
             <select [(ngModel)]="galleryDraft.colecao_id">
               <option [value]="null">Sem coleção (foto avulsa)</option>
-              <option *ngFor="let c of colecoes" [value]="c.id">{{ c.titulo }}</option>
+              <option *ngFor="let c of getColecoesDoItemSelecionado()" [value]="c.id">{{ c.titulo }}</option>
             </select>
           </div>
 
