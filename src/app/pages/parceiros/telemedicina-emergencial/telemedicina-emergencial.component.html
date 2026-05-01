@@ -1,0 +1,309 @@
+<section class="telemed-shell">
+  <header class="telemed-hero">
+    <div class="telemed-hero__main">
+      <p class="eyebrow">Telemedicina veterinaria emergencial</p>
+      <h1>Central de prontidao do parceiro</h1>
+      <p>
+        Ative o plantao para receber chamados de urgencia dos tutores, defina seus precos e acompanhe
+        desempenho operacional em tempo real.
+      </p>
+    </div>
+
+    <div class="telemed-hero__status">
+      <div class="status-pill" [class.status-pill--online]="emergencyOnline()">
+        <i class="fa" [ngClass]="emergencyOnline() ? 'fa-circle-check' : 'fa-circle-pause'"></i>
+        <span>{{ emergencyOnline() ? 'Prontidao ativa' : 'Prontidao inativa' }}</span>
+      </div>
+
+      <button type="button" class="btn btn-primary" (click)="toggleProntidao()" [disabled]="loadingSimulation()">
+        <i class="fa" [ngClass]="emergencyOnline() ? 'fa-power-off' : 'fa-bolt'"></i>
+        <span *ngIf="!loadingSimulation()">{{ emergencyOnline() ? 'Sair da prontidao' : 'Entrar em prontidao' }}</span>
+        <span *ngIf="loadingSimulation()">Atualizando...</span>
+      </button>
+
+      <button type="button" class="btn btn-ghost" (click)="simulateIncomingRequest()">
+        <i class="fa fa-bell"></i>
+        Simular notificacao
+      </button>
+    </div>
+  </header>
+
+  <div class="top-alert" *ngIf="emergencyOnline() && topPriorityCall() as call">
+    <i class="fa fa-siren-on"></i>
+    <span>
+      Novo caso prioritario: <strong>{{ call.tutor.petNome }}</strong> com tutor {{ call.tutor.nome }}.
+      Aguardando ha {{ call.aguardandoMin }} min.
+    </span>
+    <button type="button" class="btn btn-inline" (click)="setTab('fila')">Ver fila agora</button>
+  </div>
+
+  <nav class="tab-strip" role="tablist" aria-label="Navegacao do modulo telemedicina">
+    <button
+      *ngFor="let tab of tabs"
+      type="button"
+      class="tab-btn"
+      [class.tab-btn--active]="activeTab() === tab.id"
+      [attr.aria-selected]="activeTab() === tab.id"
+      [attr.aria-current]="activeTab() === tab.id ? 'page' : null"
+      (click)="setTab(tab.id)"
+    >
+      <i class="fa" [ngClass]="tab.icon"></i>
+      <span>{{ tab.label }}</span>
+    </button>
+  </nav>
+
+  <section class="view-grid" *ngIf="activeTab() === 'prontidao'">
+    <article class="card card-highlight">
+      <h2>Painel de plantao</h2>
+      <p>
+        Controle rapido para entrar e sair da disponibilidade emergencial. Quando ativo, seu perfil fica visivel
+        para tutores em urgencia na sua regiao.
+      </p>
+      <ul>
+        <li>
+          <strong>Tempo maximo de resposta:</strong>
+          <span class="chip" [ngClass]="responseSlaColor()">{{ config().tempoRespostaMaxMin }} min</span>
+        </li>
+        <li><strong>Raio de atendimento:</strong> {{ config().raioAtendimentoKm }} km</li>
+        <li><strong>Status atual:</strong> {{ inAttendance() ? 'Em atendimento' : 'Aguardando novos casos' }}</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <h3>Atalhos de operacao</h3>
+      <div class="quick-actions">
+        <button type="button" class="btn btn-soft" (click)="setTab('fila')">
+          <i class="fa fa-bell"></i>
+          Ir para fila de emergencia
+        </button>
+        <button type="button" class="btn btn-soft" (click)="setTab('config')">
+          <i class="fa fa-sliders"></i>
+          Ajustar precos e configuracoes
+        </button>
+        <button type="button" class="btn btn-soft" (click)="setTab('dashboard')">
+          <i class="fa fa-chart-line"></i>
+          Ver dashboard operacional
+        </button>
+        <button type="button" class="btn btn-soft" (click)="goToAgenda()">
+          <i class="fa fa-calendar"></i>
+          Abrir area de agendamento
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <section class="view-grid" *ngIf="activeTab() === 'fila'">
+    <article class="card card-kpis">
+      <div class="kpi"><span>Pendentes</span><strong>{{ pendingCount() }}</strong></div>
+      <div class="kpi"><span>Aceitas</span><strong>{{ acceptedCount() }}</strong></div>
+      <div class="kpi"><span>Recusadas</span><strong>{{ refusedCount() }}</strong></div>
+    </article>
+
+    <article class="card">
+      <h2>Fila de notificacoes emergenciais</h2>
+      <p class="muted">Mockup de notificacoes em tempo real. Sem push real ou websocket nesta fase.</p>
+
+      <div class="request-list" *ngIf="requestList().length > 0; else noRequests">
+        <div class="request-card" *ngFor="let item of requestList()">
+          <header>
+            <span class="priority" [ngClass]="'priority--' + item.prioridade.toLowerCase()">{{ getPriorityLabel(item.prioridade) }}</span>
+            <span class="id">{{ item.id }}</span>
+          </header>
+
+          <h3>{{ item.tutor.petNome }} · {{ item.tutor.petEspecie }} ({{ item.tutor.petRaca }})</h3>
+          <p>{{ item.sintomas }}</p>
+
+          <div class="meta">
+            <span><i class="fa fa-user"></i> {{ item.tutor.nome }}</span>
+            <span><i class="fa fa-location-dot"></i> {{ item.distanciaKm }} km</span>
+            <span><i class="fa fa-clock"></i> {{ item.aguardandoMin }} min</span>
+            <span><i class="fa fa-moon"></i> {{ item.faixaHorario }}</span>
+          </div>
+
+          <footer>
+            <span class="status" [ngClass]="'status--' + item.status.toLowerCase()">{{ item.status }}</span>
+            <div class="actions" *ngIf="item.status === 'PENDENTE'">
+              <button type="button" class="btn btn-accept" (click)="setRequestStatus(item.id, 'ACEITA')">Aceitar</button>
+              <button type="button" class="btn btn-decline" (click)="setRequestStatus(item.id, 'RECUSADA')">Recusar</button>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="view-grid" *ngIf="activeTab() === 'config'">
+    <article class="card">
+      <h2>On/Off, regras e disponibilidade</h2>
+
+      <div class="toggle-grid">
+        <label>
+          <input
+            type="checkbox"
+            [ngModel]="config().disponibilidade24h"
+            (ngModelChange)="updateConfigFlag('disponibilidade24h', $event)"
+          />
+          Disponibilidade 24h
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            [ngModel]="config().aceitaNoturno"
+            (ngModelChange)="updateConfigFlag('aceitaNoturno', $event)"
+          />
+          Aceitar chamados noturnos
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            [ngModel]="config().aceitaFimSemana"
+            (ngModelChange)="updateConfigFlag('aceitaFimSemana', $event)"
+          />
+          Aceitar fins de semana
+        </label>
+        <label>
+          Tempo maximo de resposta (min)
+          <input
+            type="number"
+            min="3"
+            max="30"
+            [ngModel]="config().tempoRespostaMaxMin"
+            (ngModelChange)="updateConfigNumber('tempoRespostaMaxMin', $event)"
+          />
+        </label>
+        <label>
+          Raio de atendimento (km)
+          <input
+            type="number"
+            min="1"
+            max="50"
+            [ngModel]="config().raioAtendimentoKm"
+            (ngModelChange)="updateConfigNumber('raioAtendimentoKm', $event)"
+          />
+        </label>
+      </div>
+
+      <label class="full-width">
+        Mensagem automatica para tutor
+        <textarea
+          rows="4"
+          [ngModel]="config().mensagemAutomatica"
+          (ngModelChange)="updateConfigMessage($event)"
+        ></textarea>
+      </label>
+    </article>
+
+    <article class="card">
+      <h2>Precos da telemedicina emergencial</h2>
+      <div class="price-grid">
+        <label>
+          Consulta base
+          <input
+            type="number"
+            min="0"
+            [ngModel]="pricing().consultaBase"
+            (ngModelChange)="updatePricingNumber('consultaBase', $event)"
+          />
+        </label>
+        <label>
+          Adicional noturno (%)
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="pricing().adicionalNoturnoPct"
+            (ngModelChange)="updatePricingNumber('adicionalNoturnoPct', $event)"
+          />
+        </label>
+        <label>
+          Adicional fim de semana (%)
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="pricing().adicionalFimSemanaPct"
+            (ngModelChange)="updatePricingNumber('adicionalFimSemanaPct', $event)"
+          />
+        </label>
+        <label>
+          Adicional feriado (%)
+          <input
+            type="number"
+            min="0"
+            max="100"
+            [ngModel]="pricing().adicionalFeriadoPct"
+            (ngModelChange)="updatePricingNumber('adicionalFeriadoPct', $event)"
+          />
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            [ngModel]="pricing().retorno72hGratis"
+            (ngModelChange)="updatePricingFlag('retorno72hGratis', $event)"
+          />
+          Retorno em ate 72h sem custo
+        </label>
+      </div>
+
+      <div class="pricing-preview">
+        <h3>Simulacao de valor</h3>
+        <p>Consulta base: <strong>{{ formatMoney(pricing().consultaBase) }}</strong></p>
+        <p>
+          Noturno: <strong>{{ formatMoney(pricing().consultaBase * (1 + pricing().adicionalNoturnoPct / 100)) }}</strong>
+        </p>
+        <p>
+          Fim de semana: <strong>{{ formatMoney(pricing().consultaBase * (1 + pricing().adicionalFimSemanaPct / 100)) }}</strong>
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <section class="view-grid" *ngIf="activeTab() === 'dashboard'">
+    <article class="card card-kpis">
+      <div class="kpi"><span>Atendimentos hoje</span><strong>{{ dashboardSeed().atendimentosHoje }}</strong></div>
+      <div class="kpi"><span>Taxa de aceite</span><strong>{{ dashboardSeed().taxaAceitePct }}%</strong></div>
+      <div class="kpi"><span>Tempo medio aceite</span><strong>{{ dashboardSeed().tempoMedioAceiteMin }} min</strong></div>
+      <div class="kpi"><span>Receita estimada</span><strong>{{ formatMoney(dashboardSeed().receitaEstimadaHoje) }}</strong></div>
+    </article>
+
+    <article class="card">
+      <h2>Volume de chamados por faixa horaria</h2>
+      <p class="muted">Mock visual para orientar layout de analytics antes da integracao real.</p>
+
+      <div class="hour-load">
+        <div class="hour-row" *ngFor="let h of dashboardSeed().horas">
+          <span class="hour-label">{{ h.faixa }}</span>
+          <div class="bar-wrap"><span class="bar" [style.width.%]="hourlyBarWidth(h.volume)"></span></div>
+          <strong>{{ h.volume }}</strong>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="view-grid" *ngIf="activeTab() === 'agenda'">
+    <article class="card card-highlight">
+      <h2>Ponte para agendamento</h2>
+      <p>
+        Quando o caso nao for atendido como urgencia imediata, voce pode converter para o fluxo formal de agenda.
+      </p>
+
+      <div class="quick-actions">
+        <button type="button" class="btn btn-primary" (click)="goToAgenda()">
+          <i class="fa fa-calendar-check"></i>
+          Abrir agenda de atendimentos
+        </button>
+        <a class="btn btn-ghost" routerLink="/parceiros/servicos">
+          <i class="fa fa-scissors"></i>
+          Revisar servicos e duracoes
+        </a>
+      </div>
+    </article>
+  </section>
+
+  <ng-template #noRequests>
+    <div class="empty-state">
+      <i class="fa fa-check-circle"></i>
+      <p>Sem chamados emergenciais no momento. Ative notificacoes simuladas para validar este fluxo.</p>
+    </div>
+  </ng-template>
+</section>

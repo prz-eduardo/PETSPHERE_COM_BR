@@ -69,8 +69,10 @@
               <a [routerLink]="lojaHref" class="navbar-secondary-link">Loja</a>
               <span class="navbar-secondary-dot" aria-hidden="true">·</span>
               <a routerLink="/sobre-nos" class="navbar-secondary-link">Sobre</a>
-              <span class="navbar-secondary-dot" aria-hidden="true">·</span>
-              <a routerLink="/parceiro/planos" class="navbar-secondary-link">Para negócios</a>
+              <ng-container *ngIf="showDesktopBusinessLink">
+                <span class="navbar-secondary-dot" aria-hidden="true">·</span>
+                <a routerLink="/parceiro/planos" class="navbar-secondary-link">Para negócios</a>
+              </ng-container>
             </nav>
           </div>
         </div>

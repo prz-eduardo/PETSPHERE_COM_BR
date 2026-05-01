@@ -563,14 +563,14 @@
               <p class="transporte-pet-map-panel__quote-meta muted">Distância aproximada · {{ transportePetQuote.distancia_km }} km</p>
             </div>
             <p *ngIf="transportePetLastCorridaId" class="transporte-pet-map-panel__hint">Última corrida criada neste aparelho: <strong>#{{ transportePetLastCorridaId }}</strong></p>
-            <a
+            <button
               *ngIf="transportePetLastParceiroId && transportePetLastCorridaId"
               class="transporte-pet-map-panel__chat-btn"
-              [routerLink]="['/chat-parceiro', transportePetLastParceiroId]"
-              [queryParams]="{ corrida: transportePetLastCorridaId }"
+              type="button"
+              (click)="openLastRidePartnerChat($event)"
             >
               Mensagem para a loja sobre esta corrida
-            </a>
+            </button>
           </div>
         </div>
 

@@ -8,7 +8,6 @@
   width: 100%;
   min-width: 0;
   min-height: 0;
-  height: 100%;
   overflow: hidden;
 }
 
@@ -16,19 +15,26 @@
   flex: 1 1 0%;
   min-height: 0;
   overflow: auto;
-  overflow-x: auto;
   overscroll-behavior: contain;
-  scroll-behavior: smooth;
   border-radius: var(--admin-radius-lg);
   border: 1px solid var(--admin-border);
-  background: var(--admin-surface-2);
+  background: var(--admin-surface);
+
+  // Mobile: reserve space so the floating dock doesn't hide the last timeslots
+  @media (max-width: 767px) {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .grid-wrap {
   display: flex;
   flex-direction: column;
-  min-width: 600px;
-  flex: 1 0 auto;
+  min-width: 520px;
+}
+
+.grid-bottom-spacer {
+  flex: 0 0 auto;
+  height: 10px;
 }
 
 // ── Header ────────────────────────────────────────────────────────────────
@@ -39,18 +45,18 @@
   top: 0;
   z-index: 10;
   background: var(--admin-surface);
-  border-bottom: 1px solid var(--admin-border);
+  border-bottom: 2px solid var(--admin-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .time-gutter {
   position: sticky;
   left: 0;
   z-index: 12;
-  width: 56px;
+  width: 60px;
   flex-shrink: 0;
   border-right: 1px solid var(--admin-border);
   background: var(--admin-surface);
-  box-shadow: 4px 0 12px -8px rgba(0, 0, 0, 0.45);
 }
 
 .prof-header {
@@ -58,8 +64,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 4px;
+  justify-content: center;
+  padding: 10px 6px;
+  min-height: 46px;
   border-right: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
 
   &:last-child { border-right: none; }
 }
@@ -67,12 +76,13 @@
 .prof-name {
   font-size: var(--admin-font-size-sm);
   font-weight: var(--admin-font-weight-semibold);
-  color: var(--admin-text);
+  color: var(--admin-text-strong);
 }
 
 .prof-role {
   font-size: var(--admin-font-size-xs);
   color: var(--admin-muted);
+  margin-top: 2px;
 }
 
 // ── Body ──────────────────────────────────────────────────────────────────
@@ -80,50 +90,72 @@
 .grid-body {
   display: flex;
   position: relative;
-  /* Honor the explicit pixel height set inline so percentages on the
-     appointment blocks stay accurate. The actual scroll happens on :host. */
   flex: 0 0 auto;
 }
+
+// ── Time column ────────────────────────────────────────────────────────────
 
 .time-col {
   position: sticky;
   left: 0;
   z-index: 6;
-  width: 56px;
+  width: 60px;
   flex-shrink: 0;
   border-right: 1px solid var(--admin-border);
   background: var(--admin-surface);
-  box-shadow: 4px 0 12px -8px rgba(0, 0, 0, 0.45);
 }
 
 .time-label {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  padding-right: 8px;
+  padding-right: 10px;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--admin-border-soft);
+  border-bottom: 1px solid var(--admin-border);
+  position: relative;
 
-  span {
-    font-size: 10px;
+  // Full-hour label (minute === 0)
+  > span:not(.half-tick) {
+    font-size: 11px;
+    font-weight: var(--admin-font-weight-medium);
+    color: var(--admin-text);
+    font-variant-numeric: tabular-nums;
+    transform: translateY(-6px);
+    line-height: 1;
+  }
+
+  // Half-tick label (minute === 30)
+  .half-tick {
+    font-size: 9px;
     color: var(--admin-muted);
     font-variant-numeric: tabular-nums;
-    transform: translateY(-4px);
+    transform: translateY(-5px);
+    line-height: 1;
+    opacity: 0.6;
   }
 
-  /* Primeiro rótulo: sem deslocamento negativo para não invadir o cabeçalho sticky */
-  &:first-child span {
+  // First label: no negative translateY so it stays inside the box
+  &:first-child > span:not(.half-tick) {
     transform: none;
-    padding-top: 2px;
+    padding-top: 3px;
   }
 
-  &.half { border-bottom-style: dashed; opacity: 0.5; }
+  // Half-hour rows: dashed lighter border
+  &.half {
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+
+  // Even-hour background tint (helps visual alignment across columns)
+  &.even-hour {
+    background: rgba(255, 255, 255, 0.012);
+  }
 }
 
 // ── Profissional column ────────────────────────────────────────────────────
 
 .prof-col {
   flex: 1;
+  min-width: 140px;
   position: relative;
   border-right: 1px solid var(--admin-border);
 
@@ -132,26 +164,48 @@
 
 .slot-bg {
   box-sizing: border-box;
-  border-bottom: 1px solid var(--admin-border-soft);
+  border-bottom: 1px solid var(--admin-border);
   cursor: pointer;
   transition: background 0.1s;
 
-  &:hover { background: rgba(13, 184, 222, 0.04); }
-  &.half { border-bottom-style: dashed; opacity: 0.7; }
+  // Even-hour rows: subtle alternating background
+  &.even-hour {
+    background: rgba(255, 255, 255, 0.014);
+  }
+
+  // Half-hour rows: dashed lighter line, no alternating background extra
+  &.half {
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
+  }
+
+  &:hover {
+    background: rgba(13, 184, 222, 0.07) !important;
+  }
 }
 
 // ── Appointment blocks ─────────────────────────────────────────────────────
 
 .appt-block {
   position: absolute;
-  left: 2px;
-  right: 2px;
-  min-height: 28px;
+  left: 3px;
+  right: 3px;
+  min-height: 24px;
   z-index: 2;
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
 
   app-agenda-card {
     display: block;
     height: 100%;
+  }
+
+  // Status-specific wrappers
+  &.appt-cancelado {
+    opacity: 0.45;
+  }
+
+  &.appt-finalizado {
+    opacity: 0.7;
   }
 }
 
@@ -159,28 +213,34 @@
 
 .now-line {
   position: absolute;
-  left: 56px;
+  left: 60px;
   right: 0;
   height: 2px;
   background: var(--admin-danger);
   z-index: 5;
   pointer-events: none;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
 }
 
 .now-dot {
   position: absolute;
-  left: -4px;
-  top: -4px;
-  width: 10px;
-  height: 10px;
+  left: -5px;
+  top: -5px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--admin-danger);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
 
 // ── Mobile ─────────────────────────────────────────────────────────────────
 
 @media (max-width: 768px) {
-  .grid-wrap { min-width: 480px; }
-  .time-gutter, .time-col { width: 40px; }
-  .time-label span { font-size: 9px; }
+  .grid-wrap { min-width: 400px; }
+  .time-gutter, .time-col { width: 44px; }
+  .now-line { left: 44px; }
+  .time-label > span:not(.half-tick) { font-size: 9px; }
+  .time-label .half-tick { font-size: 8px; }
+  .prof-col { min-width: 100px; }
+  .grid-bottom-spacer { height: calc(120px + env(safe-area-inset-bottom, 0px)); }
 }

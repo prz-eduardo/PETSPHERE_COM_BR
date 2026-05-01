@@ -212,6 +212,15 @@
         <label>Plano terapêutico</label>
         <textarea [(ngModel)]="planoTerapeutico" placeholder="Conduta e orientações clínicas..." class="input-busca"></textarea>
       </div>
+      <div class="input-group">
+        <label>Tipo de execução</label>
+        <select [(ngModel)]="tipoExecucao" (ngModelChange)="onTipoExecucaoChange()" class="input-busca">
+          <option value="presencial">Presencial</option>
+          <option value="domiciliar">Domiciliar</option>
+          <option value="telemedicina">Telemedicina</option>
+          <option value="encaminhamento">Encaminhamento</option>
+        </select>
+      </div>
     </div>
   </article>
 
@@ -427,12 +436,50 @@
 
   <!-- Salvar -->
   <div class="rodape">
-    <button id="salvarReceitaBtn" class="btn btn-primary-lg" type="button" (click)="salvarReceita()">
-      Salvar atendimento e receita
+    <button id="btnFinalizarConsulta" class="btn btn-primary-lg" type="button" (click)="abrirModalFinalizacao()" [disabled]="salvandoAtendimento">
+      {{ salvandoAtendimento ? 'Salvando...' : 'Finalizar consulta' }}
     </button>
-    <p class="rodape-hint muted small">Gera o prontuário e a receita como documento do caso clínico.</p>
+    <p class="rodape-hint muted small">A decisão de cobrança/logística é feita no próximo passo, sem interromper o fluxo clínico.</p>
   </div>
 </section>
+
+  <!-- Modal: Gate de finalização -->
+  <div class="modal-backdrop" *ngIf="showFinalizacaoModal" (click)="fecharModalFinalizacao()"></div>
+  <div class="modal-card" *ngIf="showFinalizacaoModal" (click)="$event.stopPropagation()">
+    <h3>O que deseja fazer agora?</h3>
+    <label class="retorno-check">
+      <input
+        type="radio"
+        class="check-themed"
+        name="acaoFinalizacao"
+        value="finalizar_sem_cobranca"
+        [(ngModel)]="acaoFinalizacaoSelecionada"
+        [disabled]="!permitirFinalizarSemPagamento"
+      />
+      <span class="retorno-check__text">Finalizar sem cobrança</span>
+    </label>
+    <label class="retorno-check">
+      <input type="radio" class="check-themed" name="acaoFinalizacao" value="gerar_cobranca_agora" [(ngModel)]="acaoFinalizacaoSelecionada" />
+      <span class="retorno-check__text">Gerar cobrança agora</span>
+    </label>
+    <label class="retorno-check">
+      <input type="radio" class="check-themed" name="acaoFinalizacao" value="enviar_financeiro" [(ngModel)]="acaoFinalizacaoSelecionada" />
+      <span class="retorno-check__text">Enviar para financeiro</span>
+    </label>
+    <label class="retorno-check">
+      <input type="radio" class="check-themed" name="acaoFinalizacao" value="solicitar_deslocamento" [(ngModel)]="acaoFinalizacaoSelecionada" />
+      <span class="retorno-check__text">Solicitar deslocamento</span>
+    </label>
+    <p class="muted small" *ngIf="!permitirFinalizarSemPagamento">
+      Para atendimento presencial, finalizar sem cobrança depende da política financeira da clínica.
+    </p>
+    <div class="modal-actions">
+      <button class="btn" (click)="confirmarFinalizacao()" [disabled]="salvandoAtendimento">
+        {{ salvandoAtendimento ? 'Salvando...' : 'Confirmar' }}
+      </button>
+      <button class="btn-sec" (click)="fecharModalFinalizacao()" [disabled]="salvandoAtendimento">Cancelar</button>
+    </div>
+  </div>
 
   <!-- Modal: Escolha de ação para edição do pet -->
   <div class="modal-backdrop" *ngIf="showPetEditModal" (click)="fecharModalEditarPet()"></div>

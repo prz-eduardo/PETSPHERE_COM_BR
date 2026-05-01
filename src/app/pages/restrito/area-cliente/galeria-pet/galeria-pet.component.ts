@@ -17,6 +17,7 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
   @Input() pets: any[] = [];
   @Input() clienteMe: any = null;
   @Output() close = new EventEmitter<void>();
+  @Output() petsChanged = new EventEmitter<void>();
 
   selectedPetId: string | null = null;
   selectedPet: any = null;
@@ -34,6 +35,8 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
   selectedGalleryItem: { id: number; url: string; colecao_id?: number | null; legenda?: string | null; galeria_publica?: number | boolean | string | null } | null = null;
   galleryDraft: { colecao_id: number | null; legenda: string; galeria_publica: boolean } = { colecao_id: null, legenda: '', galeria_publica: true };
   savingGalleryItem = false;
+  deletingGalleryItem = false;
+  settingCoverGalleryItem = false;
 
   carregando = false;
   private readonly maxNovasFotos = 12;
@@ -282,18 +285,82 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
 
     this.carregando = true;
     this.api.updatePet(this.getClienteIdNum()!, this.selectedPetId, fd, this.token).subscribe({
-      next: (res: any) => {
+      next: (_res: any) => {
         this.toast.success('Fotos enviadas com sucesso!');
         this.fotoFiles = [];
         this.fotoPreviews = [];
-        this.carregando = false;
-        // Recarregar galeria
-        this.carregarGaleria();
+        this.refreshPetsFromServer(() => { this.carregando = false; });
       },
       error: (err: any) => {
         const msg = err?.error?.message || err?.error?.error || err?.message || 'Erro ao enviar fotos';
         this.toast.error(msg, 'Erro');
         this.carregando = false;
+      }
+    });
+  }
+
+  excluirFoto(item: { id: number; url: string } | null) {
+    if (!item || !item.id) return;
+    if (!this.selectedPetId || !this.token) return;
+    if (typeof window !== 'undefined' && !window.confirm('Excluir esta foto da galeria? Essa ação não pode ser desfeita.')) {
+      return;
+    }
+    this.deletingGalleryItem = true;
+    this.api.deletePetImagem(this.selectedPetId, item.id, this.token).subscribe({
+      next: () => {
+        this.galeriaItens = this.galeriaItens.filter((g) => g.id !== item.id);
+        this.toast.success('Foto removida.');
+        this.selectedGalleryItem = null;
+        this.refreshPetsFromServer(() => { this.deletingGalleryItem = false; });
+      },
+      error: (err: any) => {
+        const msg = err?.error?.message || err?.error?.error || err?.message || 'Erro ao remover foto';
+        this.toast.error(msg, 'Erro');
+        this.deletingGalleryItem = false;
+      }
+    });
+  }
+
+  definirComoCapa(item: { id: number; url: string } | null) {
+    if (!item || !item.id) return;
+    if (!this.selectedPetId || !this.token) return;
+    this.settingCoverGalleryItem = true;
+    this.api.patchPetImagem(this.selectedPetId, item.id, { set_as_cover: true }, this.token).subscribe({
+      next: () => {
+        this.toast.success('Foto definida como capa do pet.');
+        this.settingCoverGalleryItem = false;
+        this.refreshPetsFromServer();
+      },
+      error: (err: any) => {
+        const msg = err?.error?.message || err?.error?.error || err?.message || 'Não foi possível definir a foto como capa';
+        this.toast.error(msg, 'Erro');
+        this.settingCoverGalleryItem = false;
+      }
+    });
+  }
+
+  /** Recarrega a lista de pets do backend e propaga ao pai (para manter `pets` e galeria_imagens em sincronia). */
+  private refreshPetsFromServer(done?: () => void) {
+    const cid = this.getClienteIdNum();
+    const tk = this.token;
+    if (!cid || !tk) {
+      this.carregarGaleria();
+      if (done) done();
+      return;
+    }
+    this.api.getPetsByCliente(cid, tk).subscribe({
+      next: (lista: any[]) => {
+        this.pets = Array.isArray(lista) ? lista : [];
+        if (this.selectedPetId) {
+          this.selectedPet = this.pets.find((p) => String(p.id || p._id) === String(this.selectedPetId)) || null;
+        }
+        this.carregarGaleria();
+        try { this.petsChanged.emit(); } catch {}
+        if (done) done();
+      },
+      error: () => {
+        this.carregarGaleria();
+        if (done) done();
       }
     });
   }

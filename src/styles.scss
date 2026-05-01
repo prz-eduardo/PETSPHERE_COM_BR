@@ -198,6 +198,16 @@ html, body{
 /* Make Poppins available for headers and pet names */
 .pf-poppins { font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
 
+/* ── Parceiro shell: dock labels devem ser brancos sobre o fundo escuro ── */
+@media (max-width: 767px) {
+    body:has(app-parceiro-shell) .app-navbar .ps-dock__label {
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+    body:has(app-parceiro-shell) .app-navbar .ps-dock__link {
+        color: rgba(255, 255, 255, 0.75) !important;
+    }
+}
+
 /* Make body a positioned container so the paw overlay can scroll with the page */
 body { position: relative; }
 

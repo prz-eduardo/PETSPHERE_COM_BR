@@ -45,10 +45,8 @@ export class GaleriaPublicaComponent implements OnInit, AfterViewInit, OnDestroy
     private clienteAreaModal: ClienteAreaModalService,
     private tenantLoja: TenantLojaService
   ) {}
-  // placeholder mode when API returns empty: show curated random pet images
-  placeholderMode = false;
-  placeholderImages: string[] = [];
-  private placeholderPage = 0;
+  /** True quando o feed retornou vazio na página 1 (estado vazio da galeria). */
+  isEmptyFeed = false;
 
   // Lightbox: currently-open pet reference (or null). We keep a direct reference so
   // mutations made inside the lightbox (reaction/comment totals) reflect in the card.
@@ -95,6 +93,19 @@ export class GaleriaPublicaComponent implements OnInit, AfterViewInit, OnDestroy
   getTotalReactions(): number {
     try {
       return (this.pets || []).reduce((acc: number, p: any) => acc + Number(p?.likes ?? 0), 0);
+    } catch (e) { return 0; }
+  }
+
+  /** Número de pets distintos representados no feed atual (não confundir com cards). */
+  getDistinctPetsCount(): number {
+    try {
+      const ids = new Set<string>();
+      for (const item of this.pets || []) {
+        const raw = item?.pet_id ?? item?.petId ?? item?.id;
+        if (raw === null || raw === undefined || raw === '') continue;
+        ids.add(String(raw));
+      }
+      return ids.size;
     } catch (e) { return 0; }
   }
 
@@ -195,7 +206,7 @@ export class GaleriaPublicaComponent implements OnInit, AfterViewInit, OnDestroy
     if (!isPlatformBrowser(this.platformId)) return;
     this.page = 1;
     this.hasMore = true;
-    this.placeholderMode = false;
+    this.isEmptyFeed = false;
     this.pets = [];
     this._uidCounter = 1;
     this.loadPage(1);
@@ -758,11 +769,8 @@ export class GaleriaPublicaComponent implements OnInit, AfterViewInit, OnDestroy
         }
       }
 
-      // If the API returned no items on page 1, switch to placeholder mode
-      if (pageNum === 1 && Array.isArray(items) && items.length === 0) {
-        this.placeholderMode = true;
-        // seed first batch of placeholders so user sees something
-        this.loadPlaceholderBatch();
+      if (pageNum === 1) {
+        this.isEmptyFeed = Array.isArray(items) && items.length === 0;
       }
 
       // determine hasMore
@@ -790,17 +798,5 @@ export class GaleriaPublicaComponent implements OnInit, AfterViewInit, OnDestroy
   loadNext() {
     if (!this.hasMore) return;
     this.loadPage(this.page + 1);
-  }
-
-  // placeholder images batch (uses loremflickr for pet images)
-  private loadPlaceholderBatch() {
-    this.placeholderPage++;
-    const batchSize = this.pageSize;
-    const urls: string[] = [];
-    for (let i = 0; i < batchSize; i++) {
-      // size 400x300 and randomize by adding cache buster
-      urls.push(`https://loremflickr.com/420/320/dog?random=${Date.now()}-${this.placeholderPage}-${i}`);
-    }
-    this.placeholderImages = this.placeholderImages.concat(urls);
   }
 }

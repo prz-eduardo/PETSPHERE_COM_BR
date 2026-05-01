@@ -199,7 +199,7 @@ export class EspacoConfigWizardComponent {
         await this.ensureCatalog();
         this.draft.set(lid ? draftFromLeito(lid) : emptyDraft());
       });
-    });
+    }, { allowSignalWrites: true });
   }
 
   catalogForLeito(): HotelOfertaCatalogEntry[] {

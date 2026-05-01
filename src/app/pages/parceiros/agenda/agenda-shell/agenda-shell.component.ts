@@ -180,7 +180,7 @@ export class AgendaShellComponent implements OnInit {
         duracaoMin: cfg.defaultDuration,
       }]);
       void this.reloadFromApi();
-    });
+    }, { allowSignalWrites: true });
   }
 
   async ngOnInit(): Promise<void> {

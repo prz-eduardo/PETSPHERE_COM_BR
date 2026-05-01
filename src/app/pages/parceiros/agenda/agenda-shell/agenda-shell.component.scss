@@ -7,12 +7,10 @@
 :host {
   display: flex;
   flex-direction: column;
-  flex: 1 1 0%;
+  flex: 1 1 auto;
   width: 100%;
-  height: auto;
   min-width: 0;
   min-height: 0;
-  max-height: 100%;
   overflow: hidden;
 }
 
@@ -20,8 +18,9 @@
   display: flex;
   flex-direction: column;
   flex: 1 1 0%;
+  justify-content: flex-start;
+  align-items: stretch;
   min-height: 0;
-  height: 100%;
   overflow: hidden;
   position: relative;
 }
@@ -50,6 +49,20 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .toolbar-left {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .date-label {
+    flex: 1 1 100%;
+    white-space: normal;
+    word-break: break-word;
+    font-size: var(--admin-font-size-sm);
+  }
 }
 
 .toolbar-right {
@@ -281,10 +294,24 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-
   padding: 12px;
-  padding-top: 12px;
   gap: 0;
+
+  @media (max-width: 767px) {
+    // Reserve space for the floating dock so list/week/empty states aren't clipped
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  // Every routed view child fills the remaining space
+  > app-agenda-grid,
+  > app-agenda-timeline,
+  > app-agenda-week,
+  > app-agenda-list,
+  > section {
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+  }
 }
 
 app-agenda-filters {
@@ -321,7 +348,7 @@ app-agenda-filters {
 .fab {
   display: none;
   position: fixed;
-  bottom: 24px;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px) + 12px);
   right: 20px;
   width: 52px;
   height: 52px;
@@ -333,7 +360,7 @@ app-agenda-filters {
   font-weight: var(--admin-font-weight-bold);
   cursor: pointer;
   box-shadow: var(--admin-shadow-lg);
-  z-index: 50;
+  z-index: 2000100;
   align-items: center;
   justify-content: center;
   transition: transform 0.12s;
@@ -386,10 +413,9 @@ app-agenda-filters {
 
   .date-label {
     font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 180px;
+    white-space: normal;
+    word-break: break-word;
+    max-width: none;
   }
 
   .view-toggle {

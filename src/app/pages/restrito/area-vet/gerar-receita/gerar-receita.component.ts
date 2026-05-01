@@ -74,6 +74,9 @@ interface AtendimentoFoto {
   nomeArquivo: string;
 }
 
+type TipoExecucao = 'presencial' | 'domiciliar' | 'telemedicina' | 'encaminhamento';
+type AcaoFinalizacao = 'finalizar_sem_cobranca' | 'gerar_cobranca_agora' | 'enviar_financeiro' | 'solicitar_deslocamento';
+
 
 @Component({
   selector: 'app-gerar-receita',
@@ -160,7 +163,7 @@ isBrowser: any;
     { id: 'ativosCard', title: 'Prescrição', text: 'Escolha os princípios ativos conforme a conduta clínica.', position: 'top' },
     { id: 'btnExibirTodosAtivos', title: 'Guia de medicamentos', text: 'Pesquise por nome ou expanda a lista completa do guia.', position: 'left' },
     { id: 'assinaturaSec', title: 'Assinatura', text: 'Assinatura opcional no canvas; o documento segue com os dados do profissional.', position: 'top' },
-    { id: 'salvarReceitaBtn', title: 'Encerrar atendimento', text: 'Salva prontuário e receita — equivalente a arquivar a consulta.', position: 'top' },
+    { id: 'btnFinalizarConsulta', title: 'Encerrar atendimento', text: 'Abre as decisões pós-clínica para concluir sem interromper o raciocínio médico.', position: 'top' },
   ];
 
   carregandoTutor = false;
@@ -187,6 +190,11 @@ isBrowser: any;
   petSavePlan: 'novo' | 'editar' | null = null;
   // Exibe o modal de decisão apenas uma vez por sessão de edição/seleção
   private petEditPromptShown = false;
+  showFinalizacaoModal = false;
+  salvandoAtendimento = false;
+  tipoExecucao: TipoExecucao = 'presencial';
+  acaoFinalizacaoSelecionada: AcaoFinalizacao = 'finalizar_sem_cobranca';
+  permitirFinalizarSemPagamento = false;
 
   constructor(
     private apiService: ApiService,
@@ -213,6 +221,17 @@ isBrowser: any;
     this.embedInParceiroShell = this.router.url.includes('/parceiros/');
   }
 
+  onTipoExecucaoChange(): void {
+    const permiteLivre =
+      this.tipoExecucao === 'domiciliar' ||
+      this.tipoExecucao === 'telemedicina' ||
+      this.tipoExecucao === 'encaminhamento';
+    this.permitirFinalizarSemPagamento = permiteLivre;
+    if (!permiteLivre && this.acaoFinalizacaoSelecionada === 'finalizar_sem_cobranca') {
+      this.acaoFinalizacaoSelecionada = 'gerar_cobranca_agora';
+    }
+  }
+
   /** Data mínima (hoje) para o campo de retorno. */
   get minDataRetorno(): string {
     if (!isPlatformBrowser(this.platformId)) return '';
@@ -237,6 +256,7 @@ isBrowser: any;
 
   ngOnInit(): void { 
     this.isBrowser = isPlatformBrowser(this.platformId);
+    this.onTipoExecucaoChange();
     if (isPlatformBrowser(this.platformId)) {
       // Detecta mobile por largura (heurística simples) logo no início
       this.isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
@@ -1042,7 +1062,49 @@ isBrowser: any;
     this.assinaturaICP = `icp-mock-${Date.now()}`;
   }
 
-  async salvarReceita() {
+  abrirModalFinalizacao(): void {
+    this.showFinalizacaoModal = true;
+    this.onTipoExecucaoChange();
+  }
+
+  fecharModalFinalizacao(): void {
+    this.showFinalizacaoModal = false;
+  }
+
+  async confirmarFinalizacao(): Promise<void> {
+    if (this.salvandoAtendimento) return;
+    await this.salvarReceita(this.acaoFinalizacaoSelecionada);
+    this.showFinalizacaoModal = false;
+  }
+
+  private buildFluxoFromAcao(acao: AcaoFinalizacao) {
+    const base = {
+      tipo_execucao: this.tipoExecucao,
+      precisa_logistica: false,
+      precisa_orcamento: false,
+      status_fluxo: 'finalizado' as const,
+      financeiro_status: 'nao_iniciado' as const,
+    };
+    if (acao === 'finalizar_sem_cobranca') {
+      return { ...base, financeiro_status: 'pendente' as const };
+    }
+    if (acao === 'gerar_cobranca_agora') {
+      return { ...base, status_fluxo: 'aguardando_pagamento' as const, financeiro_status: 'aguardando_pagamento' as const, precisa_orcamento: true };
+    }
+    if (acao === 'enviar_financeiro') {
+      return { ...base, status_fluxo: 'aguardando_pagamento' as const, financeiro_status: 'pendente' as const };
+    }
+    return {
+      ...base,
+      status_fluxo: 'em_andamento' as const,
+      financeiro_status: 'pendente' as const,
+      precisa_logistica: true,
+      precisa_orcamento: true,
+    };
+  }
+
+  async salvarReceita(acaoFinalizacao: AcaoFinalizacao = 'gerar_cobranca_agora') {
+    this.salvandoAtendimento = true;
     const tutor = this.tutorEncontrado ?? this.novoTutor;
     const assinaturaImg = isPlatformBrowser(this.platformId)
       ? this.canvasRef?.nativeElement.toDataURL()
@@ -1052,12 +1114,14 @@ isBrowser: any;
       const d = (this.retornoData || '').trim();
       if (!d) {
         this.toastService.error('Informe a data sugerida para o retorno ou desmarque a notificação ao tutor.', 'Retorno');
+        this.salvandoAtendimento = false;
         return;
       }
       const temCliente = !!this.clienteIdSelecionado;
       const temEmailTutor = !!(tutor?.email || '').trim();
       if (!temCliente && !temEmailTutor) {
         this.toastService.error('Para avisar o tutor, busque o CPF na base ou preencha o e-mail no cadastro manual.', 'Retorno');
+        this.salvandoAtendimento = false;
         return;
       }
     }
@@ -1068,6 +1132,7 @@ isBrowser: any;
     try {
       if (this.petSavePlan && !this.clienteIdSelecionado) {
         this.toastService.error('Não é possível salvar o pet sem um cliente. Busque o CPF novamente.');
+        this.salvandoAtendimento = false;
         return;
       }
 
@@ -1157,6 +1222,7 @@ isBrowser: any;
     } catch (e: any) {
       const msg = e?.error?.message || e?.message || 'Erro ao persistir alterações do pet';
       this.toastService.error(msg, 'Erro');
+      this.salvandoAtendimento = false;
       return;
     } finally {
       this.petSavePlan = null;
@@ -1183,6 +1249,7 @@ isBrowser: any;
     // Define alerta de alergia no momento do salvamento (há algum ativo selecionado que conflita?)
     const alertaAlergiaNoMomento = this.ativosSelecionados.some(id => this.isAtivoAlergenoParaPet(id));
 
+    const fluxo = this.buildFluxoFromAcao(acaoFinalizacao);
     const atendimentoPayload: CriarAtendimentoPayload = {
       tutor: {
         nome: tutor?.nome || '',
@@ -1214,6 +1281,11 @@ isBrowser: any;
               observacao: (this.retornoMensagemTutor || '').trim().slice(0, 500) || undefined,
             }
           : undefined,
+        status_fluxo: fluxo.status_fluxo,
+        tipo_execucao: fluxo.tipo_execucao,
+        precisa_logistica: fluxo.precisa_logistica,
+        precisa_orcamento: fluxo.precisa_orcamento,
+        financeiro_status: fluxo.financeiro_status,
       },
       receita: {
         ativosSelecionados: this.ativosSelecionados,
@@ -1227,15 +1299,36 @@ isBrowser: any;
         },
         alergias: alergiasStrings,
       },
+      fluxo,
     };
 
     try {
       const tokenReceita = this.getEffectiveToken() || undefined;
-      await this.apiService.criarAtendimento(atendimentoPayload, tokenReceita).toPromise();
+      const created = await this.apiService.criarAtendimento(atendimentoPayload, tokenReceita).toPromise();
+      if (created?.id) {
+        await this.apiService
+          .decidirExecucaoAtendimento(
+            created.id,
+            {
+              acao: acaoFinalizacao,
+              tipo_execucao: this.tipoExecucao,
+              status_fluxo: fluxo.status_fluxo,
+              financeiro_status: fluxo.financeiro_status,
+              precisa_logistica: fluxo.precisa_logistica,
+              precisa_orcamento: fluxo.precisa_orcamento,
+            },
+            tokenReceita
+          )
+          .toPromise();
+      }
       const msgRetorno = this.retornoNotificarCliente
         ? ' O tutor foi notificado sobre o retorno.'
         : '';
       this.toastService.success(`Prontuário do atendimento salvo com sucesso.${msgRetorno}`);
+      if (acaoFinalizacao === 'solicitar_deslocamento') {
+        const rota = this.embedInParceiroShell ? '/parceiros/panorama-atendimento' : '/panorama-atendimento';
+        await this.router.navigateByUrl(rota);
+      }
       // Evita carregar o alerta de alergia para a próxima receita
       this.alerta_alergia = false;
     } catch (e: any) {
@@ -1245,6 +1338,8 @@ isBrowser: any;
         const msg = e?.error?.message || e?.message || 'Falha ao salvar receita';
         this.toastService.error(msg, 'Erro');
       }
+    } finally {
+      this.salvandoAtendimento = false;
     }
   }
 

@@ -68,7 +68,7 @@
         <button
           *ngFor="let s of ALL_STATUSES"
           class="chip"
-          [class]="'chip-' + s.toLowerCase().replace('_', '-')"
+          [ngClass]="'chip-' + s.toLowerCase().replace('_', '-')"
           [class.active]="selectedStatuses().includes(s)"
           (click)="toggleStatus(s)"
         >

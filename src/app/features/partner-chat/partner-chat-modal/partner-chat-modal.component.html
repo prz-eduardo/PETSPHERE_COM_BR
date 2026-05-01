@@ -1,0 +1,26 @@
+<ng-container *ngIf="open()">
+  <div class="pc-modal-backdrop" (click)="close()"></div>
+  <section class="pc-modal" role="dialog" aria-modal="true" aria-label="Chat com a loja">
+    <header class="pc-modal__head">
+      <div>
+        <h2>Chat com a loja</h2>
+        <p *ngIf="parceiroNome()">Conversa com <strong>{{ parceiroNome() }}</strong></p>
+        <p *ngIf="corridaContexto()">
+          Sobre transporte: corrida <strong>#{{ corridaContexto() }}</strong>
+        </p>
+      </div>
+      <button type="button" class="pc-modal__close" (click)="close()" aria-label="Fechar chat">×</button>
+    </header>
+
+    <div class="pc-modal__body">
+      <p class="pc-info" *ngIf="loading()">Abrindo conversa...</p>
+      <p class="pc-err" *ngIf="loadErr()">{{ loadErr() }}</p>
+
+      <app-partner-chat-thread
+        *ngIf="threadId()"
+        [threadId]="threadId()!"
+        mode="cliente"
+      />
+    </div>
+  </section>
+</ng-container>

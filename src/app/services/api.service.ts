@@ -182,6 +182,7 @@ export interface PetImagemPatchPayload {
   ordem?: number;
   legenda?: string | null;
   galeria_publica?: boolean | number;
+  set_as_cover?: boolean;
 }
 
 export interface AlergiaLookup {
@@ -290,6 +291,11 @@ export interface CriarAtendimentoPayload {
       data?: string;
       observacao?: string;
     };
+    status_fluxo?: 'aberto' | 'em_andamento' | 'pausado' | 'aguardando_pagamento' | 'finalizado';
+    tipo_execucao?: 'presencial' | 'domiciliar' | 'telemedicina' | 'encaminhamento';
+    precisa_logistica?: boolean;
+    precisa_orcamento?: boolean;
+    financeiro_status?: 'nao_iniciado' | 'pendente' | 'aguardando_pagamento' | 'pago' | 'cancelado';
   };
   receita?: {
     ativosSelecionados?: Array<string | number | { id?: number | string; ativo_id?: number | string; nome?: string }>;
@@ -302,6 +308,13 @@ export interface CriarAtendimentoPayload {
       icp?: string;
     };
     alergias?: string[];
+  };
+  fluxo?: {
+    status_fluxo?: 'aberto' | 'em_andamento' | 'pausado' | 'aguardando_pagamento' | 'finalizado';
+    tipo_execucao?: 'presencial' | 'domiciliar' | 'telemedicina' | 'encaminhamento';
+    precisa_logistica?: boolean;
+    precisa_orcamento?: boolean;
+    financeiro_status?: 'nao_iniciado' | 'pendente' | 'aguardando_pagamento' | 'pago' | 'cancelado';
   };
 }
 
@@ -523,6 +536,22 @@ export class ApiService {
   criarAtendimento(payload: CriarAtendimentoPayload, token?: string): Observable<any> {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
     return this.http.post(`${this.baseUrl}/atendimentos`, payload, { headers });
+  }
+
+  decidirExecucaoAtendimento(
+    atendimentoId: number | string,
+    payload: {
+      acao: 'finalizar_sem_cobranca' | 'gerar_cobranca_agora' | 'enviar_financeiro' | 'solicitar_deslocamento';
+      tipo_execucao?: 'presencial' | 'domiciliar' | 'telemedicina' | 'encaminhamento';
+      status_fluxo?: 'aberto' | 'em_andamento' | 'pausado' | 'aguardando_pagamento' | 'finalizado';
+      financeiro_status?: 'nao_iniciado' | 'pendente' | 'aguardando_pagamento' | 'pago' | 'cancelado';
+      precisa_logistica?: boolean;
+      precisa_orcamento?: boolean;
+    },
+    token?: string
+  ): Observable<any> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.post(`${this.baseUrl}/atendimentos/${encodeURIComponent(String(atendimentoId))}/decisao-execucao`, payload, { headers });
   }
 
   getVet(id: string, token?: string): Observable<Vet> {
@@ -1142,6 +1171,13 @@ export class ApiService {
     return this.http.patch<any>(
       `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/imagens/${encodeURIComponent(String(imagemId))}`,
       body,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  deletePetImagem(petId: string | number, imagemId: string | number, token: string) {
+    return this.http.delete<any>(
+      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/imagens/${encodeURIComponent(String(imagemId))}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
   }

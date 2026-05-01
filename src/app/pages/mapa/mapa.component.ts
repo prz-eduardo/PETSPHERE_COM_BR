@@ -31,6 +31,7 @@ import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { FP_MAP_STYLES } from './mapa-map-styles';
 import { MapLocationConsentService } from '../../services/map-location-consent.service';
 import { TenantLojaHospedagemLeitoPublic, TenantLojaService } from '../../services/tenant-loja.service';
+import { PartnerChatLauncherService } from '../../features/partner-chat/partner-chat-launcher.service';
 
 const FP_MAPA_LS_PREFIX = 'fp_mapa_';
 const DEFAULT_SEARCH_RADIUS_KM = 15;
@@ -265,6 +266,7 @@ export class MapaComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private session: SessionService,
+    private partnerChatLauncher: PartnerChatLauncherService,
     @Inject(PLATFORM_ID) private platformId: Object,
     private appRef: ApplicationRef,
     private zone: NgZone
@@ -1504,30 +1506,21 @@ export class MapaComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Abre o chat parceiro–cliente (rota /chat-parceiro/:id) se o utilizador tiver sessão de cliente.
-   */
+  /** Abre o chat parceiro-cliente usando o modal reutilizável global. */
   private goToPartnerChatFromMap(partner: any): void {
     const parceiroId = Number(partner?.id ?? partner?._raw?.id ?? 0);
     if (!Number.isFinite(parceiroId) || parceiroId < 1) {
       this.toast.error('Não foi possível identificar esta loja para o chat.');
       return;
     }
-    const decoded = this.session.decodeToken();
-    const tipo = String(decoded?.tipo || decoded?.role || '');
-    if (!this.session.hasValidSession(false) || tipo !== 'cliente') {
-      this.toast.info('Entre na sua conta de cliente para enviar mensagens à loja.');
-      try {
-        sessionStorage.setItem('fp_post_login_chat_parceiro_id', String(parceiroId));
-      } catch {
-        /* ignore */
-      }
-      void this.router.navigate(['/area-cliente'], {
-        queryParams: { login: '1', chatParceiro: String(parceiroId) },
-      });
-      return;
-    }
-    void this.router.navigate(['/chat-parceiro', String(parceiroId)]);
+    this.partnerChatLauncher.openForPartner(parceiroId);
+  }
+
+  openLastRidePartnerChat(ev: Event): void {
+    ev.preventDefault();
+    const parceiroId = Number(this.transportePetLastParceiroId);
+    const corridaId = Number(this.transportePetLastCorridaId);
+    this.partnerChatLauncher.openForPartner(parceiroId, corridaId);
   }
 
   /**

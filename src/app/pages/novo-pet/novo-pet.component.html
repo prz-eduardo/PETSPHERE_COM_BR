@@ -160,6 +160,20 @@
               </div>
             </div>
 
+            <div class="field galeria-publica-field">
+              <label class="galeria-publica-toggle">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="exibirGaleriaPublica"
+                  name="exibirGaleriaPublica"
+                />
+                <span class="galeria-publica-toggle__text">
+                  <strong>Exibir este pet na galeria pública</strong>
+                  <small class="muted">Ao marcar, suas fotos selecionadas como públicas poderão aparecer no feed da comunidade após a aprovação da equipe. Você pode desligar a qualquer momento.</small>
+                </span>
+              </label>
+            </div>
+
             <div class="field">
               <label>Observações</label>
               <textarea [(ngModel)]="observacoes" rows="3" placeholder="Alergias, comportamento, preferências..."></textarea>

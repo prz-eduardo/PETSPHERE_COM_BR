@@ -518,7 +518,8 @@ nav.app-navbar {
       }
 
       .ps-fab-host {
-        z-index: 2000018 !important;
+        /* Mantém a bolinha/FAB visível acima do painel/backdrop de notificações. */
+        z-index: 2000095 !important;
       }
     }
 

@@ -16,7 +16,7 @@
     </div>
 
     <div class="hero-stats" aria-label="Informações da galeria">
-      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span><strong>{{ pets.length || 0 }}</strong> pets</span>
+      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span><strong>{{ getDistinctPetsCount() }}</strong> pets</span>
       <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span><strong>{{ getTotalReactions() }}</strong> reações</span>
       <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span>Comunidade {{ marcaNome }}</span>
     </div>
@@ -144,6 +144,21 @@
 
   <div *ngIf="loading" class="card">Carregando galeria...</div>
   <div *ngIf="error" class="card danger">{{ error }}</div>
+
+  <div *ngIf="!loading && !error && isEmptyFeed && pets.length === 0" class="galeria-empty-state">
+    <div class="galeria-empty-state__inner">
+      <div class="galeria-empty-state__emoji" aria-hidden="true">🐾</div>
+      <h3 class="galeria-empty-state__title">Ainda não há fotos por aqui</h3>
+      <p class="galeria-empty-state__text">
+        Seja o primeiro a postar uma foto do seu pet e abrir a galeria da comunidade {{ marcaNome }}.
+      </p>
+      <button
+        type="button"
+        class="galeria-empty-state__cta"
+        (click)="openPostFotoModal()"
+      >Postar a primeira foto</button>
+    </div>
+  </div>
 
   <div class="galeria-feed">
   <div *ngFor="let p of pets" class="galeria-feed__item" [class.galeria-feed__item--ad]="p.type === 'vet_ad'">

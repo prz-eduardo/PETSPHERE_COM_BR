@@ -478,6 +478,24 @@
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   flex-wrap: wrap;
 }
+.gallery-settings-modal__footer--split {
+  justify-content: space-between;
+}
+.gallery-settings-modal__footer-left,
+.gallery-settings-modal__footer-right {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn-danger-ghost {
+  background: transparent;
+  border: 1px solid rgba(220, 53, 69, 0.55);
+  color: rgb(220, 53, 69);
+
+  &:hover:not(:disabled) {
+    background: rgba(220, 53, 69, 0.08);
+  }
+}
 
 // Buttons (reused styles)
 .btn {

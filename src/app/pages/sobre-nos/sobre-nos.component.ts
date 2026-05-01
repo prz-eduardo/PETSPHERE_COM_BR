@@ -19,17 +19,6 @@ interface Etapa {
   items: string[];
 }
 
-interface Plano {
-  accent: 'start' | 'pro' | 'business' | 'premium';
-  badge: string;
-  title: string;
-  subtitle: string;
-  objective: string;
-  summary: string;
-  featured?: boolean;
-  items: string[];
-}
-
 @Component({
   selector: 'app-sobre-nos',
   standalone: true,
@@ -122,88 +111,5 @@ export class SobreNosComponent {
         'Entregue uma experiência melhor para tutor e profissional',
       ],
     },
-  ];
-
-  readonly planos: Plano[] = [
-    {
-      accent: 'start',
-      badge: 'Entrada',
-      title: 'Plano Start',
-      subtitle: 'Ideal para quem esta comecando ou quer testar a plataforma.',
-      objective: 'Entrar e comecar a usar',
-      summary: 'START -> entrar',
-      items: [
-        'Presenca no mapa PetSphere',
-        'Perfil basico do estabelecimento',
-        'Cadastro de ate 50 clientes',
-        'Cadastro de pets',
-        'Agenda simples limitada',
-        '1 usuario (dono)',
-        'Pagina padrao (sualoja.petsphere.com.br)',
-      ],
-    },
-    {
-      accent: 'pro',
-      badge: 'Principal',
-      title: 'Plano Pro',
-      subtitle: 'Ideal para negocios em operacao que querem organizacao e crescimento.',
-      objective: 'Organizar e profissionalizar o negocio',
-      summary: 'PRO -> organizar',
-      featured: true,
-      items: [
-        'Tudo do plano START',
-        'Clientes ilimitados',
-        'Pets ilimitados',
-        'Agenda completa (servicos e horarios)',
-        'Historico de atendimentos',
-        'Gestao de servicos',
-        'Vitrine de produtos e servicos',
-        'Ate 3 usuarios',
-        'Painel completo com dashboard',
-      ],
-    },
-    {
-      accent: 'business',
-      badge: 'Operacao',
-      title: 'Plano Business',
-      subtitle: 'Ideal para quem quer vender mais e integrar operacao fisica + digital.',
-      objective: 'Operar o dia a dia dentro do sistema',
-      summary: 'BUSINESS -> operar',
-      items: [
-        'Tudo do plano PRO',
-        'Gestao de produtos (estoque)',
-        'Vendas no sistema (PDV basico)',
-        'Integracao com codigo de barras (bip -> carrinho)',
-        'Controle de estoque automatico',
-        'Relatorios basicos de vendas',
-        'Ate 5 usuarios',
-      ],
-    },
-    {
-      accent: 'premium',
-      badge: 'Escala',
-      title: 'Plano Premium',
-      subtitle: 'Ideal para negocios maiores ou em expansao.',
-      objective: 'Escala, controle e posicionamento',
-      summary: 'PREMIUM -> escalar',
-      items: [
-        'Tudo do plano BUSINESS',
-        'Usuarios adicionais (cobranca por usuario extra)',
-        'Permissoes avancadas por funcao (admin, vet, atendente e outros)',
-        'Dominio proprio (www.sualoja.com.br)',
-        'Destaque no mapa',
-        'Personalizacao visual (branding)',
-        'Relatorios avancados',
-        'Prioridade em suporte',
-      ],
-    },
-  ];
-
-  readonly addons: string[] = [
-    'Usuario adicional (+R$X por usuario)',
-    'Pacotes de destaque no mapa',
-    'Personalizacao avancada',
-    'Setup assistido',
-    'Integracoes futuras (pagamento e outras)',
   ];
 }

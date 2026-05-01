@@ -43,6 +43,8 @@ export class NovoPetComponent implements OnInit {
     { v: 'grande', l: 'Grande' },
   ];
   observacoes = '';
+  /** Toggle: pet aparece (ou não) no feed da galeria pública. Opt-in explícito. */
+  exibirGaleriaPublica = false;
   // alergias livres removidas em favor do search-select
   // Predefinidas (get_lista_alergias)
   listaAlergias: { nome: string; alergia_id: string | number; ativo_id?: string | number }[] = [];
@@ -149,6 +151,8 @@ export class NovoPetComponent implements OnInit {
                 })).filter((t: PetTraitLookup) => !Number.isNaN(t.catalogo_id) && !!t.nome);
               }
               this.observacoes = pet.observacoes || '';
+              const expubRaw = pet.exibir_galeria_publica ?? pet.exibirGaleriaPublica;
+              this.exibirGaleriaPublica = expubRaw === true || expubRaw === 1 || expubRaw === '1';
               this.existingFotoPrincipalUrl = this.normalizarFotoUrl(
                 pet.photoURL || pet.foto || pet.photo || pet.photo_url || pet.imagem || ''
               );
@@ -582,6 +586,7 @@ export class NovoPetComponent implements OnInit {
     fd.append('porte', (this.porte || '').trim());
     fd.append('pet_traits', JSON.stringify(this.traitsSelecionados.map((t) => ({ catalogo_id: t.catalogo_id }))));
     if (this.observacoes) fd.append('observacoes', this.observacoes.trim());
+    fd.append('exibir_galeria_publica', this.exibirGaleriaPublica ? '1' : '0');
     // Enviar alergias predefinidas completas (nome, alergia_id, ativo_id)
     if (this.alergiasSelecionadas.length) {
       fd.append('alergias_predefinidas', JSON.stringify(this.alergiasSelecionadas));

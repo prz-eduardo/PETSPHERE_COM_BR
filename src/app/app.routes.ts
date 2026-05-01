@@ -10,7 +10,6 @@ import { authGuard } from './guards/auth.guard';
 import { vetGuard } from './guards/vet.guard';
 import { parceiroGuard } from './guards/parceiro.guard';
 import { parceiroVetGuard } from './guards/parceiro-vet.guard';
-import { clienteSessionGuard } from './guards/cliente-session.guard';
 import { petsphereHubRootCanMatch, tenantLojaRootCanMatch } from './guards/tenant-root-can-match.guard';
 
 export const routes: Routes = [
@@ -139,12 +138,6 @@ export const routes: Routes = [
   },
   { path: 'novo-pet', loadComponent: () => import('./pages/novo-pet/novo-pet.component').then(m => m.NovoPetComponent) },
   { path: 'editar-pet/:id', loadComponent: () => import('./pages/novo-pet/novo-pet.component').then(m => m.NovoPetComponent) },
-  {
-    path: 'chat-parceiro/:parceiroId',
-    loadComponent: () =>
-      import('./pages/chat-parceiro-cliente/chat-parceiro-cliente.component').then((m) => m.ChatParceiroClienteComponent),
-    canActivate: [clienteSessionGuard],
-  },
   { path: 'area-vet', loadComponent: () => import('./pages/restrito/area-vet/area-vet.component').then(m => m.AreaVetComponent)},
   { path: 'gerar-receita', loadComponent: () => import('./pages/restrito/area-vet/gerar-receita/gerar-receita.component').then(m => m.GerarReceitaComponent), canActivate: [vetGuard] },
   { path: 'historico-receitas', loadComponent: () => import('./pages/restrito/area-vet/historico-receitas/historico-receitas.component').then(m => m.HistoricoReceitasComponent), canActivate: [vetGuard] },
@@ -213,6 +206,14 @@ export const routes: Routes = [
       {
         path: 'agenda',
         loadComponent: () => import('./pages/parceiros/agenda/agenda-shell/agenda-shell.component').then(m => m.AgendaShellComponent),
+      },
+      {
+        path: 'telemedicina-emergencial',
+        loadComponent: () =>
+          import('./pages/parceiros/telemedicina-emergencial/telemedicina-emergencial.component').then(
+            (m) => m.TelemedicinaEmergencialComponent
+          ),
+        data: { title: 'Telemedicina emergencial' },
       },
       {
         path: 'colaboradores',

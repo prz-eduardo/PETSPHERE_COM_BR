@@ -5,7 +5,7 @@
 
 :host {
   display: block;
-  --fp-footer-bg: var(--brand-50, #f3f7b0);
+  --fp-footer-bg: #fffbeb;
   --fp-footer-ink: var(--brand-ink, #222100);
   --fp-footer-ink-soft: #3a3a0f;
   --fp-footer-accent: var(--brand-yellow, #c4d600);
@@ -31,7 +31,7 @@
   position: relative;
   top: -1px;
 
-  path { fill: #f6f6f6; }
+  path { fill: #fffdf4; }
 }
 
 /* Layout ----------------------------------------------------------------- */

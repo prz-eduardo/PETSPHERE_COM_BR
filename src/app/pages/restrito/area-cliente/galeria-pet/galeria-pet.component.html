@@ -149,13 +149,34 @@
         </div>
       </div>
 
-      <div class="gallery-settings-modal__footer">
-        <button type="button" class="btn btn-sec" (click)="closeGalleryItemSettings()" [disabled]="savingGalleryItem">
-          Cancelar
-        </button>
-        <button type="button" class="btn btn-primary" (click)="saveGalleryItemSettings()" [disabled]="savingGalleryItem">
-          {{ savingGalleryItem ? 'Salvando...' : 'Salvar configuração' }}
-        </button>
+      <div class="gallery-settings-modal__footer gallery-settings-modal__footer--split">
+        <div class="gallery-settings-modal__footer-left">
+          <button
+            type="button"
+            class="btn btn-sec btn-sec--small"
+            (click)="definirComoCapa(selectedGalleryItem)"
+            [disabled]="savingGalleryItem || deletingGalleryItem || settingCoverGalleryItem"
+            title="Usar esta foto como foto principal do pet"
+          >
+            {{ settingCoverGalleryItem ? 'Definindo...' : 'Definir como capa' }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger-ghost btn-sec--small"
+            (click)="excluirFoto(selectedGalleryItem)"
+            [disabled]="savingGalleryItem || deletingGalleryItem || settingCoverGalleryItem"
+          >
+            {{ deletingGalleryItem ? 'Excluindo...' : 'Excluir foto' }}
+          </button>
+        </div>
+        <div class="gallery-settings-modal__footer-right">
+          <button type="button" class="btn btn-sec" (click)="closeGalleryItemSettings()" [disabled]="savingGalleryItem || deletingGalleryItem || settingCoverGalleryItem">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" (click)="saveGalleryItemSettings()" [disabled]="savingGalleryItem || deletingGalleryItem || settingCoverGalleryItem">
+            {{ savingGalleryItem ? 'Salvando...' : 'Salvar configuração' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -178,60 +178,6 @@
     </div>
   </section>
 
-  <hr class="sobre-divider" aria-hidden="true" />
-
-  <!-- PLANOS -->
-  <section class="sobre-planos" aria-labelledby="planos-title">
-    <div class="section-inner">
-      <div class="section-head">
-        <span class="eyebrow">Planos PetSphere</span>
-        <h2 id="planos-title" class="section-title">Comece simples, cresca dentro da {{ marcaNome }}</h2>
-        <p class="section-lead">
-          Tenha tudo que seu negocio pet precisa em um so lugar, com uma trilha clara para entrar, organizar, operar e escalar.
-        </p>
-      </div>
-
-      <div class="planos-grid">
-        <article
-          class="plano-card"
-          *ngFor="let plano of planos"
-          [class.plano-card--featured]="plano.featured"
-          [attr.data-accent]="plano.accent"
-        >
-          <div class="plano-top">
-            <span class="plano-badge">{{ plano.badge }}</span>
-            <span class="plano-summary">{{ plano.summary }}</span>
-          </div>
-          <h3 class="plano-title">{{ plano.title }}</h3>
-          <p class="plano-subtitle">{{ plano.subtitle }}</p>
-          <p class="plano-objective">
-            <strong>Objetivo:</strong> {{ plano.objective }}
-          </p>
-          <ul class="plano-list">
-            <li *ngFor="let item of plano.items">{{ item }}</li>
-          </ul>
-          <a routerLink="/parceiro/cadastrar" class="btn btn-secondary plano-action">
-            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            Quero esse plano
-          </a>
-        </article>
-      </div>
-
-      <div class="addons-shell">
-        <div class="addons-copy">
-          <span class="eyebrow">Add-ons</span>
-          <h3 class="section-title section-title--left">Extras para aumentar alcance e operacao</h3>
-          <p class="section-prose">
-            Alguns recursos podem ser vendidos separadamente para adaptar a plataforma ao momento do negocio.
-          </p>
-        </div>
-        <ul class="addons-list">
-          <li *ngFor="let addon of addons">{{ addon }}</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
   <!-- CTA FINAL -->
   <section class="sobre-cta" aria-labelledby="cta-title">
     <div class="section-inner">

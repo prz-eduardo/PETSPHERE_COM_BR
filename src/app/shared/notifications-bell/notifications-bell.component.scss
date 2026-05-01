@@ -304,6 +304,27 @@
   }
 }
 
+@media (max-width: 767px) {
+  .panel-backdrop.panel-backdrop--fullscreen {
+    /* Não cobrir o dock mobile (evita o "quadrado embaçado" sobre a navbar). */
+    bottom: calc(
+      env(safe-area-inset-bottom, 0px) + 12px + var(--ps-dock-height, 74px)
+    );
+  }
+
+  .panel.panel--fullscreen {
+    /*
+     * Em mobile, preserva a área do dock inferior para evitar sobreposição
+     * e manter a navbar sempre visível.
+     */
+    bottom: calc(
+      env(safe-area-inset-bottom, 0px) + 12px + var(--ps-dock-height, 74px)
+    ) !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+}
+
 .panel-backdrop {
   position: fixed;
   inset: 0;

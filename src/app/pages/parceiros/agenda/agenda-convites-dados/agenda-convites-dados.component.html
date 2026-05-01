@@ -1,8 +1,4 @@
 <div class="wrap">
-  <button type="button" class="toggle" (click)="toggle()">
-    {{ expanded() ? 'Fechar' : 'Solicitar acesso aos dados do tutor' }}
-  </button>
-
   @if (expanded()) {
     <div class="panel">
       <p class="hint">

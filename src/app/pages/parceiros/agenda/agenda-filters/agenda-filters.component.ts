@@ -22,7 +22,7 @@ export class AgendaFiltersComponent implements OnInit {
   @Input() servicos: Servico[] = [];
   @Output() filtersChange = new EventEmitter<AgendaFiltros>();
 
-  expanded = signal(true);
+  expanded = signal(false);
   search = signal('');
   selectedProfId = signal<string>('');
   selectedServicoId = signal<string>('');
@@ -67,8 +67,9 @@ export class AgendaFiltersComponent implements OnInit {
         const slot = new Date();
         slot.setHours(h, m, 0, 0);
         if (slot <= now) continue;
+        const slotTime = slot.getTime();
         const conflict = busy.find(
-          a => a.inicio <= slot && a.fim > slot
+          a => getTime(a.inicio) <= slotTime && getTime(a.fim) > slotTime
         );
         if (!conflict) return slot.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       }

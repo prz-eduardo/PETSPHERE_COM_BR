@@ -1018,6 +1018,45 @@
   accent-color: var(--np-accent);
 }
 
+.galeria-publica-field {
+  margin-bottom: 16px;
+}
+.galeria-publica-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--np-border, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  background: var(--np-surface-soft, rgba(0, 0, 0, 0.02));
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.galeria-publica-toggle:hover {
+  border-color: var(--np-accent, #1f73f7);
+}
+.galeria-publica-toggle input[type='checkbox'] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--np-accent, #1f73f7);
+  flex-shrink: 0;
+}
+.galeria-publica-toggle__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.galeria-publica-toggle__text strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--np-text);
+}
+.galeria-publica-toggle__text small {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .option .trait-opt-cat {
   display: block;
   font-size: 11px;

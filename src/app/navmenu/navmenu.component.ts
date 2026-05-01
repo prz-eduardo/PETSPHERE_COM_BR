@@ -387,6 +387,20 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  private isViewportMin768(): boolean {
+    if (!isPlatformBrowser(this.platformId)) return false;
+    try {
+      return !!(typeof window.matchMedia !== 'undefined' && window.matchMedia('(min-width: 768px)').matches);
+    } catch {
+      return false;
+    }
+  }
+
+  /** Em desktop, oculta links de negócios quando a lente ativa é Cliente. */
+  get showDesktopBusinessLink(): boolean {
+    return this.isViewportMin768() && this.dockMode !== 'cliente';
+  }
+
   openPartnerShellDrawerFromNav(): void {
     this.closeSheet();
     this.closeRadial();
@@ -574,6 +588,9 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
         if (event instanceof NavigationStart) {
+          if (this.showClienteModal) {
+            this.finalizeClienteModalClose();
+          }
           this.setCurrentRoutePath(event.url);
           this.updateMenuMode();
           this.refreshDockMode();
@@ -971,7 +988,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       this.longPressFired = false;
       return;
     }
-    this.openSheet();
+    this.openFabPrimaryMenu();
   }
 
   onFabPointerCancel(): void {
@@ -1001,7 +1018,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     try { ev.preventDefault(); } catch { /* ignore */ }
-    this.openSheet();
+    this.openFabPrimaryMenu();
   }
 
   /** Fallback quando só o evento de click chega (ex.: teclado mouse emulado). */
@@ -1012,13 +1029,18 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     ev.preventDefault();
-    this.openSheet();
+    this.openFabPrimaryMenu();
   }
 
   /** Acessibilidade: Enter/Espaço também abrem ações rápidas. */
   onFabKeyboardActivate(ev: Event): void {
     ev.preventDefault();
-    this.openSheet();
+    this.openFabPrimaryMenu();
+  }
+
+  private openFabPrimaryMenu(): void {
+    if (this.isSheetOpen) this.closeSheet();
+    this.openRadial();
   }
 
   openSheet(): void {

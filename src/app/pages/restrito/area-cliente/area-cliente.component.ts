@@ -15,6 +15,7 @@ import { Subscription } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
 import { MARCA_NOME } from '../../../constants/loja-public';
 import { ClienteAreaModalService, ClienteAreaModalView } from '../../../services/cliente-area-modal.service';
+import { PartnerChatLauncherService } from '../../../features/partner-chat/partner-chat-launcher.service';
 interface Pet {
   id: string;
   nome: string;
@@ -157,7 +158,8 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
     private el: ElementRef,
     private store: StoreService,
     @Inject(PLATFORM_ID) private platformId: Object,
-    private clienteAreaModal: ClienteAreaModalService
+    private clienteAreaModal: ClienteAreaModalService,
+    private partnerChatLauncher: PartnerChatLauncherService
   ) {
     if (isPlatformBrowser(this.platformId)) {
       document.addEventListener('click', this.onDocClick);
@@ -588,6 +590,12 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
           if ((ref.instance as any).close) {
             (ref.instance as any).close.subscribe(() => this.goBack());
           }
+          if ((ref.instance as any).petsChanged) {
+            (ref.instance as any).petsChanged.subscribe(() => {
+              const tk = this.auth.getToken();
+              if (tk) this.refreshPetsForCliente(tk);
+            });
+          }
         }
       } catch (e) {
         console.error('Falha ao abrir Minha Galeria', e);
@@ -781,6 +789,10 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
     }
   }
 
+  openPartnerChat(parceiroId: number): void {
+    this.partnerChatLauncher.openForPartner(parceiroId);
+  }
+
   async openConsultarPedidosOverlay() {
     if (!this.modal) return;
     if (!this.overlayHost) return;
@@ -903,7 +915,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Após login (mapa → Enviar mensagem), envia para /chat-parceiro/:id.
+   * Após login (mapa → Enviar mensagem), abre o modal de chat.
    * Usa query `chatParceiro` ou sessionStorage `fp_post_login_chat_parceiro_id`.
    */
   private tryNavigateToChatAfterLogin(chatParceiroFromQuery: string | null): void {
@@ -935,6 +947,12 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
     } catch {
       /* ignore */
     }
-    void this.router.navigate(['/chat-parceiro', String(id)], { replaceUrl: true });
+    this.partnerChatLauncher.openForPartner(id);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { chatParceiro: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 }

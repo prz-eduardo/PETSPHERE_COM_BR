@@ -20,6 +20,7 @@ import { BannedUserModalComponent } from './shared/banned-user-modal/banned-user
 import { MARCA_NOME } from './constants/loja-public';
 import { TenantLojaService } from './services/tenant-loja.service';
 import { register } from 'swiper/element/bundle';
+import { PartnerChatModalComponent } from './features/partner-chat/partner-chat-modal/partner-chat-modal.component';
 
 @Component({
   selector: 'app-root',
@@ -33,6 +34,7 @@ import { register } from 'swiper/element/bundle';
     LoginClienteComponent,
     CookieConsentComponent,
     BannedUserModalComponent,
+    PartnerChatModalComponent,
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
@@ -277,7 +279,7 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       const u = this.router.url || '';
       const p = (u.split('?')[0] || '').split('#')[0] || '';
-      const isMapa = p === '/mapa';
+      const isMapa = p === '/mapa' || p.startsWith('/mapa/');
       const narrow = this.mapaTopNavMql?.matches ?? false;
       this.zone.run(() => {
         try {
@@ -314,7 +316,8 @@ export class AppComponent implements OnInit, OnDestroy {
       current.startsWith('/restrito/produto') ||
       isLegacyVetArea ||
       (isParceirosPath && !parceirosShowGlobalDockNav);
-    const hideFooterMapa = path === '/mapa' && (this.mapaTopNavMql?.matches ?? false);
+    const isMapaPath = path === '/mapa' || path.startsWith('/mapa/');
+    const hideFooterMapa = isMapaPath && (this.mapaTopNavMql?.matches ?? false);
 
     this.showFooter = !hide && !hideFooterMapa && !isParceirosPath;
     this.showNav = !hide;

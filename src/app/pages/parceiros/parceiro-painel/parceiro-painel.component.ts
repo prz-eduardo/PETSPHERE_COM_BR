@@ -267,7 +267,7 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
     this.router.navigate(['/parceiros/petshop-online']);
   }
   goToTelemedicina(): void {
-    this.router.navigate(['/parceiros/agenda'], { queryParams: { view: 'telemedicina' } });
+    this.router.navigate(['/parceiros/telemedicina-emergencial']);
   }
 
   goToMensagens(): void {
