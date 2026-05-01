@@ -106,6 +106,10 @@ export class GerarReceitaComponent implements OnInit, AfterViewInit {
   planoTerapeutico = '';
   examesSolicitados: AtendimentoExame[] = [{ nome: '', status: 'solicitado', observacoes: '' }];
   fotosAtendimento: AtendimentoFoto[] = [];
+  /** Retorno: notificar tutor na conta PetSphere e por e-mail. */
+  retornoNotificarCliente = false;
+  retornoData = '';
+  retornoMensagemTutor = '';
   veterinario: any;
 isBrowser: any;
   ativos: Ativo[] = [];
@@ -152,6 +156,7 @@ isBrowser: any;
     { id: 'listaPets', title: 'Paciente da consulta', text: 'Selecione o animal atendido ou preencha os dados como primeiro atendimento.', position: 'bottom' },
     { id: 'dadosPet', title: 'Ficha do paciente', text: 'Peso, idade e alergias importam para dose e segurança da prescrição.', position: 'bottom' },
     { id: 'alergiasVet', title: 'Alergias conhecidas', text: 'Registre alergias medicamentosas para alertas ao prescrever.', position: 'bottom' },
+    { id: 'passo-retorno', title: 'Retorno', text: 'Opcional: informe data e avise o tutor — ele recebe alerta na conta e por e-mail.', position: 'bottom' },
     { id: 'ativosCard', title: 'Prescrição', text: 'Escolha os princípios ativos conforme a conduta clínica.', position: 'top' },
     { id: 'btnExibirTodosAtivos', title: 'Guia de medicamentos', text: 'Pesquise por nome ou expanda a lista completa do guia.', position: 'left' },
     { id: 'assinaturaSec', title: 'Assinatura', text: 'Assinatura opcional no canvas; o documento segue com os dados do profissional.', position: 'top' },
@@ -206,6 +211,13 @@ isBrowser: any;
 
   private syncParceiroShellContext(): void {
     this.embedInParceiroShell = this.router.url.includes('/parceiros/');
+  }
+
+  /** Data mínima (hoje) para o campo de retorno. */
+  get minDataRetorno(): string {
+    if (!isPlatformBrowser(this.platformId)) return '';
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
   }
 
   getEffectiveToken(): string | null {
@@ -1036,6 +1048,20 @@ isBrowser: any;
       ? this.canvasRef?.nativeElement.toDataURL()
       : null;
 
+    if (this.retornoNotificarCliente) {
+      const d = (this.retornoData || '').trim();
+      if (!d) {
+        this.toastService.error('Informe a data sugerida para o retorno ou desmarque a notificação ao tutor.', 'Retorno');
+        return;
+      }
+      const temCliente = !!this.clienteIdSelecionado;
+      const temEmailTutor = !!(tutor?.email || '').trim();
+      if (!temCliente && !temEmailTutor) {
+        this.toastService.error('Para avisar o tutor, busque o CPF na base ou preencha o e-mail no cadastro manual.', 'Retorno');
+        return;
+      }
+    }
+
     // Persistir alterações de pet se necessário
     let petUsado: Pet | null = this.petSelecionado ? { ...this.petSelecionado } : null;
     const token = this.getEffectiveToken();
@@ -1181,6 +1207,13 @@ isBrowser: any;
           }))
           .filter((ex) => ex.nome),
         fotos: this.fotosAtendimento.map((foto) => ({ descricao: foto.descricao, base64: foto.base64 })),
+        retorno: this.retornoNotificarCliente
+          ? {
+              notificarCliente: true,
+              data: (this.retornoData || '').trim(),
+              observacao: (this.retornoMensagemTutor || '').trim().slice(0, 500) || undefined,
+            }
+          : undefined,
       },
       receita: {
         ativosSelecionados: this.ativosSelecionados,
@@ -1199,7 +1232,10 @@ isBrowser: any;
     try {
       const tokenReceita = this.getEffectiveToken() || undefined;
       await this.apiService.criarAtendimento(atendimentoPayload, tokenReceita).toPromise();
-      this.toastService.success('Prontuário do atendimento salvo com sucesso.');
+      const msgRetorno = this.retornoNotificarCliente
+        ? ' O tutor foi notificado sobre o retorno.'
+        : '';
+      this.toastService.success(`Prontuário do atendimento salvo com sucesso.${msgRetorno}`);
       // Evita carregar o alerta de alergia para a próxima receita
       this.alerta_alergia = false;
     } catch (e: any) {

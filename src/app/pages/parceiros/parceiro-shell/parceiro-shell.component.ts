@@ -70,7 +70,8 @@ export class ParceiroShellComponent implements OnInit {
     return this.currentUrl.includes('/parceiros/area-vet') ||
            this.currentUrl.includes('/parceiros/gerar-receita') ||
            this.currentUrl.includes('/parceiros/historico-receitas') ||
-           this.currentUrl.includes('/parceiros/pacientes');
+           this.currentUrl.includes('/parceiros/pacientes') ||
+           this.currentUrl.includes('/parceiros/panorama-atendimento');
   }
 
   isClinicaFinanceiroActive(): boolean {

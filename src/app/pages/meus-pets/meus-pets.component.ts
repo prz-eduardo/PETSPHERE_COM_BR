@@ -306,6 +306,60 @@ export class MeusPetsComponent implements OnChanges {
       this.petImageLoaded[key] = !p || src === this.petImagePlaceholder;
       // normalize and attach allergy list to pet for easier template binding
       try { p._alergiasNormalized = this.alergiasFor(p); } catch { p._alergiasNormalized = []; }
+      try {
+        const traits = Array.isArray((p as any).pet_traits) ? (p as any).pet_traits : [];
+        (p as any)._traitsNormalized = [...new Set(traits.map((t: any) => t?.nome).filter(Boolean))];
+      } catch {
+        try { (p as any)._traitsNormalized = []; } catch { /* noop */ }
+      }
     });
+  }
+
+  /** Anos para exibir: prioriza `idade`/`idadeAnos`; se ausente usa `data_nascimento`. */
+  idadeAnosParaCard(pet: any): number | null {
+    if (!pet) return null;
+    const fld = pet.idade ?? pet.idadeAnos;
+    if (fld != null && fld !== '') {
+      const n = Number(fld);
+      if (!Number.isNaN(n)) return n;
+    }
+    const ymd = this.coerceYmd(pet.data_nascimento ?? pet.dataNascimento);
+    return ymd != null ? this.anosDesdeYmd(ymd) : null;
+  }
+
+  castradoBadge(pet: any): string {
+    const c = pet?.castrado;
+    if (c === true || c === 1 || c === '1') return 'Castrado(a)';
+    if (c === false || c === 0 || c === '0') return 'Não castrado(a)';
+    return '';
+  }
+
+  porteBadge(pet: any): string {
+    const t = pet?.porte;
+    if (!t || String(t).trim() === '') return '';
+    const s = String(t).trim().toLowerCase();
+    if (s === 'pequeno') return 'Porte peq.';
+    if (s === 'medio' || s === 'médio') return 'Porte médio';
+    if (s === 'grande') return 'Porte grande';
+    return `Porte: ${String(t)}`;
+  }
+
+  private coerceYmd(raw: unknown): string | null {
+    if (!raw) return null;
+    const m = String(raw).match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : null;
+  }
+
+  private anosDesdeYmd(ymd: string): number | null {
+    const parts = ymd.split('-').map(Number);
+    if (parts.length < 3 || parts.some(Number.isNaN)) return null;
+    const [Y, M, D] = parts;
+    const birth = new Date(Y, M - 1, D);
+    const today = new Date();
+    if (birth > today) return null;
+    let age = today.getFullYear() - birth.getFullYear();
+    const mo = today.getMonth() - birth.getMonth();
+    if (mo < 0 || (mo === 0 && today.getDate() < birth.getDate())) age--;
+    return Math.max(0, age);
   }
 }

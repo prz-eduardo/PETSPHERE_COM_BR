@@ -94,6 +94,36 @@
       </button>
       </div>
     </section>
+
+    <section
+      *ngIf="tenantLoja.isTenantLoja() && tenantHospedagemVisible()"
+      class="tenant-hospedagem"
+      aria-label="Hospedagem na vitrine"
+    >
+      <h2 class="tenant-hospedagem__title">Hospedagem e creche</h2>
+      <ng-container *ngIf="tenantLoja.hospedagemPublic() as hosp">
+        <div *ngIf="hosp.hotel_servicos_globais?.length" class="tenant-hospedagem__block">
+          <p class="tenant-hospedagem__subtitle">O que o hotel oferece</p>
+          <div class="tenant-hospedagem__chips">
+            <span *ngFor="let g of hosp.hotel_servicos_globais" class="tenant-hosp-ch">{{ g.label_pt }}</span>
+          </div>
+        </div>
+        <div *ngIf="hosp.leitos?.length" class="tenant-hospedagem__leitos">
+          <p class="tenant-hospedagem__subtitle">Acomodações na vitrine</p>
+          <article *ngFor="let l of hosp.leitos" class="tenant-hosp-leito">
+            <img *ngIf="l.foto_url" [src]="resolveHospedagemFoto(l.foto_url)" [alt]="l.nome" class="tenant-hosp-leito__img" />
+            <div class="tenant-hosp-leito__body">
+              <h3>{{ l.nome }}</h3>
+              <p class="muted">{{ l.tipo }} · até {{ l.capacidade }} pet(s)</p>
+              <p *ngIf="l.preco_diaria != null" class="tenant-hosp-preco">{{ l.preco_diaria | currency : 'BRL' }} <small>diária</small></p>
+              <div class="tenant-hospedagem__chips" *ngIf="l.servicos_oferta?.length">
+                <span *ngFor="let o of l.servicos_oferta" class="tenant-hosp-ch">{{ o.label_pt }}</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </ng-container>
+    </section>
   </header>
 
   <!-- ========================================================= LAYOUT -->

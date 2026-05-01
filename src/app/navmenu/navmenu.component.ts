@@ -157,6 +157,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     'vet-pacientes': { id: 'vet-pacientes', label: 'Pacientes',    caption: 'Carteira clínica',          link: '/pacientes', icon: 'paw', tone: 'aqua' },
     'vet-receitas':  { id: 'vet-receitas',  label: 'Receitas',     caption: 'Histórico de prescrições',  link: '/historico-receitas', icon: 'sparkle', tone: 'aqua' },
     'vet-gerar':     { id: 'vet-gerar',     label: 'Nova receita',  caption: 'Emitir receita',            link: '/gerar-receita', icon: 'sparkle', tone: 'aqua' },
+    'vet-panorama':  { id: 'vet-panorama',  label: 'Panorama',      caption: 'Custos e exames',          link: '/panorama-atendimento', icon: 'map', tone: 'aqua' },
     'parceiro-painel':   { id: 'parceiro-painel',   label: 'Painel',     caption: 'Resumo da loja',       link: '/parceiros/painel', icon: 'home', tone: 'neutral' },
     'parceiro-agenda':   { id: 'parceiro-agenda',   label: 'Agenda',     caption: 'Compromissos',         link: '/parceiros/agenda', icon: 'calendar', tone: 'neutral' },
     'parceiro-equipe':   { id: 'parceiro-equipe',   label: 'Equipe',     caption: 'Colaboradores',        link: '/parceiros/colaboradores', icon: 'person', tone: 'neutral' },
@@ -170,22 +171,27 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   get sheetActions(): QuickAction[] {
     if (this.dockMode === 'vet') {
-      const ids: DockActionId[] = ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'telemedicina', 'buscar-vet'];
+      const ids: DockActionId[] = ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'vet-panorama', 'telemedicina'];
       return ids.map(id => this.quickActionCatalog[id]);
     }
     if (this.dockMode === 'parceiro') {
       const ids: DockActionId[] = ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar', 'buscar-vet'];
       return ids.map(id => this.quickActionCatalog[id]);
     }
-    const ids: DockActionId[] = this.isCliente
+    const baseConsumer: DockActionId[] = this.isCliente
       ? ['agendar', 'telemedicina', 'buscar-vet', 'comprar', 'hospedagem']
       : ['buscar-vet', 'agendar', 'telemedicina', 'comprar', 'hospedagem'];
-    return ids.map(id => this.quickActionCatalog[id]);
+    if (this.isShoppingRoute) {
+      const rest = baseConsumer.filter((id): id is DockActionId => id !== 'comprar');
+      const ids = (['comprar', ...rest] as DockActionId[]).slice(0, 5);
+      return ids.map(id => this.quickActionCatalog[id]);
+    }
+    return baseConsumer.map(id => this.quickActionCatalog[id]);
   }
 
   private fabRadialDefaultIds(): DockActionId[] {
     if (this.dockMode === 'vet') {
-      return ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'telemedicina'];
+      return ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'vet-panorama'];
     }
     if (this.dockMode === 'parceiro') {
       return ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar'];

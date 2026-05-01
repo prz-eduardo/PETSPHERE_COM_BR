@@ -9,19 +9,23 @@ import { EMBALAGENS } from '../../../../constants/embalagens';
 import { ProductCardRendererComponent } from '../../../../product-cards/product-card-renderer.component';
 import { ShopProduct, StoreService, StoreMeta } from '../../../../services/store.service';
 import { DEFAULT_PRODUCT_CARD_WIDTH } from '../../../../constants/card.constants';
+import { ParceiroComercialProdutosService } from '../../../../services/parceiro-comercial-produtos.service';
+import { BarcodeScanTargetDirective } from '../../../../shared/barcode-scan-target.directive';
 
 interface AtivoBasic { id: number | string; nome: string; descricao?: string }
 
 @Component({
   selector: 'app-produto',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ButtonDirective, ButtonComponent, ProductCardRendererComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ButtonDirective, ButtonComponent, ProductCardRendererComponent, BarcodeScanTargetDirective],
   templateUrl: './produto.component.html',
   styleUrls: ['./produto.component.scss']
 })
 export class ProdutoComponent implements OnInit {
   @Input() editItem: ProdutoDto | null = null;
   @Input() embedded = false;
+  /** Wizard no painel parceiro: usa APIs `/parceiro/comercial/produtos` e oculta recursos só admin. */
+  @Input() partnerMode = false;
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<any>();
   private _pendingEditItem: any | null = null;
@@ -47,8 +51,12 @@ export class ProdutoComponent implements OnInit {
   private zone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
   private store = inject(StoreService);
+  private parceiroProdutos = inject(ParceiroComercialProdutosService);
 
   storeMeta: StoreMeta | null = null;
+
+  /** Exibir produto na vitrine da loja do parceiro (liga `parceiro_vitrine_produtos`). */
+  partnerMostrarNaLoja = signal(true);
 
   form!: FormGroup;
   private imagesSub: Subscription | null = null;
@@ -196,10 +204,17 @@ export class ProdutoComponent implements OnInit {
       variantes: this.fb.array<FormGroup>([]),
       documentos: this.fb.array<FormGroup>([]),
       cardLayout: ['sales' as 'sales'],
+      // Demo SaaS: quando false, este produto NÃO entra em carrinho/checkout.
+      permiteCheckout: [true],
     });
 
-    // initialize formula toggle based on any pre-filled form value
-    this.formulaEnabled = !!(this.form?.value?.formulaId);
+    if (this.partnerMode) {
+      this.form.patchValue({ manipulado: false, formulaId: null });
+      this.formulaEnabled = false;
+    } else {
+      // initialize formula toggle based on any pre-filled form value
+      this.formulaEnabled = !!(this.form?.value?.formulaId);
+    }
     // sincroniza máscara/ dígitos do preço com o formulário (para edição)
     this.syncPrecoDigitsFromForm();
 
@@ -214,50 +229,75 @@ export class ProdutoComponent implements OnInit {
       }
     });
 
-    // Carregar categorias, tags, dosagens e embalagens de customizacoes
-    this.api.getMarketplaceCustomizacoes().subscribe({
-      next: (res: any) => {
-        // categorias/tags
-        this.categoriasList = (res.categorias || []).map((c: any) => ({ id: c.id, name: c.nome || c.name }));
-        this.tagsList = (res.tags || []).map((t: any) => ({ id: t.id, name: t.nome || t.name }));
-        // dosagens/embalagens
-        this.dosagesList = (res.dosages || []).map((d: any) => ({ id: d.id, name: d.nome || d.name }));
-        const rspEmb = (res.embalagens || []).map((e: any, idx: number) => ({ id: e.id ?? idx + 1, name: e.nome || e.name || e }));
-        if (rspEmb && rspEmb.length > 0) {
-          this.embalagensList = rspEmb;
-        } else {
-          this.embalagensList = EMBALAGENS.map((name, idx) => ({ id: idx + 1, name }));
-        }
-        this.refreshTaxonomyFiltersAfterLoad();
-      },
-      error: () => {
-        this.categoriasList = [];
-        this.tagsList = [];
-        this.dosagesList = [];
+    const applyTaxonomies = (res: any) => {
+      this.categoriasList = (res.categorias || []).map((c: any) => ({ id: c.id, name: c.nome || c.name }));
+      this.tagsList = (res.tags || []).map((t: any) => ({ id: t.id, name: t.nome || t.name }));
+      this.dosagesList = (res.dosages || []).map((d: any) => ({ id: d.id, name: d.nome || d.name }));
+      const rspEmb = (res.embalagens || []).map((e: any, idx: number) => ({
+        id: e.id ?? idx + 1,
+        name: e.nome || e.name || e
+      }));
+      if (rspEmb && rspEmb.length > 0) {
+        this.embalagensList = rspEmb;
+      } else {
         this.embalagensList = EMBALAGENS.map((name, idx) => ({ id: idx + 1, name }));
       }
-    });
+      this.refreshTaxonomyFiltersAfterLoad();
+    };
 
-    // carregar config (formas/unidades/ativos consolidado) - ativos ficam apenas para derivação via fórmula
-    this.api.getConfigNewProductWithForms().subscribe({
-      next: (res) => {
-        this.forms = res.forms || [];
-        this.units = res.units || [];
-        // não exibimos mais busca direta de ativo
-      },
-      error: () => { this.forms = []; this.units = []; }
-    });
+    // Carregar taxonomias: parceiro = categorias do tenant + tags/doses/embalagens globais de apoio
+    if (this.partnerMode) {
+      this.parceiroProdutos.taxonomiasWizardParceiro().subscribe({
+        next: ({ categorias, support }) => {
+          applyTaxonomies({
+            categorias,
+            tags: support.tags || [],
+            dosages: support.dosagens || [],
+            embalagens: support.embalagens || [],
+          });
+        },
+        error: () => applyTaxonomies({ categorias: [], tags: [], dosages: [], embalagens: [] }),
+      });
+    } else {
+      this.api.getMarketplaceCustomizacoes().subscribe({
+        next: applyTaxonomies,
+        error: () => applyTaxonomies({ categorias: [], tags: [], dosages: [], embalagens: [] }),
+      });
+    }
 
-    // carregar fórmulas para seleção quando tipo = manipulado
-    this.api.listFormulas({ page: 1, pageSize: 100 }).subscribe({
-      next: (res) => {
-        const items = res?.data || [];
-        this.formulasSelect = items.map(f => ({ id: f.id as number, name: f.name }));
-        this.formulasAll = items.map(f => ({ id: f.id as number, name: f.name, form_name: (f as any).form_name }));
-        this.applyFormulaFilter();
-      },
-      error: () => { this.formulasSelect = []; }
-    });
+    if (!this.partnerMode) {
+      this.api.getConfigNewProductWithForms().subscribe({
+        next: (res) => {
+          this.forms = res.forms || [];
+          this.units = res.units || [];
+        },
+        error: () => { this.forms = []; this.units = []; }
+      });
+
+      this.api.listFormulas({ page: 1, pageSize: 100 }).subscribe({
+        next: (res) => {
+          const items = res?.data || [];
+          this.formulasSelect = items.map((f) => ({ id: f.id as number, name: f.name }));
+          this.formulasAll = items.map((f) => ({
+            id: f.id as number,
+            name: f.name,
+            form_name: (f as any).form_name
+          }));
+          this.applyFormulaFilter();
+        },
+        error: () => { this.formulasSelect = []; }
+      });
+
+      this.api.listOmniCanais().subscribe({
+        next: (r) => this.omniCanais.set(r.data || []),
+        error: () => this.omniCanais.set([]),
+      });
+    } else {
+      this.forms = [];
+      this.units = [];
+      this.formulasSelect = [];
+      this.formulasAll = [];
+    }
 
     // editar produto se tiver id na rota (aplicar somente quando não estamos em modo embedded)
     const produtoId = this.route.snapshot.queryParamMap.get('produto_id');
@@ -265,10 +305,6 @@ export class ProdutoComponent implements OnInit {
     // se editItem foi fornecido via @Input, aplica-o
     if (this.editItem) this.applyEditItem(this.editItem);
 
-    this.api.listOmniCanais().subscribe({
-      next: (r) => this.omniCanais.set(r.data || []),
-      error: () => this.omniCanais.set([]),
-    });
     if (this._pendingEditItem) { this.applyEditItem(this._pendingEditItem); this._pendingEditItem = null; }
 
     // ativo search removido
@@ -288,6 +324,7 @@ export class ProdutoComponent implements OnInit {
   }
 
   private refreshOmniPublicacoes(produtoId: number | string | null | undefined) {
+    if (this.partnerMode) return;
     if (produtoId == null || produtoId === '') return;
     this.api.getProdutoOmniPublicacoes(produtoId).subscribe({
       next: (r) => {
@@ -378,6 +415,8 @@ export class ProdutoComponent implements OnInit {
         active: p.active === 0 || p.active === 1 ? p.active : ((p as any).ativo === 0 || (p as any).ativo === 1 ? (p as any).ativo : 1)
       });
       this.destaqueHome = p.destaque_home === 1 || (p as any).destaque_home === true;
+      const pcRaw = (p as any).permite_checkout ?? (p as any).permiteCheckout;
+      this.form.patchValue({ permiteCheckout: pcRaw == null ? true : !!Number(pcRaw) });
       this.formulaEnabled = !!(this.form?.get('formulaId')?.value);
 
       this.tagsFA.clear(); (p.tags || []).forEach((t: any) => this.tagsFA.push(this.fb.control<string>(t)));
@@ -394,7 +433,14 @@ export class ProdutoComponent implements OnInit {
       }
       this.imagemPrincipal = capa;
       try { this.syncPrecoDigitsFromForm(); } catch(e) {}
-      if (p?.id) this.refreshOmniPublicacoes(p.id);
+      if (!this.partnerMode && p?.id) this.refreshOmniPublicacoes(p.id);
+      if (this.partnerMode) {
+        if ((p as any)?.mostrar_na_loja !== undefined) {
+          this.partnerMostrarNaLoja.set(!!(p as any).mostrar_na_loja);
+        } else if ((p as any)?.vitrine_ativo !== undefined) {
+          this.partnerMostrarNaLoja.set(Number((p as any).vitrine_ativo) === 1);
+        }
+      }
     } catch (e) { console.error('applyEditItem error', e); }
   }
 
@@ -671,11 +717,16 @@ export class ProdutoComponent implements OnInit {
     return 'Avançar';
   }
 
+  togglePartnerMostrarNaLoja(): void {
+    this.partnerMostrarNaLoja.update((v) => !v);
+  }
+
   // Removido: loadTaxonomy. Agora tudo vem de getMarketplaceCustomizacoes().
 
   private loadProduto(id: string | number) {
     this.loading.set(true);
-    this.api.getProduto(id).subscribe({
+    const obs$ = this.partnerMode ? this.parceiroProdutos.getFull(id) : this.api.getProduto(id);
+    obs$.subscribe({
       next: (p) => {
         // categoriaId: preferir id retornado pelo backend quando disponível, senão tentar mapear por nome
         const catId = (p as any).categoryId ?? this.categoriasList.find(c => c.name === (p as any).category)?.id ?? null;
@@ -786,8 +837,16 @@ export class ProdutoComponent implements OnInit {
         // garantir que máscara/dígitos do preço reflitam o valor carregado
         try { this.syncPrecoDigitsFromForm(); } catch(e) { /* noop */ }
 
+        if (this.partnerMode) {
+          if ((p as any)?.mostrar_na_loja !== undefined) {
+            this.partnerMostrarNaLoja.set(!!(p as any).mostrar_na_loja);
+          } else if ((p as any)?.vitrine_ativo !== undefined) {
+            this.partnerMostrarNaLoja.set(Number((p as any).vitrine_ativo) === 1);
+          }
+        }
+
         this.loading.set(false);
-        this.refreshOmniPublicacoes(p.id);
+        if (!this.partnerMode) this.refreshOmniPublicacoes(p.id);
       },
       error: (err) => { console.error(err); this.loading.set(false); }
     });
@@ -1442,7 +1501,18 @@ export class ProdutoComponent implements OnInit {
 
   // Mantém apenas a versão correta do resetForm
   // Atualizar resetForm para novo campo manipulado
-  resetForm() { this.form.reset({ manipulado: false, active: 1, price: 0, weightValue: null, weightUnit: 'g' }); this.tagsFA.clear(); this.dosageFA.clear(); this.packagingFA.clear(); this.imagesFA.clear(); this.estoqueSelecionado = null; this.destaqueHome = false; this.imagemPrincipal = null; this.formulaEnabled = false; }
+  resetForm() {
+    this.form.reset({ manipulado: false, active: 1, price: 0, weightValue: null, weightUnit: 'g', permiteCheckout: true });
+    this.tagsFA.clear();
+    this.dosageFA.clear();
+    this.packagingFA.clear();
+    this.imagesFA.clear();
+    this.estoqueSelecionado = null;
+    this.destaqueHome = false;
+    this.imagemPrincipal = null;
+    this.formulaEnabled = false;
+    if (this.partnerMode) this.partnerMostrarNaLoja.set(true);
+  }
 
   fixRating(event: any) {
     const v = parseFloat(event.target.value);
@@ -1472,7 +1542,7 @@ export class ProdutoComponent implements OnInit {
     if (cover) { imagens.push({ data: cover as string, posicao: pos++ }); }
     gallery.forEach(img => { if (typeof img === 'string') imagens.push({ data: img, posicao: pos++ }); });
 
-    const tipo: 'pronto' | 'manipulado' = fv.manipulado ? 'manipulado' : 'pronto';
+    const tipo: 'pronto' | 'manipulado' = this.partnerMode ? 'pronto' : (fv.manipulado ? 'manipulado' : 'pronto');
     const parsedWeight = this.parseWeightValue(fv.weightValue);
     const variantes = (this.variantesFA.value || []).map((v: any, idx: number) => ({
       id: v.id ?? undefined,
@@ -1499,7 +1569,9 @@ export class ProdutoComponent implements OnInit {
       preco: fv.price,
       tipo,
       ativo: fv.active ?? 1,
-      destaque_home: this.destaqueHome ? 1 : 0,
+      destaque_home: this.partnerMode ? 0 : (this.destaqueHome ? 1 : 0),
+      // Demo SaaS: 0 = sem checkout (vitrine institucional), 1 = produto vendável.
+      permite_checkout: fv.permiteCheckout === false ? 0 : 1,
       imagem_principal: this.imagemPrincipal,
       categoria_ids,
       tag_ids,
@@ -1542,11 +1614,18 @@ export class ProdutoComponent implements OnInit {
       documentos,
       card_layout: 'sales',
     };
-    if (tipo === 'manipulado') body.formula_id = fv.formulaId;
+    if (!this.partnerMode && tipo === 'manipulado') body.formula_id = fv.formulaId;
+    if (this.partnerMode) body.mostrar_na_loja = this.partnerMostrarNaLoja();
     // Payload unificado em português para criação e edição (mesmo shape).
     const legacyId = fv.id;
     let req$: any;
-    if (legacyId) {
+    if (this.partnerMode) {
+      if (legacyId) {
+        req$ = this.parceiroProdutos.updateFull(legacyId, body);
+      } else {
+        req$ = this.parceiroProdutos.createFull(body);
+      }
+    } else if (legacyId) {
       console.debug('update produto payload (full):', body);
       req$ = this.api.updateMarketplaceProdutoFull(legacyId, body);
     } else {
@@ -1555,10 +1634,10 @@ export class ProdutoComponent implements OnInit {
     }
     req$.subscribe({
       next: (res: any) => {
-        // Vincular promoção selecionada ao produto (cria e edita).
         const newId = res?.id || legacyId;
+        const hydrated = typeof res?.id !== 'undefined' ? this.api.normalizeMarketplaceProdutoPayload(res) : null;
         const promoId = this.promocaoSelecionada?.id;
-        if (newId && promoId) {
+        if (!this.partnerMode && newId && promoId) {
           this.api.setPromocaoProdutos(promoId, [Number(newId)]).subscribe({
             next: () => {
               this.saving.set(false);
@@ -1581,10 +1660,12 @@ export class ProdutoComponent implements OnInit {
           });
           return;
         }
-        this.saving.set(false); this.success.set('Produto salvo com sucesso.'); this.form.patchValue({ id: res.id });
-        this.refreshOmniPublicacoes(res?.id ?? newId);
+        this.saving.set(false);
+        this.success.set('Produto salvo com sucesso.');
+        this.form.patchValue({ id: newId });
+        if (!this.partnerMode) this.refreshOmniPublicacoes(res?.id ?? newId);
         if (this.embedded) {
-          try { this.saved.emit(res); } catch(e) { /* noop */ }
+          try { this.saved.emit(hydrated || res); } catch(e) { /* noop */ }
         }
       },
       error: (err: any) => {

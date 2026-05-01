@@ -20,7 +20,7 @@ import { BannerFormComponent, BannerFormSubmitPayload } from './banner-form/bann
 export class BannersAdminComponent implements OnInit {
   readonly positions = BANNER_POSITIONS;
 
-  @ViewChild('bannerForm') bannerForm?: BannerFormComponent;
+  @ViewChild(BannerFormComponent) bannerForm?: BannerFormComponent;
 
   q = signal('');
   active = signal<'all' | '1' | '0'>('all');

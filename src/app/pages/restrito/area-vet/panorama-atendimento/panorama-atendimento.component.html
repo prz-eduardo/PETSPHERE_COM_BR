@@ -1,0 +1,194 @@
+<div class="area-vet-wrapper panorama-root">
+  <div class="panorama-head">
+    <div>
+      <h1 class="titulo">Panorama do atendimento</h1>
+      <p class="sub">
+        Deslocamento (mapa + km), valores, extras e acompanhamento de exames. Os dados ficam neste aparelho até integrarmos com o servidor.
+      </p>
+    </div>
+    <div class="head-actions">
+      <a class="btn-sec" [routerLink]="baseVetLink + '/gerar-receita'">Consulta &amp; receita</a>
+      <button type="button" class="btn" (click)="novo()">Novo registro</button>
+    </div>
+  </div>
+
+  <div class="panorama-grid" *ngIf="itens.length || selecionado">
+    <aside class="lista-card">
+      <h2 class="h2">Registros</h2>
+      <p class="hint" *ngIf="!itens.length">Nenhum ainda — clique em «Novo registro».</p>
+      <button
+        type="button"
+        class="lista-item"
+        *ngFor="let it of itens"
+        [class.ativo]="selecionado?.id === it.id"
+        (click)="selecionar(it)"
+      >
+        <span class="lista-titulo">{{ it.petNome || 'Pet' }} · {{ it.tutorNome || 'Tutor' }}</span>
+        <span class="lista-meta">{{ statusLabels[it.status] }} · {{ it.atualizadoEm | date: 'short' }}</span>
+      </button>
+    </aside>
+
+    <section class="editor" *ngIf="selecionado as s">
+      <div class="toolbar">
+        <button type="button" class="btn" (click)="salvar()">Salvar</button>
+        <button type="button" class="btn-sec" (click)="excluir()">Excluir</button>
+      </div>
+
+      <div class="card">
+        <h2 class="h2">Identificação</h2>
+        <div class="grid2">
+          <label class="field">
+            <span>Tutor</span>
+            <input class="input" [(ngModel)]="s.tutorNome" name="tutorNome" placeholder="Nome do tutor" />
+          </label>
+          <label class="field">
+            <span>Pet</span>
+            <input class="input" [(ngModel)]="s.petNome" name="petNome" placeholder="Nome do pet" />
+          </label>
+          <label class="field">
+            <span>Telefone / contato</span>
+            <input class="input" [(ngModel)]="s.tutorTelefone" name="tel" placeholder="WhatsApp" />
+          </label>
+          <label class="field">
+            <span>Status do atendimento</span>
+            <select class="input" [(ngModel)]="s.status" name="status">
+              <option value="rascunho">{{ statusLabels['rascunho'] }}</option>
+              <option value="agendado">{{ statusLabels['agendado'] }}</option>
+              <option value="deslocamento">{{ statusLabels['deslocamento'] }}</option>
+              <option value="em_atendimento">{{ statusLabels['em_atendimento'] }}</option>
+              <option value="concluido">{{ statusLabels['concluido'] }}</option>
+              <option value="cancelado">{{ statusLabels['cancelado'] }}</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="card mapa-card">
+        <h2 class="h2">Mapa e deslocamento</h2>
+        <p class="hint">
+          Ajuste os pinos (arraste) ou clique no mapa para posicionar
+          <strong>{{ mapaModo === 'origem' ? 'a origem (saída)' : 'o destino (domicílio)' }}</strong>.
+        </p>
+        <div class="mapa-toolbar">
+          <button type="button" class="chip" [class.chip--on]="mapaModo === 'origem'" (click)="mapaModo = 'origem'">Origem (O)</button>
+          <button type="button" class="chip" [class.chip--on]="mapaModo === 'destino'" (click)="mapaModo = 'destino'">Destino (D)</button>
+          <button type="button" class="btn-sec" (click)="linhaRetaInfo()">Km em linha reta</button>
+          <button type="button" class="btn" (click)="calcularRota()" [disabled]="calculandoRota">
+            {{ calculandoRota ? 'Calculando…' : 'Calcular rota (km)' }}
+          </button>
+        </div>
+        <div class="coords grid2">
+          <label class="field">
+            <span>Origem lat</span>
+            <input class="input" type="number" step="any" [(ngModel)]="s.origemLat" name="olat" (change)="refreshMapa()" />
+          </label>
+          <label class="field">
+            <span>Origem lng</span>
+            <input class="input" type="number" step="any" [(ngModel)]="s.origemLng" name="olng" (change)="refreshMapa()" />
+          </label>
+          <label class="field">
+            <span>Destino lat</span>
+            <input class="input" type="number" step="any" [(ngModel)]="s.destinoLat" name="dlat" (change)="refreshMapa()" />
+          </label>
+          <label class="field">
+            <span>Destino lng</span>
+            <input class="input" type="number" step="any" [(ngModel)]="s.destinoLng" name="dlng" (change)="refreshMapa()" />
+          </label>
+        </div>
+        <div #mapHost class="map-host"></div>
+        <p class="msg-rota" *ngIf="msgRota">{{ msgRota }}</p>
+        <div class="km-resumo">
+          <span>Linha reta: <strong>{{ kmLinhaRetaAtual() | number : '1.2-2' }} km</strong></span>
+          <span *ngIf="s.kmRota != null">Rota (último cálculo): <strong>{{ s.kmRota | number : '1.2-2' }} km</strong></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="h2">Valores</h2>
+        <div class="grid2">
+          <label class="field">
+            <span>Valor por km (R$)</span>
+            <input class="input" type="number" min="0" step="0.01" [(ngModel)]="s.valorPorKm" name="vpk" />
+          </label>
+          <label class="field">
+            <span>Km manual (opcional)</span>
+            <input
+              class="input"
+              type="number"
+              min="0"
+              step="0.1"
+              [(ngModel)]="s.kmManual"
+              name="kmman"
+              placeholder="Sobrescreve rota para cobrança"
+            />
+          </label>
+          <label class="field">
+            <span>Valor do atendimento / consulta (R$)</span>
+            <input class="input" type="number" min="0" step="0.01" [(ngModel)]="s.valorConsulta" name="vc" />
+          </label>
+          <label class="field">
+            <span>Taxa adicional (urgência, plantão…) R$</span>
+            <input class="input" type="number" min="0" step="0.01" [(ngModel)]="s.taxaAdicional" name="taxa" />
+          </label>
+          <label class="field">
+            <span>Desconto %</span>
+            <input class="input" type="number" min="0" max="100" step="0.5" [(ngModel)]="s.descontoPercent" name="desc" />
+          </label>
+          <label class="field">
+            <span>Forma de pagamento</span>
+            <input class="input" [(ngModel)]="s.formaPagamento" name="fpag" placeholder="Pix, cartão, convênio…" />
+          </label>
+        </div>
+
+        <h3 class="h3">Extras</h3>
+        <button type="button" class="btn-sec btn-sm" (click)="addExtra()">+ Linha extra</button>
+        <div class="extra-linha" *ngFor="let ex of s.extras">
+          <input class="input" [(ngModel)]="ex.descricao" [name]="'d' + ex.id" />
+          <input class="input input-valor" type="number" min="0" step="0.01" [(ngModel)]="ex.valor" [name]="'v' + ex.id" />
+          <button type="button" class="btn-icon" (click)="rmExtra(ex.id)" title="Remover">×</button>
+        </div>
+
+        <div class="totais">
+          <div class="tot-row"><span>Deslocamento ({{ kmUsadoNaCobranca() | number : '1.2-2' }} km × {{ s.valorPorKm | number : '1.2-2' }})</span><span>R$ {{ valorDeslocamento() | number : '1.2-2' }}</span></div>
+          <div class="tot-row"><span>Consulta + taxas + extras</span><span>R$ {{ (subtotalBruto() - valorDeslocamento()) | number : '1.2-2' }}</span></div>
+          <div class="tot-row tot-sub"><span>Subtotal</span><span>R$ {{ subtotalBruto() | number : '1.2-2' }}</span></div>
+          <div class="tot-row" *ngIf="s.descontoPercent > 0"><span>Desconto ({{ s.descontoPercent }}%)</span><span>− R$ {{ valorDesconto() | number : '1.2-2' }}</span></div>
+          <div class="tot-row tot-total"><span>Total estimado</span><span>R$ {{ totalLiquido() | number : '1.2-2' }}</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="h2">Exames (tutor / laboratório)</h2>
+        <p class="hint">Quando o tutor enviar exames pelo sistema, você poderá ligar estes itens ao prontuário; por ora use como checklist local.</p>
+        <button type="button" class="btn-sec btn-sm" (click)="addExame()">+ Exame</button>
+        <div class="exame-card" *ngFor="let ex of s.exames">
+          <div class="exame-top">
+            <input class="input" [(ngModel)]="ex.nome" [name]="'en' + ex.id" placeholder="Nome do exame" />
+            <select class="input" [(ngModel)]="ex.status" [name]="'es' + ex.id">
+              <option *ngFor="let st of exameStatusOptions" [value]="st">{{ exameStatusLabels[st] }}</option>
+            </select>
+            <button type="button" class="btn-icon" (click)="rmExame(ex.id)">×</button>
+          </div>
+          <label class="field field--full">
+            <span>Observação / link / laboratório</span>
+            <input class="input" [(ngModel)]="ex.observacao" [name]="'eo' + ex.id" />
+          </label>
+          <label class="field field--full">
+            <span>Data de referência</span>
+            <input class="input" [(ngModel)]="ex.dataReferencia" [name]="'ed' + ex.id" placeholder="ex.: 2026-04-30" />
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="h2">Notas</h2>
+        <textarea class="input textarea" rows="3" [(ngModel)]="s.notas" name="notas" placeholder="Observações gerais do atendimento…"></textarea>
+      </div>
+    </section>
+  </div>
+
+  <div class="card empty-state" *ngIf="!itens.length && !selecionado">
+    <p>Nenhum panorama salvo ainda.</p>
+    <button type="button" class="btn" (click)="novo()">Começar o primeiro</button>
+  </div>
+</div>

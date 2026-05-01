@@ -32,6 +32,9 @@
       <a routerLink="/parceiros/minha-loja" routerLinkActive="active">
         <i class="fa fa-store"></i> Minha loja
       </a>
+      <a routerLink="/parceiros/inventario-pos" routerLinkActive="active">
+        <i class="fa fa-barcode"></i> Inventário
+      </a>
       <div class="nav-group nav-group--clinica" [class.open]="showClinicaMenu()">
         <button
           class="nav-group-btn"
@@ -65,6 +68,9 @@
           </a>
           <a routerLink="/parceiros/pacientes" routerLinkActive="active" (click)="toggleVetMenu(false)">
             <i class="fa fa-paw"></i> Pacientes
+          </a>
+          <a routerLink="/parceiros/panorama-atendimento" routerLinkActive="active" (click)="toggleVetMenu(false)">
+            <i class="fa fa-map-signs"></i> Panorama do atendimento
           </a>
         </div>
       </div>
@@ -101,6 +107,7 @@
         <a routerLink="/parceiros/hospedagem" (click)="toggleMobileNav(false)" [class.active]="isHospedagemActive()"><i class="fa fa-home"></i> Hospedagem pet</a>
         <a routerLink="/parceiros/colaboradores" (click)="toggleMobileNav(false)"><i class="fa fa-users"></i> Colaboradores</a>
         <a routerLink="/parceiros/minha-loja" (click)="toggleMobileNav(false)"><i class="fa fa-store"></i> Minha loja</a>
+        <a routerLink="/parceiros/inventario-pos" (click)="toggleMobileNav(false)"><i class="fa fa-barcode"></i> Inventário</a>
 
         <div class="mobile-group" [class.open]="showClinicaMenu()">
           <button type="button" class="mobile-group-btn" (click)="toggleClinicaMenu()">
@@ -127,6 +134,7 @@
             <a routerLink="/parceiros/gerar-receita" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-stethoscope"></i> Consulta &amp; receita</a>
             <a routerLink="/parceiros/historico-receitas" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-history"></i> Histórico</a>
             <a routerLink="/parceiros/pacientes" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-paw"></i> Pacientes</a>
+            <a routerLink="/parceiros/panorama-atendimento" (click)="toggleMobileNav(false); toggleVetMenu(false)"><i class="fa fa-map-signs"></i> Panorama do atendimento</a>
           </div>
         </div>
 

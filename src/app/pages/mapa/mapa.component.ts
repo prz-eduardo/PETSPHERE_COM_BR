@@ -118,6 +118,16 @@ export class MapaComponent implements OnInit, OnDestroy {
     this.scheduleMapResize();
   }
 
+  tenantHospedagemVisible(): boolean {
+    const h = this.tenantLoja.hospedagemPublic();
+    if (!h) return false;
+    return (h.leitos?.length ?? 0) > 0 || (h.hotel_servicos_globais?.length ?? 0) > 0;
+  }
+
+  resolveHospedagemFoto(url: string | null | undefined): string {
+    return this.api.resolveMediaUrl(url || '', '/imagens/image.png');
+  }
+
   private mobileLayoutMql: MediaQueryList | null = null;
   private mobileLayoutListener: (() => void) | null = null;
   private requestedPartnerSlug: string | null = null;

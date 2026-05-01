@@ -157,10 +157,12 @@ import { CommonModule } from '@angular/common';
       const rect = this.frameRef.nativeElement.getBoundingClientRect();
       const fw = rect.width || 300;
       const fh = this.frameHeight || Math.round(fw / this.safeRatio());
-      const initScale = Math.max(fw / Math.max(1, this.naturalW), fh / Math.max(1, this.naturalH));
-      this.minScale = initScale;
-      this.maxScale = Math.max(initScale * 4, initScale + 0.1);
-      this.scale = Math.max(initScale, 0.0001);
+      const coverScale = Math.max(fw / Math.max(1, this.naturalW), fh / Math.max(1, this.naturalH));
+      /* Começa cobrindo o quadro (crop); permite zoom menor para aparecer “sobra” —
+         na exportação as áreas vazias usam média das bordas da imagem. */
+      this.minScale = Math.max(0.03, coverScale * 0.06);
+      this.maxScale = Math.max(coverScale * 4, coverScale + 0.1);
+      this.scale = Math.max(coverScale, 0.0001);
       this.displayW = Math.round(this.naturalW * this.scale);
       this.displayH = Math.round(this.naturalH * this.scale);
       this.posX = Math.round((fw - this.displayW) / 2);
@@ -238,25 +240,34 @@ import { CommonModule } from '@angular/common';
 
     private updatePreview() {
       if (!this.imageSrc || !this.naturalW || !this.naturalH) { this.previewData = null; this.previewChange.emit(null); return; }
-      const frameRect = this.frameRef.nativeElement.getBoundingClientRect(); const fw = frameRect.width; const fh = this.frameHeight;
-      const imgLeft = this.posX; const imgTop = this.posY; const intersectionLeft = Math.max(0, imgLeft); const intersectionTop = Math.max(0, imgTop); const intersectionRight = Math.min(fw, imgLeft + this.displayW); const intersectionBottom = Math.min(fh, imgTop + this.displayH);
-      const visibleDisplayW = Math.max(0, intersectionRight - intersectionLeft); const visibleDisplayH = Math.max(0, intersectionBottom - intersectionTop);
-      if (visibleDisplayW <= 0 || visibleDisplayH <= 0) { this.previewData = null; this.previewChange.emit(null); return; }
-      const startXdisplay = intersectionLeft - imgLeft; const startYdisplay = intersectionTop - imgTop;
-      const srcX = startXdisplay / this.scale; const srcY = startYdisplay / this.scale; const srcW = visibleDisplayW / this.scale; const srcH = visibleDisplayH / this.scale;
-      const destW = 320; const destH = Math.max(1, Math.round(destW / this.safeRatio()));
-      const canvas = document.createElement('canvas'); canvas.width = destW; canvas.height = destH; const ctx = canvas.getContext('2d'); if (!ctx) { this.previewData = null; this.previewChange.emit(null); return; }
+      const frameRect = this.frameRef.nativeElement.getBoundingClientRect();
+      const fw = frameRect.width || 300;
+      const fh = this.frameHeight || Math.round(fw / this.safeRatio());
+      const destW = 320;
+      const destH = Math.max(1, Math.round(destW / this.safeRatio()));
+      const canvas = document.createElement('canvas');
+      canvas.width = destW;
+      canvas.height = destH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { this.previewData = null; this.previewChange.emit(null); return; }
       const draw = () => {
         try {
           const imgEl = this.imgRef?.nativeElement;
-          if (!imgEl) throw new Error('no img');
-          ctx.clearRect(0,0,canvas.width,canvas.height);
-          ctx.drawImage(imgEl, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
-          this.previewData = canvas.toDataURL('image/png'); this.previewChange.emit(this.previewData);
+          if (!imgEl?.naturalWidth) throw new Error('no img');
+          this._composeEditorFrame(ctx, destW, destH, imgEl, fw, fh);
+          this.previewData = canvas.toDataURL('image/png');
+          this.previewChange.emit(this.previewData);
         } catch {
-          this._loadImageElement(this.imageSrc!).then(fallback => {
+          this._loadImageElement(this.imageSrc!).then((fallback) => {
             if (!fallback) { this.previewData = null; this.previewChange.emit(null); return; }
-            try { ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(fallback, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height); this.previewData = canvas.toDataURL('image/png'); this.previewChange.emit(this.previewData); } catch { this.previewData = null; this.previewChange.emit(null); }
+            try {
+              this._composeEditorFrame(ctx, destW, destH, fallback, fw, fh);
+              this.previewData = canvas.toDataURL('image/png');
+              this.previewChange.emit(this.previewData);
+            } catch {
+              this.previewData = null;
+              this.previewChange.emit(null);
+            }
           });
         }
       };
@@ -265,23 +276,95 @@ import { CommonModule } from '@angular/common';
 
     public async exportCroppedBlob(outW?: number, outH?: number): Promise<Blob | null> {
       if (!this.imageSrc || !this.naturalW || !this.naturalH) return null;
-      const frameRect = this.frameRef.nativeElement.getBoundingClientRect(); const fw = frameRect.width; const fh = this.frameHeight;
-      const imgLeft = this.posX; const imgTop = this.posY; const intersectionLeft = Math.max(0, imgLeft); const intersectionTop = Math.max(0, imgTop); const intersectionRight = Math.min(fw, imgLeft + this.displayW); const intersectionBottom = Math.min(fh, imgTop + this.displayH);
-      const visibleDisplayW = Math.max(0, intersectionRight - intersectionLeft); const visibleDisplayH = Math.max(0, intersectionBottom - intersectionTop);
-      if (visibleDisplayW <= 0 || visibleDisplayH <= 0) return null;
-      const startXdisplay = intersectionLeft - imgLeft; const startYdisplay = intersectionTop - imgTop; const srcX = startXdisplay / this.scale; const srcY = startYdisplay / this.scale; const srcW = visibleDisplayW / this.scale; const srcH = visibleDisplayH / this.scale;
-      if (srcW <= 0 || srcH <= 0) return null;
-      let destW: number; let destH: number;
+      const frameRect = this.frameRef.nativeElement.getBoundingClientRect();
+      const fw = frameRect.width || 300;
+      const fh = this.frameHeight || Math.round(fw / this.safeRatio());
+      let destW: number;
+      let destH: number;
       if (outW && outH) { destW = outW; destH = outH; }
       else if (outW) { destW = outW; destH = Math.round(outW / this.safeRatio()); }
       else { destW = 1600; destH = Math.max(1, Math.round(destW / this.safeRatio())); }
-      const canvas = document.createElement('canvas'); canvas.width = Math.max(1, destW); canvas.height = Math.max(1, destH); const ctx = canvas.getContext('2d'); if (!ctx) return null;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, destW);
+      canvas.height = Math.max(1, destH);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      let img: HTMLImageElement | null = null;
       const imgEl = this.imgRef?.nativeElement;
-      if (imgEl && imgEl.complete && imgEl.naturalWidth) {
-        try { ctx.drawImage(imgEl, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height); }
-        catch { const fallback = await this._loadImageElement(this.imageSrc); if (!fallback) return null; try { ctx.drawImage(fallback, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);} catch { return null; } }
-      } else { const fallback = await this._loadImageElement(this.imageSrc); if (!fallback) return null; try { ctx.drawImage(fallback, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);} catch { return null; } }
+      if (imgEl?.complete && imgEl.naturalWidth) img = imgEl;
+      else img = await this._loadImageElement(this.imageSrc);
+      if (!img) return null;
+      try {
+        this._composeEditorFrame(ctx, canvas.width, canvas.height, img, fw, fh);
+      } catch {
+        return null;
+      }
       return await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.88));
+    }
+
+    /** Média RGB das faixas de borda (amostragem reduzida para custo razoável). */
+    private _sampleBorderMeanColor(img: HTMLImageElement): string {
+      const w0 = img.naturalWidth;
+      const h0 = img.naturalHeight;
+      if (w0 < 2 || h0 < 2) return '#0b1220';
+      const maxSide = 640;
+      const sc = Math.min(1, maxSide / Math.max(w0, h0));
+      const w = Math.max(2, Math.round(w0 * sc));
+      const h = Math.max(2, Math.round(h0 * sc));
+      const strip = Math.max(1, Math.round(2 * sc));
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const sctx = c.getContext('2d', { willReadFrequently: true });
+      if (!sctx) return '#0b1220';
+      try {
+        sctx.drawImage(img, 0, 0, w0, h0, 0, 0, w, h);
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let n = 0;
+        const add = (d: ImageData) => {
+          const p = d.data;
+          for (let i = 0; i < p.length; i += 4) {
+            r += p[i];
+            g += p[i + 1];
+            b += p[i + 2];
+            n++;
+          }
+        };
+        add(sctx.getImageData(0, 0, w, strip));
+        add(sctx.getImageData(0, h - strip, w, strip));
+        add(sctx.getImageData(0, 0, strip, h));
+        add(sctx.getImageData(w - strip, 0, strip, h));
+        if (!n) return '#0b1220';
+        return `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})`;
+      } catch {
+        return '#0b1220';
+      }
+    }
+
+    /**
+     * Exporta exatamente a moldura fw×fh para destW×destH: primeiro preenche com cor das bordas,
+     * depois desenha a imagem inteira na mesma escala/translação do editor (sem “esticar” só o recorte).
+     */
+    private _composeEditorFrame(
+      ctx: CanvasRenderingContext2D,
+      destW: number,
+      destH: number,
+      img: HTMLImageElement,
+      fw: number,
+      fh: number,
+    ): void {
+      ctx.fillStyle = this._sampleBorderMeanColor(img);
+      ctx.fillRect(0, 0, destW, destH);
+      const kx = destW / Math.max(1e-6, fw);
+      const ky = destH / Math.max(1e-6, fh);
+      const dx = this.posX * kx;
+      const dy = this.posY * ky;
+      const dImgW = this.displayW * kx;
+      const dImgH = this.displayH * ky;
+      ctx.drawImage(img, 0, 0, this.naturalW, this.naturalH, dx, dy, dImgW, dImgH);
     }
 
     private _setWarning(msg: string | null) { this.warning = msg; this.warnChange.emit(msg); }

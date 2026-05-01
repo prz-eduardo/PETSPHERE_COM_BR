@@ -12,7 +12,7 @@ import { AdminHeaderComponent } from '../../../shared/admin-header/admin-header.
 import { AdminHomeOverviewComponent } from './home-overview/home-overview.component';
 import { MARCA_NOME } from '../../../constants/loja-public';
 
-type SectionKey = 'inteligencia' | 'catalogo' | 'petshop' | 'pessoas' | 'operacao';
+type SectionKey = 'inteligencia' | 'catalogo' | 'petshop' | 'pessoas' | 'operacao' | 'monetizacao';
 
 @Component({
   selector: 'app-admin',
@@ -74,6 +74,10 @@ export class AdminComponent implements OnInit, OnDestroy {
       'pedidos compras',
       'atendimento chat suporte fila',
       'email resend teste ferramenta',
+    ],
+    monetizacao: [
+      'planos saas tier mensal hibrido',
+      'creditos saldos extrato consumo billing',
     ],
   };
 
@@ -210,6 +214,9 @@ export class AdminComponent implements OnInit, OnDestroy {
   goToPetsGaleria() { this.router.navigate(['/restrito/admin/pets-galeria']); }
   goToAtendimento() { this.router.navigate(['/restrito/admin/atendimento']); }
   goToEmailTeste() { this.router.navigate(['/restrito/admin/ferramentas/email-teste']); }
+
+  goToPlanos() { this.router.navigate(['/restrito/admin/planos']); }
+  goToCreditos() { this.router.navigate(['/restrito/admin/creditos']); }
 
   // -------- Header user menu --------
   toggleUserMenu(force?: boolean) {

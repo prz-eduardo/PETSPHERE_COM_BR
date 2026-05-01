@@ -235,7 +235,8 @@ export class AppComponent implements OnInit, OnDestroy {
       path === '/historico-receitas' ||
       path.startsWith('/historico-receitas/') ||
       path === '/pacientes' ||
-      path.startsWith('/pacientes/');
+      path.startsWith('/pacientes/') ||
+      path === '/panorama-atendimento';
     /** Toda a área de parceiros (login, convite, painel) usa só o layout da feature — sem navbar/footer do site. */
     const isParceirosAuthArea = path.startsWith('/parceiros/');
     const hide =

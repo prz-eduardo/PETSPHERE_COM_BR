@@ -1,0 +1,83 @@
+<main class="ps-planos">
+  <header class="hero">
+    <span class="kicker">PetSphere — pague conforme usa</span>
+    <h1>Planos &amp; créditos para o seu negócio pet</h1>
+    <p>Comece de graça e contrate só os pacotes de créditos que você for usar — automações de WhatsApp, e-mail, agenda inteligente, IA, destaque no mapa e integrações.</p>
+    <div class="hero-cta">
+      <a class="btn primary" [routerLink]="['/parceiro/cadastrar']">Quero ser parceiro</a>
+      <a class="btn ghost" href="#pacotes">Ver pacotes de créditos</a>
+    </div>
+  </header>
+
+  <section *ngIf="loading()" class="state">Carregando…</section>
+  <p *ngIf="errorMsg()" class="msg-error">{{ errorMsg() }}</p>
+
+  <!-- Planos -->
+  <section *ngIf="!loading() && planos().length" class="block">
+    <header class="block-header">
+      <h2>Planos de assinatura</h2>
+      <p>Tier base + créditos mensais inclusos. Escolha o que combina com o seu volume.</p>
+    </header>
+    <div class="cards-grid">
+      <article class="plan-card" *ngFor="let p of planos(); trackBy: trackById" [class.free]="p.preco_mensal === 0">
+        <header>
+          <h3>{{ p.nome }}</h3>
+          <div class="price">
+            <ng-container *ngIf="p.preco_mensal > 0; else freeLabel">
+              <strong>{{ formatBRL(p.preco_mensal) }}</strong><span>/mês</span>
+            </ng-container>
+            <ng-template #freeLabel><strong>Grátis</strong></ng-template>
+          </div>
+        </header>
+        <p class="desc" *ngIf="p.descricao">{{ p.descricao }}</p>
+        <ul class="features">
+          <li><span class="check">✓</span> {{ p.creditos_mensais_inclusos | number:'1.0-0' }} créditos / mês</li>
+          <li [class.warn]="!p.permite_automacoes">
+            <span class="check">{{ p.permite_automacoes ? '✓' : '×' }}</span>
+            Automações (WhatsApp, e-mail, lembretes)
+          </li>
+        </ul>
+        <a class="btn primary block" [routerLink]="['/parceiro/cadastrar']" [queryParams]="{ plano: p.slug }">
+          {{ p.preco_mensal === 0 ? 'Começar grátis' : 'Assinar plano' }}
+        </a>
+      </article>
+    </div>
+  </section>
+
+  <!-- Pacotes -->
+  <section id="pacotes" *ngIf="!loading() && pacotes().length" class="block">
+    <header class="block-header">
+      <h2>Pacotes de créditos</h2>
+      <p>Compre créditos avulsos quando precisar. Dão pra usar em qualquer automação ou destaque dentro da PetSphere.</p>
+    </header>
+    <div class="cards-grid">
+      <article class="pack-card" *ngFor="let pk of pacotes(); trackBy: trackById" [class.featured]="pk.destaque">
+        <header>
+          <h3>{{ pk.nome }}</h3>
+          <span class="badge" *ngIf="pk.destaque">Mais popular</span>
+        </header>
+        <div class="price"><strong>{{ formatBRL(pk.preco_reais) }}</strong></div>
+        <ul>
+          <li>{{ pk.creditos_incluidos | number:'1.0-0' }} créditos</li>
+          <li *ngIf="pk.bonus_creditos">+ {{ pk.bonus_creditos | number:'1.0-0' }} bônus</li>
+          <li class="total"><strong>{{ totalCreditos(pk) | number:'1.0-0' }}</strong> créditos no total</li>
+        </ul>
+        <p class="desc" *ngIf="pk.descricao">{{ pk.descricao }}</p>
+        <a class="btn primary block" [routerLink]="['/parceiro/cadastrar']" [queryParams]="{ pacote: pk.slug }">
+          Quero esse pacote
+        </a>
+      </article>
+    </div>
+  </section>
+
+  <section class="block howto">
+    <h2>Como funciona</h2>
+    <ol>
+      <li><strong>Crie sua conta de parceiro</strong> em segundos — petshop, clínica, hotel, dog walker ou prestador autônomo.</li>
+      <li><strong>Use a plataforma:</strong> agenda, atendimento, vitrine, mapa e prontuário rolam de graça no plano base.</li>
+      <li><strong>Pague só pelo que usar:</strong> automações (WhatsApp, e-mail, IA, destaque no mapa) consomem créditos.</li>
+      <li><strong>Cresça sem limite:</strong> compre pacotes maiores conforme o volume aumenta — escala sem mudar de plano.</li>
+    </ol>
+    <a class="btn primary" [routerLink]="['/parceiro/cadastrar']">Criar minha conta de parceiro</a>
+  </section>
+</main>

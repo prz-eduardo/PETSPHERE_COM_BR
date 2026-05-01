@@ -246,8 +246,24 @@
       </div>
     </div>
     <h3 class="visually-hidden">Fotos do atendimento</h3>
-    <div class="row" style="gap: 10px; align-items: center;">
-      <input type="file" accept="image/*" (change)="onFotoAtendimentoSelecionada($event)" />
+    <div class="file-upload-row">
+      <label class="file-upload" for="fotoAtendimentoInput">
+        <input
+          id="fotoAtendimentoInput"
+          type="file"
+          class="file-upload__native"
+          accept="image/*"
+          (change)="onFotoAtendimentoSelecionada($event)"
+        />
+        <span class="file-upload__btn" aria-hidden="true">
+          <svg class="file-upload__ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+          Anexar imagem
+        </span>
+      </label>
+      <span class="file-upload__hint muted small">JPG, PNG ou WEBP</span>
     </div>
     <div *ngIf="fotosAtendimento.length" class="cards-da-letra" style="margin-top: 10px;">
       <div *ngFor="let foto of fotosAtendimento; let i = index" class="ativo-item">
@@ -269,6 +285,40 @@
     </div>
     <h3 class="visually-hidden">Observações do atendimento</h3>
     <textarea [(ngModel)]="observacoes" placeholder="Observações complementares do atendimento..." class="input-busca"></textarea>
+  </article>
+
+  <article class="card receita-card panel" id="passo-retorno">
+    <div class="panel-head">
+      <span class="panel-step panel-step--muted" aria-hidden="true">↺</span>
+      <div>
+        <h2 class="panel-title">Retorno ao consultório</h2>
+        <p class="panel-hint">
+          Marque a data sugerida e envie o aviso: o tutor recebe uma notificação na conta PetSphere e um e-mail (quando houver e-mail cadastrado).
+        </p>
+      </div>
+    </div>
+    <label class="retorno-check">
+      <input type="checkbox" class="check-themed" [(ngModel)]="retornoNotificarCliente" />
+      <span class="retorno-check__text">Notificar o tutor sobre retorno nesta data</span>
+    </label>
+    <div class="retorno-fields" *ngIf="retornoNotificarCliente">
+      <div class="input-group">
+        <label>Data sugerida</label>
+        <input type="date" [(ngModel)]="retornoData" class="input-busca" [attr.min]="minDataRetorno" />
+      </div>
+      <div class="input-group full">
+        <label>Mensagem ao tutor (opcional)</label>
+        <input
+          [(ngModel)]="retornoMensagemTutor"
+          placeholder="Ex.: Jejum de 12h para exame de sangue; trazer cartão de vacina"
+          class="input-busca"
+          maxlength="500"
+        />
+      </div>
+      <p class="muted small retorno-footnote">
+        É necessário tutor localizado por CPF (conta na loja) ou e-mail no cadastro manual para o envio do aviso.
+      </p>
+    </div>
   </article>
 
   <!-- Receita (parte do atendimento) -->

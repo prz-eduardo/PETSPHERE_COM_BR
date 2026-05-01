@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   Inject,
+  NgZone,
   OnDestroy,
   OnInit,
   PLATFORM_ID,
@@ -28,6 +29,15 @@ import {
 
 const ADMIN_HOME_OVERVIEW_EXPANDED_KEY = 'admin_home_overview_expanded';
 
+const DEFAULT_KPIS = {
+  receita_hoje: 0,
+  pedidos_hoje: 0,
+  ticket_medio_hoje: 0,
+  aguardando_pagamento: 0,
+};
+const DEFAULT_POS_VENDA = { total_abertos: 0, arrependimento_abertos: 0, outros_abertos: 0 };
+const EMPTY_ALERTS: any[] = [];
+
 @Component({
   selector: 'app-admin-home-overview',
   standalone: true,
@@ -38,6 +48,11 @@ const ADMIN_HOME_OVERVIEW_EXPANDED_KEY = 'admin_home_overview_expanded';
 export class AdminHomeOverviewComponent implements OnInit, OnDestroy, AfterViewInit {
   loading = true;
   data: any = null;
+  /** Derivados da API — campos estáveis (não getters) para não recriar o kanban a cada change detection. */
+  kpis: typeof DEFAULT_KPIS = { ...DEFAULT_KPIS };
+  posVenda: typeof DEFAULT_POS_VENDA = { ...DEFAULT_POS_VENDA };
+  alerts: any[] = EMPTY_ALERTS;
+  queueKanbanColumns: OrderQueueKanbanColumn[] = [];
   /** Acordeão do painel (mesmo padrão das seções na home admin). */
   overviewExpanded = true;
 
@@ -67,6 +82,7 @@ export class AdminHomeOverviewComponent implements OnInit, OnDestroy, AfterViewI
     private router: Router,
     private toast: ToastService,
     private realtime: RealtimeService,
+    private zone: NgZone,
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
   }
@@ -106,16 +122,45 @@ export class AdminHomeOverviewComponent implements OnInit, OnDestroy, AfterViewI
 
   load(silent = false) {
     const token = this.auth.getToken();
-    if (!token) { this.loading = false; return; }
+    if (!token) {
+      this.loading = false;
+      this.data = null;
+      this.syncDerivedFromData();
+      return;
+    }
     if (!silent) this.loading = true;
     this.api.getAdminHomeOverview(token).subscribe({
       next: (res) => {
         this.data = res || null;
+        this.syncDerivedFromData();
         this.loading = false;
         setTimeout(() => this.drawChart(), 50);
       },
-      error: () => { this.loading = false; },
+      error: () => {
+        this.loading = false;
+        this.data = null;
+        this.syncDerivedFromData();
+      },
     });
+  }
+
+  /** Atualiza KPIs / fila / alertas só quando `data` muda (evita trava por @Input com referência nova a cada CD). */
+  private syncDerivedFromData(): void {
+    const d = this.data;
+    if (!d) {
+      this.kpis = { ...DEFAULT_KPIS };
+      this.posVenda = { ...DEFAULT_POS_VENDA };
+      this.alerts = EMPTY_ALERTS;
+      this.queueKanbanColumns = [];
+      return;
+    }
+    this.kpis = d.kpis ? { ...DEFAULT_KPIS, ...d.kpis } : { ...DEFAULT_KPIS };
+    this.posVenda = d.pos_venda ? { ...DEFAULT_POS_VENDA, ...d.pos_venda } : { ...DEFAULT_POS_VENDA };
+    this.alerts = Array.isArray(d.alerts) ? d.alerts : EMPTY_ALERTS;
+    this.queueKanbanColumns = ADMIN_QUEUE_STATUSES.map((s) => ({
+      title: statusLabel(s),
+      orders: d.queue?.orders?.[s] || [],
+    }));
   }
 
   private async drawChart() {
@@ -130,84 +175,76 @@ export class AdminHomeOverviewComponent implements OnInit, OnDestroy, AfterViewI
     });
     const receita = byDay.map((r: any) => Number(r.receita || 0));
     const pedidos = byDay.map((r: any) => Number(r.pedidos || 0));
-    try { this.chart?.destroy(); } catch {}
-    this.chart = new Chart(canvas, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Receita (R$)',
-            data: receita,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59,130,246,.15)',
-            tension: 0.35,
-            fill: true,
-            yAxisID: 'y',
+    this.zone.runOutsideAngular(() => {
+      try {
+        this.chart?.destroy();
+      } catch {
+        /* noop */
+      }
+      this.chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Receita (R$)',
+              data: receita,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59,130,246,.15)',
+              tension: 0.35,
+              fill: true,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Pedidos',
+              data: pedidos,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16,185,129,.15)',
+              tension: 0.35,
+              fill: false,
+              yAxisID: 'y1',
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { color: '#94a3b8', boxWidth: 12 },
+            },
           },
-          {
-            label: 'Pedidos',
-            data: pedidos,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16,185,129,.15)',
-            tension: 0.35,
-            fill: false,
-            yAxisID: 'y1',
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: { color: '#94a3b8', boxWidth: 12 },
+          scales: {
+            x: {
+              ticks: { color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+            },
+            y: {
+              beginAtZero: true,
+              position: 'left',
+              title: { display: true, text: 'R$', color: '#94a3b8' },
+              ticks: { color: '#94a3b8' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+            },
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Pedidos', color: '#94a3b8' },
+              ticks: { color: '#94a3b8' },
+            },
           },
         },
-        scales: {
-          x: {
-            ticks: { color: '#94a3b8' },
-            grid: { color: 'rgba(255,255,255,0.06)' },
-          },
-          y: {
-            beginAtZero: true,
-            position: 'left',
-            title: { display: true, text: 'R$', color: '#94a3b8' },
-            ticks: { color: '#94a3b8' },
-            grid: { color: 'rgba(255,255,255,0.06)' },
-          },
-          y1: {
-            beginAtZero: true,
-            position: 'right',
-            grid: { drawOnChartArea: false },
-            title: { display: true, text: 'Pedidos', color: '#94a3b8' },
-            ticks: { color: '#94a3b8' },
-          },
-        },
-      },
+      });
     });
   }
 
   // ---------- Helpers usados pelo template ----------
 
-  get kpis() { return this.data?.kpis || { receita_hoje: 0, pedidos_hoje: 0, ticket_medio_hoje: 0, aguardando_pagamento: 0 }; }
-  get posVenda() {
-    return this.data?.pos_venda || { total_abertos: 0, arrependimento_abertos: 0, outros_abertos: 0 };
+  statusLabel(key: string) {
+    return statusLabel(key);
   }
-  /** Sempre 7 colunas, com «Pronto para envio» entre preparo e enviado (não depender de API desatualizada). */
-  get statuses(): string[] { return [...ADMIN_QUEUE_STATUSES]; }
-  ordersOf(status: string): any[] { return this.data?.queue?.orders?.[status] || []; }
-
-  get queueKanbanColumns(): OrderQueueKanbanColumn[] {
-    return this.statuses.map((s) => ({
-      title: this.statusLabel(s),
-      orders: this.ordersOf(s),
-    }));
-  }
-  get alerts() { return this.data?.alerts || []; }
-
-  statusLabel(key: string) { return statusLabel(key); }
 
   formatCurrency(v: number | string | null | undefined) {
     const n = Number(v || 0);

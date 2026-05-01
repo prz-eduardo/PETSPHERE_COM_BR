@@ -474,6 +474,11 @@ export class AdminApiService {
 
   constructor(private http: HttpClient, private session: SessionService) {}
 
+  /** Normaliza GET /admin/produtos/* ou payloads equivalentes do parceiro (full). */
+  normalizeMarketplaceProdutoPayload(raw: any): ProdutoDto {
+    return this.normalizeProduto(raw);
+  }
+
   /** Converte itens de taxonomia (string | { nome, name }) em string[] para o formulário. */
   private taxonomyItemsToStrings(arr: unknown): string[] {
     if (!Array.isArray(arr)) return [];

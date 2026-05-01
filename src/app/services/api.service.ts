@@ -190,6 +190,14 @@ export interface AlergiaLookup {
   nome: string;
 }
 
+/** Traços / comportamentos (catálogo `pet_trait_catalogo`). */
+export interface PetTraitLookup {
+  catalogo_id: number;
+  nome: string;
+  categoria?: string;
+  ordem?: number;
+}
+
 export interface ReceitaItem {
   id: number;
   ativo_id: number;
@@ -276,6 +284,12 @@ export interface CriarAtendimentoPayload {
     observacoes?: string;
     examesSolicitados?: AtendimentoExamePayload[];
     fotos?: AtendimentoFotoPayload[];
+    /** Retorno: ao salvar, o backend notifica o tutor (conta + e-mail). */
+    retorno?: {
+      notificarCliente?: boolean;
+      data?: string;
+      observacao?: string;
+    };
   };
   receita?: {
     ativosSelecionados?: Array<string | number | { id?: number | string; ativo_id?: number | string; nome?: string }>;
@@ -1134,6 +1148,16 @@ export class ApiService {
   getListaAlergias(token: string, q?: string): Observable<AlergiaLookup[]> {
     const query = q && q.trim() ? `?q=${encodeURIComponent(q.trim())}` : '';
     return this.http.get<AlergiaLookup[]>(`${this.baseUrl}/get_lista_alergias${query}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  }
+
+  getListaPetTraits(token: string, q?: string, categoria?: string): Observable<PetTraitLookup[]> {
+    const search = new URLSearchParams();
+    if (q && q.trim()) search.set('q', q.trim());
+    if (categoria && String(categoria).trim()) search.set('categoria', String(categoria).trim());
+    const qs = search.toString();
+    return this.http.get<PetTraitLookup[]>(`${this.baseUrl}/get_lista_pet_traits${qs ? `?${qs}` : ''}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
   }

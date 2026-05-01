@@ -2,7 +2,7 @@ import { Component, Inject, PLATFORM_ID, Input, Output, EventEmitter, OnInit, El
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { ApiService, ClienteMeResponse, PetImagemPatchPayload } from '../../services/api.service';
+import { ApiService, ClienteMeResponse, PetTraitLookup } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { NavmenuComponent } from '../../navmenu/navmenu.component';
@@ -31,6 +31,17 @@ export class NovoPetComponent implements OnInit {
   sexo: 'Macho' | 'Fêmea' | '' = '';
   pesoKg: number | null = null;
   idadeAnos: number | null = null;
+  /** Preferência de idade enviada ao backend junto com `idadeAnos` ou `data_nascimento`. */
+  modoIdade: 'anos' | 'nascimento' = 'anos';
+  dataNascimento = '';
+  castrado: '' | '0' | '1' = '';
+  porte = '';
+  readonly portes: Array<{ v: string; l: string }> = [
+    { v: '', l: 'Não informado' },
+    { v: 'pequeno', l: 'Pequeno' },
+    { v: 'medio', l: 'Médio' },
+    { v: 'grande', l: 'Grande' },
+  ];
   observacoes = '';
   // alergias livres removidas em favor do search-select
   // Predefinidas (get_lista_alergias)
@@ -43,6 +54,12 @@ export class NovoPetComponent implements OnInit {
   showSugestoes = false;
   // Item predefinido "Outras" (carregado do backend)
   outraPredefinida: { nome: string; alergia_id: string | number; ativo_id?: string | number } | null = null;
+
+  listaTraits: PetTraitLookup[] = [];
+  traitsSelecionados: PetTraitLookup[] = [];
+  traitBusca = '';
+  sugestoesTraits: PetTraitLookup[] = [];
+  showSugestoesTraits = false;
 
   showDeleteConfirm = false;
   showFotoPrincipalActionModal = false;
@@ -109,7 +126,28 @@ export class NovoPetComponent implements OnInit {
               const rawPeso = (pet.pesoKg ?? pet.peso ?? pet.peso_kg);
               this.pesoKg = rawPeso != null && rawPeso !== '' ? Number(rawPeso) : null;
               const rawIdade = (pet.idadeAnos ?? pet.idade);
-              this.idadeAnos = rawIdade != null && rawIdade !== '' ? Number(rawIdade) : null;
+              const dnYmd = this.coerceDataNascYmd(pet.data_nascimento ?? pet.dataNascimento);
+              if (dnYmd) {
+                this.modoIdade = 'nascimento';
+                this.dataNascimento = dnYmd;
+                this.idadeAnos = null;
+              } else {
+                this.modoIdade = 'anos';
+                this.dataNascimento = '';
+                this.idadeAnos = rawIdade != null && rawIdade !== '' ? Number(rawIdade) : null;
+              }
+              const cRaw = pet.castrado;
+              if (cRaw === true || cRaw === 1 || cRaw === '1') this.castrado = '1';
+              else if (cRaw === false || cRaw === 0 || cRaw === '0') this.castrado = '0';
+              else this.castrado = '';
+              this.porte = (pet.porte && String(pet.porte).trim()) ? String(pet.porte).trim().slice(0, 24) : '';
+              if (Array.isArray(pet.pet_traits) && pet.pet_traits.length) {
+                this.traitsSelecionados = pet.pet_traits.map((tr: any) => ({
+                  catalogo_id: Number(tr.catalogo_id ?? tr.id),
+                  nome: tr.nome || '',
+                  categoria: tr.categoria,
+                })).filter((t: PetTraitLookup) => !Number.isNaN(t.catalogo_id) && !!t.nome);
+              }
               this.observacoes = pet.observacoes || '';
               this.existingFotoPrincipalUrl = this.normalizarFotoUrl(
                 pet.photoURL || pet.foto || pet.photo || pet.photo_url || pet.imagem || ''
@@ -150,6 +188,7 @@ export class NovoPetComponent implements OnInit {
 
     // Carregar lista predefinida de alergias (get_lista_alergias)
     this.carregarListaAlergias();
+    this.carregarListaTraitsInit();
     // Buscar item predefinido "Outras" para mapear legados
     this.buscarOutrasPredefinida();
   }
@@ -171,6 +210,57 @@ export class NovoPetComponent implements OnInit {
 
   get fotoPrincipalAtual(): string {
     return this.fotoPreviews[0] || this.existingFotoPrincipalUrl || '';
+  }
+
+  /** Resumo na sidebar lateral */
+  get porteLabel(): string {
+    const row = this.portes.find((p) => p.v === this.porte);
+    return row?.l ?? (this.porte ? this.porte : '—');
+  }
+
+  get castradoLabel(): string {
+    if (this.castrado === '1') return 'Sim';
+    if (this.castrado === '0') return 'Não';
+    return '';
+  }
+
+  get resumoLinhaIdade(): string {
+    if (this.modoIdade === 'nascimento' && this.dataNascimento.trim()) {
+      return `Nasceu em ${this.formatarBrData(this.dataNascimento)}`;
+    }
+    if (this.modoIdade === 'anos' && this.idadeAnos != null) return `${this.idadeAnos} anos`;
+    return '—';
+  }
+
+  /** Data máxima (hoje) para input type="date" */
+  hojeYmd(): string {
+    const d = new Date();
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
+
+  onModoIdadeChange() {
+    if (this.modoIdade === 'anos') {
+      this.dataNascimento = '';
+    } else {
+      this.idadeAnos = null;
+    }
+  }
+
+  formatarBrData(ymd: string): string {
+    const x = String(ymd || '').trim();
+    if (!x || x.length < 10) return x;
+    const [y, m, d] = x.slice(0, 10).split('-');
+    if (!y || !m || !d) return x;
+    return `${d}/${m}/${y}`;
+  }
+
+  private coerceDataNascYmd(raw: unknown): string {
+    if (!raw) return '';
+    const s = String(raw);
+    const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : '';
   }
 
   onFotoPrincipalClick() {
@@ -364,6 +454,44 @@ export class NovoPetComponent implements OnInit {
     });
   }
 
+  private carregarListaTraitsInit() {
+    if (!this.token) return;
+    this.api.getListaPetTraits(this.token).subscribe({
+      next: (lista) => { this.listaTraits = Array.isArray(lista) ? lista : []; },
+      error: () => { this.listaTraits = []; }
+    });
+  }
+
+  filtrarSugestoesTraits() {
+    const termo = (this.traitBusca || '').trim();
+    if (!termo || !this.token) {
+      this.sugestoesTraits = [];
+      this.showSugestoesTraits = false;
+      return;
+    }
+    this.api.getListaPetTraits(this.token, termo).subscribe({
+      next: (lista) => {
+        const ids = new Set(this.traitsSelecionados.map((t) => t.catalogo_id));
+        const arr = (Array.isArray(lista) ? lista : []).filter((t) => !ids.has(t.catalogo_id));
+        this.sugestoesTraits = arr.slice(0, 60);
+        this.showSugestoesTraits = this.sugestoesTraits.length > 0;
+      },
+      error: () => {
+        this.sugestoesTraits = [];
+        this.showSugestoesTraits = false;
+      }
+    });
+  }
+
+  adicionarSugestaoTrait(s: PetTraitLookup) {
+    const id = Number(s?.catalogo_id);
+    if (!s || Number.isNaN(id) || id <= 0) return;
+    if (this.traitsSelecionados.some((t) => t.catalogo_id === id)) return;
+    this.traitsSelecionados.push({ catalogo_id: id, nome: s.nome || '', categoria: s.categoria });
+    this.traitBusca = '';
+    this.filtrarSugestoesTraits();
+  }
+
   filtrarSugestoes() {
     const termo = (this.alergiaBusca || '').trim();
     const lower = termo.toLowerCase();
@@ -429,6 +557,10 @@ export class NovoPetComponent implements OnInit {
       this.toast.info('Preencha os campos obrigatórios', 'Atenção');
       return;
     }
+    if (this.modoIdade === 'nascimento' && !(this.dataNascimento || '').trim()) {
+      this.toast.info('Informe a data de nascimento ou troque para idade aproximada em anos.', 'Atenção');
+      return;
+    }
     if (!this.token || !this.getClienteIdNum()) {
       this.toast.error('Sessão inválida. Faça login novamente.', 'Erro');
       return;
@@ -439,7 +571,16 @@ export class NovoPetComponent implements OnInit {
     if (this.raca) fd.append('raca', this.raca.trim());
     if (this.sexo) fd.append('sexo', this.sexo);
     if (this.pesoKg != null) fd.append('pesoKg', String(this.pesoKg));
-    if (this.idadeAnos != null) fd.append('idadeAnos', String(this.idadeAnos));
+    fd.append('modo_idade', this.modoIdade);
+    if (this.modoIdade === 'nascimento') {
+      fd.append('data_nascimento', (this.dataNascimento || '').trim());
+    } else {
+      fd.append('data_nascimento', '');
+      if (this.idadeAnos != null) fd.append('idadeAnos', String(this.idadeAnos));
+    }
+    fd.append('castrado', this.castrado === '' ? '' : this.castrado);
+    fd.append('porte', (this.porte || '').trim());
+    fd.append('pet_traits', JSON.stringify(this.traitsSelecionados.map((t) => ({ catalogo_id: t.catalogo_id }))));
     if (this.observacoes) fd.append('observacoes', this.observacoes.trim());
     // Enviar alergias predefinidas completas (nome, alergia_id, ativo_id)
     if (this.alergiasSelecionadas.length) {

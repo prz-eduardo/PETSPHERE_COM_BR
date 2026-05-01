@@ -16,6 +16,15 @@
     <label>Institucional (HTML ou texto)</label>
     <textarea formControlName="texto_institucional" rows="8" placeholder="Sobre nós, horários, diferenciais…"></textarea>
 
+    <fieldset *ngIf="auth.isMaster() && catalogParceiroEntries().length" class="hotel-globais-fieldset">
+      <legend>Serviços globais do hotel (vitrine pública)</legend>
+      <p class="muted small">Aparecem na loja do parceiro junto com as acomodações cadastradas em Hospedagem pet.</p>
+      <label class="checkbox-row" *ngFor="let o of catalogParceiroEntries()">
+        <input type="checkbox" [checked]="hotelGlobalSelected(o.slug)" (change)="toggleHotelGlobal(o.slug)" />
+        <span>{{ o.label_pt }}</span>
+      </label>
+    </fieldset>
+
     <ng-container *ngIf="auth.isMaster()">
       <label>Mercado Pago — access token (opcional)</label>
       <input type="password" formControlName="mercadopago_access_token" autocomplete="off" placeholder="Deixe em branco para não alterar; salve vazio para remover" />
@@ -50,7 +59,12 @@
 
   <section class="card" *ngIf="auth.isMaster()">
     <h2>Produtos da minha loja</h2>
-    <p class="muted">Cadastre produtos próprios do parceiro.</p>
+    <p class="muted">
+      Cadastro rápido abaixo ou
+      <a routerLink="/parceiros/catalogo-produto">cadastro completo</a>
+      (fotos, código de barras, variantes). Inventário:
+      <a routerLink="/parceiros/inventario-pos">Inventário / POS</a>.
+    </p>
     <div class="grid-2">
       <input type="text" [(ngModel)]="novoProduto.nome" placeholder="Nome do produto" />
       <input type="text" [(ngModel)]="novoProduto.preco" placeholder="Preço (ex.: 89,90)" />
@@ -64,9 +78,19 @@
       <button type="button" class="btn-secondary" (click)="criarProdutoComercial()">Cadastrar produto</button>
     </div>
     <ul class="prod-list">
-      <li *ngFor="let p of comercialProdutos()">
-        <span>#{{ p.id }} — {{ p.nome }} (R$ {{ p.preco }})</span>
-        <button type="button" class="link-danger" (click)="excluirProdutoComercial(p.id)">Excluir</button>
+      <li *ngFor="let p of comercialProdutos()" class="prod-row">
+        <div>
+          <span>#{{ p.id }} — {{ p.nome }} (R$ {{ p.preco }})</span>
+          <small class="muted" *ngIf="p.vitrine_ativo === 1"> · na vitrine</small>
+          <small class="muted" *ngIf="p.vitrine_ativo !== 1"> · só estoque</small>
+        </div>
+        <div class="prod-actions">
+          <a routerLink="/parceiros/catalogo-produto" [queryParams]="{ produto_id: p.id }">Editar completo</a>
+          <button type="button" class="link-muted" (click)="toggleVitrineProduto(p)">
+            {{ p.vitrine_ativo === 1 ? 'Ocultar da loja' : 'Mostrar na loja' }}
+          </button>
+          <button type="button" class="link-danger" (click)="excluirProdutoComercial(p.id)">Excluir</button>
+        </div>
       </li>
     </ul>
   </section>

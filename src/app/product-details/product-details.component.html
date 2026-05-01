@@ -291,7 +291,7 @@
 						<span class="chip" *ngFor="let tag of p.tags">{{ tag }}</span>
 					</div>
 
-					<div class="actions" role="group" aria-label="Comprar">
+					<div class="actions" role="group" aria-label="Comprar" *ngIf="p.permiteCheckout !== false">
 						<div class="qty" aria-label="Quantidade">
 							<button type="button" (click)="decrease()" aria-label="Diminuir quantidade">−</button>
 							<input
@@ -305,6 +305,19 @@
 						<div class="cta">
 							<button type="button" class="btn primary large" (click)="onClickAddToCart($event)">Adicionar ao carrinho</button>
 							<button type="button" class="btn outline" (click)="onClickBuyNow($event)">Comprar agora</button>
+						</div>
+					</div>
+
+					<!-- Demo SaaS: produto institucional, leva para cadastro/planos -->
+					<div class="saas-cta" *ngIf="p.permiteCheckout === false">
+						<div class="saas-cta__head">
+							<span class="saas-pill">Solução PetSphere</span>
+							<h3>Pronto para ativar essa solução no seu negócio?</h3>
+							<p>Cadastre seu petshop, clínica, hotel ou serviço pet e escolha o plano de créditos que combina com o seu volume. Você paga só pelo que usar.</p>
+						</div>
+						<div class="saas-cta__buttons">
+							<a class="btn primary large" [routerLink]="['/parceiro/cadastrar']">Quero ser parceiro</a>
+							<a class="btn outline" [routerLink]="['/parceiro/planos']">Ver planos &amp; créditos</a>
 						</div>
 					</div>
 				</aside>

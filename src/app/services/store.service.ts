@@ -36,6 +36,12 @@ export interface ShopProduct {
   favoritesCount?: number;
   /** Marcado como destaque pelo backend (ou inferido por tag). */
   featured?: boolean;
+  /**
+   * Quando false, o produto é uma "demonstração SaaS" (vitrine institucional):
+   * NÃO entra em carrinho/checkout; o CTA leva para cadastro/planos.
+   * Vem do backend como `permite_checkout` (snake_case) ou `permiteCheckout` (alias).
+   */
+  permiteCheckout?: boolean;
   // Details
   promoPrice?: number | null;
   inStock?: boolean | number | null;
@@ -290,6 +296,7 @@ export class StoreService {
         ratingsCount: typeof it.rating_total === 'number' ? it.rating_total : undefined,
         isFavorited: typeof it.is_favorited === 'boolean' ? it.is_favorited : undefined,
         favoritesCount: typeof it.favoritos === 'number' ? it.favoritos : undefined,
+        permiteCheckout: this.parsePermiteCheckout(it),
       })) as ShopProduct[];
       return items;
     } catch {
@@ -423,6 +430,7 @@ export class StoreService {
           peso_unidade: it.peso_unidade != null ? String(it.peso_unidade) : undefined,
           productCreatedAt: it.created_at ?? null,
           productUpdatedAt: it.updated_at ?? null,
+          permiteCheckout: this.parsePermiteCheckout(it),
         } as ShopProduct;
       });
 
@@ -591,6 +599,10 @@ export class StoreService {
 
   async addToCart(product: ShopProduct, quantity: number = 1): Promise<boolean> {
     if (quantity <= 0) return false;
+    if (product.permiteCheckout === false) {
+      this.toast.info('Esta é uma solução PetSphere — siga para conhecer e contratar.');
+      return false;
+    }
     const ok = await this.ensureClienteSession();
     if (!ok) return false;
     const cart = [...this.cartSubject.value];
@@ -601,6 +613,14 @@ export class StoreService {
     this.persistCart(cart);
     this.toast.success('Produto adicionado ao carrinho');
     return true;
+  }
+
+  /** Lê permite_checkout / permiteCheckout do payload da API; default = true. */
+  private parsePermiteCheckout(it: any): boolean {
+    const raw = it?.permite_checkout ?? it?.permiteCheckout;
+    if (raw == null) return true;
+    if (typeof raw === 'boolean') return raw;
+    return Number(raw) !== 0;
   }
 
   removeFromCart(productId: number) {
@@ -784,6 +804,7 @@ export class StoreService {
           : null,
         productCreatedAt: it.created_at ?? it.createdAt ?? null,
         productUpdatedAt: it.updated_at ?? it.updatedAt ?? null,
+        permiteCheckout: this.parsePermiteCheckout(it),
       };
       return { product: p };
     } catch (e: unknown) {

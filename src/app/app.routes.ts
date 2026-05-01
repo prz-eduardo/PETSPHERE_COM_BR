@@ -35,6 +35,7 @@ export const routes: Routes = [
     { path: 'mapa', loadComponent: () => import('./pages/mapa/mapa.component').then(m => m.MapaComponent) },
     { path: 'mapa/:slug', loadComponent: () => import('./pages/mapa/mapa.component').then(m => m.MapaComponent) },
     { path: 'parceiro/cadastrar', loadComponent: () => import('./pages/parceiro-cadastro/parceiro-cadastro.component').then(m => m.ParceiroCadastroComponent) },
+    { path: 'parceiro/planos', loadComponent: () => import('./pages/parceiro-planos/parceiro-planos.component').then(m => m.ParceiroPlanosComponent), data: { title: 'Planos & créditos PetSphere' } },
   { path: 'restrito', redirectTo: 'restrito/login', pathMatch: 'full' },
   { path: 'restrito/login', component: LoginComponent },
   {
@@ -65,6 +66,8 @@ export const routes: Routes = [
       { path: 'fornecedores', loadComponent: async () => (await import('./pages/restrito/admin/fornecedores/fornecedores.component')).FornecedoresAdminComponent, canActivate: [authGuard], data: { title: 'Gerenciar Fornecedores' } },
       { path: 'lista-produtos', component: ListaProdutosComponent, canActivate: [authGuard], data: { title: 'Lista de produtos' } },
       { path: 'parceiros', loadComponent: async () => (await import('./pages/restrito/admin/parceiros/parceiros.component')).ParceirosAdminComponent, canActivate: [authGuard], data: { title: 'Gerenciar Parceiros' } },
+      { path: 'planos', loadComponent: async () => (await import('./pages/restrito/admin/planos/planos.component')).PlanosAdminComponent, canActivate: [authGuard], data: { title: 'Planos SaaS' } },
+      { path: 'creditos', loadComponent: async () => (await import('./pages/restrito/admin/creditos/creditos.component')).CreditosAdminComponent, canActivate: [authGuard], data: { title: 'Créditos & consumo' } },
       {
         path: 'pedidos-pos-venda',
         loadComponent: () =>
@@ -129,6 +132,12 @@ export const routes: Routes = [
   { path: 'historico-receitas/:id', loadComponent: () => import('./pages/restrito/area-vet/receita-detalhe/receita-detalhe.component').then(m => m.ReceitaDetalheComponent), canActivate: [vetGuard] },
   { path: 'pacientes', loadComponent: () => import('./pages/restrito/area-vet/pacientes/pacientes.component').then(m => m.PacientesComponent), canActivate: [vetGuard] },
   { path: 'pacientes/:petId', loadComponent: () => import('./pages/restrito/area-vet/paciente-detalhe/paciente-detalhe.component').then(m => m.PacienteDetalheComponent), canActivate: [vetGuard] },
+  {
+    path: 'panorama-atendimento',
+    loadComponent: () =>
+      import('./pages/restrito/area-vet/panorama-atendimento/panorama-atendimento.component').then((m) => m.PanoramaAtendimentoComponent),
+    canActivate: [vetGuard],
+  },
   { path: 'meus-pets', loadComponent: () => import('./pages/meus-pets/meus-pets.component').then(m => m.MeusPetsComponent)},
   { path: 'galeria', component: GaleriaPublicaComponent },
   {
@@ -227,6 +236,22 @@ export const routes: Routes = [
         data: { title: 'Minha loja' },
       },
       {
+        path: 'catalogo-produto',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-produto-wizard/parceiro-produto-wizard.component').then(
+            (m) => m.ParceiroProdutoWizardComponent
+          ),
+        data: { title: 'Cadastro de produto' },
+      },
+      {
+        path: 'inventario-pos',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-inventario-pos/parceiro-inventario-pos.component').then(
+            (m) => m.ParceiroInventarioPosComponent
+          ),
+        data: { title: 'Inventário / POS' },
+      },
+      {
         path: 'gestao-clinica',
         loadComponent: () =>
           import('./pages/parceiros/parceiro-modulo-em-breve/parceiro-modulo-em-breve.component').then(
@@ -289,6 +314,14 @@ export const routes: Routes = [
       {
         path: 'pacientes/:petId',
         loadComponent: () => import('./pages/restrito/area-vet/paciente-detalhe/paciente-detalhe.component').then(m => m.PacienteDetalheComponent),
+        canActivate: [parceiroVetGuard],
+      },
+      {
+        path: 'panorama-atendimento',
+        loadComponent: () =>
+          import('./pages/restrito/area-vet/panorama-atendimento/panorama-atendimento.component').then(
+            (m) => m.PanoramaAtendimentoComponent
+          ),
         canActivate: [parceiroVetGuard],
       },
       { path: '', redirectTo: 'painel', pathMatch: 'full' },

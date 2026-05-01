@@ -27,6 +27,7 @@ export type DockActionId =
   | 'vet-pacientes'
   | 'vet-receitas'
   | 'vet-gerar'
+  | 'vet-panorama'
   /** Atalhos FAB — modo parceiro */
   | 'parceiro-painel'
   | 'parceiro-agenda'
@@ -75,7 +76,14 @@ export class DockContextService implements OnDestroy {
   resolveModeFromRoute(route: string, isCliente: boolean): DockMode {
     const r = (route || '').split('?')[0] || '';
     if (r.startsWith('/parceiros/') || r === '/parceiros') return 'parceiro';
-    if (r.includes('/area-vet') || r.startsWith('/gerar-receita') || r.startsWith('/historico-receitas') || r.startsWith('/pacientes')) return 'vet';
+    if (
+      r.includes('/area-vet') ||
+      r.startsWith('/gerar-receita') ||
+      r.startsWith('/historico-receitas') ||
+      r.startsWith('/pacientes') ||
+      r.startsWith('/panorama-atendimento')
+    )
+      return 'vet';
     if (isCliente) return 'cliente';
     return 'guest';
   }

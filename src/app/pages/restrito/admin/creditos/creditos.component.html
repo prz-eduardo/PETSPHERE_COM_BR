@@ -1,0 +1,221 @@
+<div class="creditos-page">
+  <header class="page-header">
+    <div>
+      <h1>Créditos &amp; consumo</h1>
+      <p class="subtitle">Catálogo de eventos cobráveis, pacotes BRL → créditos e saldo dos parceiros. Cada ação que consome crédito (WhatsApp, IA, destaque, automação) passa pelo serviço central.</p>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button [class.active]="tab() === 'eventos'" (click)="changeTab('eventos')">Eventos</button>
+    <button [class.active]="tab() === 'pacotes'" (click)="changeTab('pacotes')">Pacotes</button>
+    <button [class.active]="tab() === 'saldos'" (click)="changeTab('saldos')">Saldos &amp; extrato</button>
+  </nav>
+
+  <p *ngIf="errorMsg()" class="msg msg-error">{{ errorMsg() }}</p>
+
+  <!-- ===================== EVENTOS ===================== -->
+  <section *ngIf="tab() === 'eventos'" class="tab-section">
+    <div class="tab-actions">
+      <button type="button" class="btn primary" (click)="novoEvento()">+ Novo evento</button>
+    </div>
+    <div *ngIf="loading()" class="state">Carregando…</div>
+    <table *ngIf="!loading() && eventos().length" class="data-table">
+      <thead>
+        <tr>
+          <th>Código</th><th>Nome</th><th>Categoria</th><th>Tier</th><th class="num">Custo</th><th>Fallback</th><th>Automação</th><th>Status</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let e of eventos(); trackBy: trackById">
+          <td><code>{{ e.codigo }}</code></td>
+          <td>{{ e.nome }}</td>
+          <td><span class="chip">{{ e.categoria }}</span></td>
+          <td><span class="chip tier" [attr.data-tier]="e.tier">{{ e.tier }}</span></td>
+          <td class="num">{{ e.custo_creditos }}</td>
+          <td><span class="chip fb" [attr.data-fb]="e.fallback_strategy">{{ fallbackLabel(e.fallback_strategy) }}</span></td>
+          <td>{{ bool(e.requer_automacao) ? 'Requer' : 'Não' }}</td>
+          <td>{{ bool(e.ativo) ? 'Ativo' : 'Inativo' }}</td>
+          <td class="row-actions">
+            <button class="btn ghost sm" (click)="editarEvento(e)">Editar</button>
+            <button class="btn danger sm" (click)="removerEvento(e)">Desativar</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================== PACOTES ===================== -->
+  <section *ngIf="tab() === 'pacotes'" class="tab-section">
+    <div class="tab-actions">
+      <button type="button" class="btn primary" (click)="novoPacote()">+ Novo pacote</button>
+    </div>
+    <div *ngIf="loading()" class="state">Carregando…</div>
+    <div *ngIf="!loading() && pacotes().length" class="cards-grid">
+      <article class="pack-card" *ngFor="let p of pacotes(); trackBy: trackById" [class.inactive]="!bool(p.ativo)" [class.featured]="bool(p.destaque)">
+        <header>
+          <h3>{{ p.nome }}</h3>
+          <span class="badge" *ngIf="bool(p.destaque)">Destaque</span>
+        </header>
+        <div class="pack-price">{{ formatBRL(p.preco_reais) }}</div>
+        <ul>
+          <li>{{ p.creditos_incluidos | number:'1.0-0' }} créditos inclusos</li>
+          <li *ngIf="p.bonus_creditos">+ {{ p.bonus_creditos | number:'1.0-0' }} bônus</li>
+        </ul>
+        <p class="desc" *ngIf="p.descricao">{{ p.descricao }}</p>
+        <footer>
+          <button class="btn ghost" (click)="editarPacote(p)">Editar</button>
+          <button class="btn danger" (click)="removerPacote(p)">Desativar</button>
+        </footer>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===================== SALDOS ===================== -->
+  <section *ngIf="tab() === 'saldos'" class="tab-section">
+    <div class="tab-actions search-row">
+      <input type="text" placeholder="Buscar por nome ou e-mail…" [(ngModel)]="saldosQuery" (keyup.enter)="buscarSaldos()" />
+      <button type="button" class="btn primary" (click)="buscarSaldos()">Buscar</button>
+    </div>
+    <div *ngIf="loading()" class="state">Carregando…</div>
+    <table *ngIf="!loading() && saldos().length" class="data-table">
+      <thead>
+        <tr><th>Parceiro</th><th>E-mail</th><th class="num">Saldo</th><th>Atualizado</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of saldos(); trackBy: trackByPid">
+          <td>{{ s.nome }}</td>
+          <td class="muted">{{ s.email }}</td>
+          <td class="num">{{ s.saldo | number:'1.0-0' }}</td>
+          <td class="muted">{{ s.updated_at || '—' }}</td>
+          <td class="row-actions">
+            <button class="btn ghost sm" (click)="abrirParceiro(s)">Abrir</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============= MODAL: Editar evento ============= -->
+  <div class="modal" *ngIf="editingEvento" (click)="cancelarEvento()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h2>{{ editingEvento.id ? 'Editar evento' : 'Novo evento' }}</h2>
+      <div class="form-grid">
+        <label>Código <input type="text" [(ngModel)]="editingEvento.codigo" placeholder="ex: whatsapp_envio" /></label>
+        <label>Categoria <input type="text" [(ngModel)]="editingEvento.categoria" placeholder="automacao|ia|mapa|api|geral" /></label>
+        <label class="full">Nome <input type="text" [(ngModel)]="editingEvento.nome" placeholder="Envio de WhatsApp" /></label>
+
+        <label>
+          Custo (créditos)
+          <input type="number" min="0" step="1" [(ngModel)]="editingEvento.custo_creditos" (input)="onCustoChange()" />
+        </label>
+        <label>
+          Tier
+          <select [(ngModel)]="editingEvento.tier">
+            <option *ngFor="let t of eventosMeta.tiers" [value]="t">{{ tierLabel(t) }}</option>
+          </select>
+        </label>
+
+        <label class="full">
+          Fallback (o que acontece se o saldo zerar)
+          <select [(ngModel)]="editingEvento.fallback_strategy">
+            <option *ngFor="let f of eventosMeta.fallbacks" [value]="f">{{ fallbackLabel(f) }}</option>
+          </select>
+          <small class="hint">
+            <strong>block:</strong> bloqueia (default) ·
+            <strong>warn:</strong> executa avisando ·
+            <strong>fallback_internal:</strong> notifica no painel ·
+            <strong>fallback_template:</strong> usa template padrão
+          </small>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" [checked]="bool(editingEvento.requer_automacao)" (change)="setBool('evento','requer_automacao', $any($event.target).checked)" />
+          Requer plano com automações
+        </label>
+        <label class="check">
+          <input type="checkbox" [checked]="bool(editingEvento.ativo)" (change)="setBool('evento','ativo', $any($event.target).checked)" />
+          Evento ativo
+        </label>
+        <label class="full">Descrição <textarea rows="2" [(ngModel)]="editingEvento.descricao"></textarea></label>
+      </div>
+      <footer class="modal-actions">
+        <button class="btn ghost" (click)="cancelarEvento()" [disabled]="saving()">Cancelar</button>
+        <button class="btn primary" (click)="salvarEvento()" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ============= MODAL: Editar pacote ============= -->
+  <div class="modal" *ngIf="editingPacote" (click)="cancelarPacote()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h2>{{ editingPacote.id ? 'Editar pacote' : 'Novo pacote' }}</h2>
+      <div class="form-grid">
+        <label>Nome <input type="text" [(ngModel)]="editingPacote.nome" /></label>
+        <label>Slug <input type="text" [(ngModel)]="editingPacote.slug" /></label>
+        <label>Preço (R$) <input type="number" min="0" step="0.01" [(ngModel)]="editingPacote.preco_reais" /></label>
+        <label>Créditos inclusos <input type="number" min="0" step="1" [(ngModel)]="editingPacote.creditos_incluidos" /></label>
+        <label>Bônus (créditos) <input type="number" min="0" step="1" [(ngModel)]="editingPacote.bonus_creditos" /></label>
+        <label>Ordem <input type="number" min="0" step="1" [(ngModel)]="editingPacote.ordem" /></label>
+        <label class="check">
+          <input type="checkbox" [checked]="bool(editingPacote.destaque)" (change)="setBool('pacote','destaque', $any($event.target).checked)" />
+          Destaque na vitrine
+        </label>
+        <label class="check">
+          <input type="checkbox" [checked]="bool(editingPacote.ativo)" (change)="setBool('pacote','ativo', $any($event.target).checked)" />
+          Pacote ativo
+        </label>
+        <label class="full">Descrição <textarea rows="2" [(ngModel)]="editingPacote.descricao"></textarea></label>
+      </div>
+      <footer class="modal-actions">
+        <button class="btn ghost" (click)="cancelarPacote()" [disabled]="saving()">Cancelar</button>
+        <button class="btn primary" (click)="salvarPacote()" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ============= MODAL: Detalhe parceiro ============= -->
+  <div class="modal" *ngIf="selectedParceiro()" (click)="fecharParceiro()">
+    <div class="modal-content wide" (click)="$event.stopPropagation()">
+      <header class="parc-header">
+        <h2>{{ selectedParceiro()?.nome }}</h2>
+        <span class="muted">{{ selectedParceiro()?.email }}</span>
+      </header>
+      <div class="parc-saldo">
+        Saldo atual: <strong>{{ selectedParceiro()?.saldo | number:'1.0-0' }}</strong> créditos
+      </div>
+
+      <section class="ajuste">
+        <h3>Ajuste manual (auditado)</h3>
+        <div class="ajuste-row">
+          <input type="number" placeholder="delta (use negativo para debitar)" [(ngModel)]="ajusteDelta" />
+          <input type="text" placeholder="Motivo (obrigatório)" [(ngModel)]="ajusteMotivo" />
+          <button class="btn primary" (click)="aplicarAjuste()" [disabled]="saving()">{{ saving() ? '…' : 'Aplicar' }}</button>
+        </div>
+      </section>
+
+      <section class="extrato">
+        <h3>Últimos movimentos</h3>
+        <table class="data-table">
+          <thead><tr><th>Data</th><th>Tipo</th><th>Source</th><th>Evento</th><th>Descrição</th><th class="num">Δ</th><th class="num">Saldo</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let m of extrato(); trackBy: trackById">
+              <td class="muted">{{ m.created_at }}</td>
+              <td><span class="chip">{{ m.tipo }}</span></td>
+              <td><span class="chip src" [attr.data-src]="$any(m).source">{{ $any(m).source }}</span></td>
+              <td><code *ngIf="m.evento_codigo">{{ m.evento_codigo }}</code></td>
+              <td>{{ m.descricao }}</td>
+              <td class="num" [class.neg]="m.delta < 0">{{ m.delta > 0 ? '+' : '' }}{{ m.delta | number:'1.0-0' }}</td>
+              <td class="num">{{ m.saldo_apos | number:'1.0-0' }}</td>
+            </tr>
+            <tr *ngIf="!extrato().length"><td colspan="7" class="muted center">Sem movimentos.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <footer class="modal-actions">
+        <button class="btn ghost" (click)="fecharParceiro()">Fechar</button>
+      </footer>
+    </div>
+  </div>
+</div>

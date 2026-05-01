@@ -1,9 +1,10 @@
 .loja-wrap { padding: 16px; font-family: 'Inter', sans-serif; max-width: 100%; overflow-x: hidden; }
 .loja-container { max-width: 1180px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
 /* Largura explícita: evita encolhimento quando aspect-ratio + height fixo competem (ver media desktop). */
-.hero { position: relative; border-radius: 16px; overflow: hidden; height: 260px; width: 100%; box-sizing: border-box; box-shadow: 0 10px 34px rgba(0,0,0,0.12); }
-.hero-img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(1.08) contrast(1.04); }
-.hero-overlay { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(0deg, rgba(34,27,16,0.36), rgba(34,27,16,0.18)); text-align: center; color: #fff; padding: 18px; }
+.hero { position: relative; border-radius: 16px; overflow: hidden; width: 100%; aspect-ratio: 16 / 9; height: auto; box-sizing: border-box; box-shadow: 0 10px 34px rgba(0,0,0,0.12); }
+.hero > img,
+.hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; filter: saturate(1.08) contrast(1.04); }
+.hero-overlay { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(0deg, rgba(34,27,16,0.36), rgba(34,27,16,0.18)); text-align: center; color: #fff; padding: 18px; z-index: 1; pointer-events: none; }
 .titulo { margin: 30px 0 8px; padding-top: 0; font-family: "Pacifico", cursive, "Montserrat", Arial, sans-serif; font-size: clamp(40px, 6vw, 48px); font-weight: 900; color: #f3f4f6; text-align: center; text-shadow: 0 8px 30px rgba(245,167,0,0.12); }
 .subtitle { margin: 0; font-size: 15px; opacity: .95; color: #d6d9dd; }
 .card { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
@@ -279,8 +280,7 @@
 	.cart-link { margin-left: 0; }
 	.grid { grid-template-columns: repeat(var(--fp-catalog-cols-mobile, 2), minmax(0, 1fr)); }
 	.produto img { height: 140px; }
-	.hero { aspect-ratio: 16 / 9; height: auto; border-radius: 12px; overflow: hidden; }
-	.hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+	.hero { border-radius: 12px; }
   .titulo { font-size: 50px; }
   .subtitle { font-size: 12px; }
   .paginacao { flex-direction: column; align-items: stretch; }
@@ -313,12 +313,10 @@
 @media (min-width: 641px) {
 	.desktop-only { display: grid; }
 	.mobile-only { display: none; }
-	/* Não aplicar aspect-ratio no .hero junto com height fixo: isso calculava largura ~832px e deixava o banner estreito. */
 	.hero {
 		width: 100%;
 		border-radius: 12px;
 	}
-	.hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
 }
 
 	/* Buttons helpers */

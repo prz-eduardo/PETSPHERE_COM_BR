@@ -75,6 +75,22 @@
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
+.demo-pill {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  background: linear-gradient(90deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
 .fav {
   position: absolute;
   right: 8px;

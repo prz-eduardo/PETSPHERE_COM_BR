@@ -1,0 +1,78 @@
+<div class="inv">
+  <header class="inv-head">
+    <h1>Inventário / POS</h1>
+    <p class="lead">Busque por nome, SKU ou código de barras (leitor USB + Enter). Em seguida edite o cadastro completo ou use o carrinho local para um fluxo de balcão simples.</p>
+    <nav class="inv-nav">
+      <a routerLink="/parceiros/minha-loja">Minha loja</a>
+      <a routerLink="/parceiros/catalogo-produto">Cadastro completo (novo)</a>
+    </nav>
+  </header>
+
+  <div class="inv-search">
+    <label class="sr-only" for="inv-q">Buscar</label>
+    <input
+      id="inv-q"
+      type="search"
+      [(ngModel)]="searchTerm"
+      (keydown.enter)="onBuscaEnter()"
+      placeholder="Nome, SKU ou código de barras…"
+      appBarcodeScanTarget
+      class="inv-input"
+    />
+    <button type="button" class="btn-secondary" (click)="reload()">Atualizar lista</button>
+  </div>
+
+  <div *ngIf="loading()" class="muted">Carregando…</div>
+
+  <div class="inv-layout" *ngIf="!loading()">
+    <section class="inv-list">
+      <h2>Produtos ({{ filtered().length }})</h2>
+      <ul>
+        <li *ngFor="let p of filtered()" class="inv-row" (click)="addToCart(p)">
+          <div class="inv-row-main">
+            <span class="inv-thumb" *ngIf="p.imagem_thumb as img">
+              <img [src]="img" alt="" />
+            </span>
+            <div>
+              <strong>{{ p.nome }}</strong>
+              <div class="meta">
+                <span>R$ {{ p.preco | number : '1.2-2' }}</span>
+                <span *ngIf="p.codigo_barras" class="pill">EAN {{ p.codigo_barras }}</span>
+                <span *ngIf="p.sku" class="pill">SKU {{ p.sku }}</span>
+                <span class="pill" [class.on]="p.vitrine_ativo === 1" [class.off]="p.vitrine_ativo !== 1">
+                  {{ p.vitrine_ativo === 1 ? 'Na vitrine' : 'Só estoque' }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="inv-row-actions" (click)="$event.stopPropagation()">
+            <button type="button" class="btn-ghost" (click)="irEditar(p)">Editar</button>
+            <button *ngIf="auth.isMaster()" type="button" class="btn-ghost" (click)="toggleVitrine(p, $event)">
+              {{ p.vitrine_ativo === 1 ? 'Ocultar da loja' : 'Mostrar na loja' }}
+            </button>
+            <button type="button" class="btn-primary" (click)="addToCart(p)">+ Carrinho</button>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <aside class="inv-cart">
+      <h2>Carrinho (MVP)</h2>
+      <p class="muted small">Use para conferência no balcão; integração com pedido/pagamento pode vir depois.</p>
+      <ul *ngIf="cartLines().length; else emptyCart">
+        <li *ngFor="let l of cartLines()">
+          <span>{{ l.nome }} × {{ l.qty }}</span>
+          <span>{{ l.preco * l.qty | currency : 'BRL' }}</span>
+        </li>
+      </ul>
+      <ng-template #emptyCart>
+        <p class="muted">Clique num produto ou em “+ Carrinho”.</p>
+      </ng-template>
+      <div class="cart-total" *ngIf="cartLines().length">
+        <strong>Total</strong>
+        <strong>{{ cartTotal() | currency : 'BRL' }}</strong>
+      </div>
+      <button type="button" class="btn-link" *ngIf="cartLines().length" (click)="clearCart()">Limpar</button>
+    </aside>
+  </div>
+</div>

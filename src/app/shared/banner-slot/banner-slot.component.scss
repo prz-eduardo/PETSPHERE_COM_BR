@@ -13,14 +13,17 @@
 .banner-slot-picture {
   display: block;
   width: 100%;
+  max-width: 100%;
   line-height: 0;
 }
 
+/* Fluxo intrínseco: largura 100%, altura pela imagem — sem object-fit: cover,
+   que com height:auto não define caixa de recorte e em alguns casos confunde o layout. */
 .banner-slot-img {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
-  object-fit: cover;
 }
 
 .banner-slot-swiper {
@@ -31,22 +34,31 @@
   --swiper-pagination-bullet-inactive-opacity: 1;
 }
 
+/* Altura do slide = conteúdo (evita slides esticados no eixo vertical no mobile). */
+.banner-slot-swiper swiper-slide {
+  height: auto;
+  box-sizing: border-box;
+}
+
 /* Loja: reserva proporção e reduz layout shift ao carregar imagens */
 :host(.loja-hero-slot) {
   margin-bottom: 12px;
 }
 :host(.loja-hero-slot) .banner-slot-picture {
-  aspect-ratio: 21 / 9;
+  display: grid;
+  grid-template: 1fr / 1fr;
+  aspect-ratio: 16 / 9;
   min-height: 140px;
-  max-height: min(40vh, 360px);
   overflow: hidden;
   border-radius: 12px;
 }
 :host(.loja-hero-slot) .banner-slot-img {
   width: 100%;
   height: 100%;
-  min-height: 140px;
+  min-width: 0;
+  min-height: 0;
   object-fit: cover;
+  object-position: center;
 }
 :host(.loja-hero-slot) .banner-slot-anchor {
   height: 100%;
@@ -61,6 +73,8 @@
 
 :host(.loja-banner-inline) .banner-slot-picture,
 :host(.loja-banner-categoria) .banner-slot-picture {
+  display: grid;
+  grid-template: 1fr / 1fr;
   aspect-ratio: 16 / 5;
   min-height: 100px;
   max-height: 260px;
@@ -71,12 +85,8 @@
 :host(.loja-banner-categoria) .banner-slot-img {
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: cover;
-}
-
-@media (max-width: 640px) {
-  :host(.loja-hero-slot) .banner-slot-picture {
-    aspect-ratio: 16 / 9;
-    max-height: none;
-  }
+  object-position: center;
 }

@@ -988,3 +988,50 @@
 .novo-pet--modal .form-card {
   padding: 12px;
 }
+
+.field--block {
+  grid-column: 1 / -1;
+}
+
+.small-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 8px;
+}
+
+.idade-modo-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 6px;
+}
+.idade-modo-options__lbl {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--np-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.idade-modo-options input {
+  accent-color: var(--np-accent);
+}
+
+.option .trait-opt-cat {
+  display: block;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.badge.badge--trait {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.12);
+  color: #bae6fd;
+}
+
+.pet-traits-sum {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}

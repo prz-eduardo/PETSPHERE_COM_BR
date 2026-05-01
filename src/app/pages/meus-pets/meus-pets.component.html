@@ -51,7 +51,7 @@
               </p>
             </div>
             <ul
-              *ngIf="p.sexo || p.pesoKg != null || p.idade != null || p.idadeAnos != null"
+              *ngIf="p.sexo || p.pesoKg != null || idadeAnosParaCard(p) != null || castradoBadge(p) || porteBadge(p)"
               class="pet-card__stat-bar"
               aria-label="Dados resumidos"
             >
@@ -63,9 +63,17 @@
                 <span class="pet-stat__v">{{ p.pesoKg | number: '1.1-1' }} kg</span>
                 <span class="pet-stat__k">peso</span>
               </li>
-              <li *ngIf="p.idade != null || p.idadeAnos != null" class="pet-stat">
-                <span class="pet-stat__v">{{ p.idade ?? p.idadeAnos }}</span>
-                <span class="pet-stat__k">anos</span>
+              <li *ngIf="idadeAnosParaCard(p) != null" class="pet-stat">
+                <span class="pet-stat__v">{{ idadeAnosParaCard(p) }}</span>
+                <span class="pet-stat__k">{{ p.data_nascimento || p.dataNascimento ? 'anos (aprox.)' : 'anos' }}</span>
+              </li>
+              <li *ngIf="porteBadge(p)" class="pet-stat">
+                <span class="pet-stat__v pet-stat__v--narrow">{{ porteBadge(p) }}</span>
+                <span class="pet-stat__k">porte</span>
+              </li>
+              <li *ngIf="castradoBadge(p)" class="pet-stat">
+                <span class="pet-stat__v pet-stat__v--narrow">{{ castradoBadge(p) }}</span>
+                <span class="pet-stat__k">repro.</span>
               </li>
             </ul>
           </div>
@@ -85,6 +93,12 @@
               <span class="pet-card__obs-label">Alergias (lista)</span>
               <div class="pet-card__chips">
                 <span class="pet-chip" *ngFor="let a of p.alergias_predefinidas">{{ a.nome }}</span>
+              </div>
+            </div>
+            <div *ngIf="p._traitsNormalized?.length" class="pet-card__traits">
+              <span class="pet-card__obs-label">Comportamentos e hábitos</span>
+              <div class="pet-card__chips">
+                <span class="pet-chip pet-chip--trait" *ngFor="let t of p._traitsNormalized">{{ t }}</span>
               </div>
             </div>
           </div>

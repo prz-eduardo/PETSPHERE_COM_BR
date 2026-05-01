@@ -8,7 +8,8 @@
       <span class="heart">{{ (favoriteActive ?? product.isFavorited) ? '❤️' : '🤍' }}</span>
       <span class="count" *ngIf="product.favoritesCount != null">{{ product.favoritesCount }}</span>
     </button>
-    <button type="button" class="btn add" (click)="onAddClick($event)" aria-label="Adicionar ao carrinho"><img src="/icones/carrinho.png" class="icones-carrinho" width="30" height="30" alt="Carrinho"></button>
+    <button type="button" class="btn add" *ngIf="product.permiteCheckout !== false" (click)="onAddClick($event)" aria-label="Adicionar ao carrinho"><img src="/icones/carrinho.png" class="icones-carrinho" width="30" height="30" alt="Carrinho"></button>
+    <span class="demo-pill" *ngIf="product.permiteCheckout === false" title="Solução PetSphere — clique para conhecer">Solução SaaS</span>
   </div>
   <div class="info">
     <h3 class="nome" [title]="product.name">{{ product.name }}</h3>

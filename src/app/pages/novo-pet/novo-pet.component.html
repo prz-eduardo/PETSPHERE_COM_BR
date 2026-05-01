@@ -57,7 +57,9 @@
             <div class="meta-item"><strong>Espécie</strong><div>{{ especie || '—' }}</div></div>
             <div class="meta-item"><strong>Raça</strong><div>{{ raca || '—' }}</div></div>
             <div class="meta-item"><strong>Sexo</strong><div>{{ sexo || '—' }}</div></div>
-            <div class="meta-item"><strong>Idade</strong><div>{{ idadeAnos != null ? (idadeAnos + ' anos') : '—' }}</div></div>
+            <div class="meta-item"><strong>Idade</strong><div>{{ resumoLinhaIdade }}</div></div>
+            <div class="meta-item"><strong>Castrado</strong><div>{{ castradoLabel || '—' }}</div></div>
+            <div class="meta-item"><strong>Porte</strong><div>{{ porteLabel || '—' }}</div></div>
             <div class="meta-item"><strong>Peso</strong><div>{{ pesoKg != null ? (pesoKg | number:'1.0-2') + ' kg' : '—' }}</div></div>
           </div>
 
@@ -67,6 +69,13 @@
               <span class="badge" *ngFor="let sel of alergiasSelecionadas">{{ sel.nome }}</span>
             </div>
             <ng-template #semAlergias><div class="muted">Nenhuma</div></ng-template>
+          </div>
+          <div class="pet-alergias pet-traits-sum">
+            <strong>Comportamentos e hábitos</strong>
+            <div *ngIf="traitsSelecionados.length; else semTraitsSide">
+              <span class="badge badge--trait" *ngFor="let sel of traitsSelecionados">{{ sel.nome }}</span>
+            </div>
+            <ng-template #semTraitsSide><div class="muted">Nenhum</div></ng-template>
           </div>
         </aside>
 
@@ -106,9 +115,38 @@
                 <label>Peso (kg)</label>
                 <input type="number" step="0.1" min="0" [(ngModel)]="pesoKg" placeholder="Ex: 12.5" />
               </div>
-              <div class="field">
+              <div class="field field--block">
+                <label>Como você prefere informar a idade?</label>
+                <div class="idade-modo-options" role="radiogroup">
+                  <label class="idade-modo-options__lbl">
+                    <input type="radio" name="modoIdade" [(ngModel)]="modoIdade" value="anos" (ngModelChange)="onModoIdadeChange()" /> Aproximada (anos)
+                  </label>
+                  <label class="idade-modo-options__lbl">
+                    <input type="radio" name="modoIdade" [(ngModel)]="modoIdade" value="nascimento" (ngModelChange)="onModoIdadeChange()" /> Data exata de nascimento
+                  </label>
+                </div>
+              </div>
+              <div class="field" *ngIf="modoIdade === 'anos'">
                 <label>Idade (anos)</label>
                 <input type="number" min="0" [(ngModel)]="idadeAnos" placeholder="Ex: 5" />
+              </div>
+              <div class="field" *ngIf="modoIdade === 'nascimento'">
+                <label>Data de nascimento</label>
+                <input type="date" [(ngModel)]="dataNascimento" [max]="hojeYmd()" />
+              </div>
+              <div class="field">
+                <label>Castrado(a)</label>
+                <select [(ngModel)]="castrado">
+                  <option value="">Não informado</option>
+                  <option value="1">Sim</option>
+                  <option value="0">Não</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Porte</label>
+                <select [(ngModel)]="porte">
+                  <option *ngFor="let pp of portes" [value]="pp.v">{{ pp.l }}</option>
+                </select>
               </div>
             </div>
           </section>
@@ -139,6 +177,26 @@
                 <span class="badge" *ngFor="let sel of alergiasSelecionadas; let i = index">
                   {{ sel.nome }}
                   <button type="button" class="badge-remove" (click)="alergiasSelecionadas.splice(i,1)">x</button>
+                </span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Comportamentos, rotina e preferências</label>
+              <p class="muted small-hint">Itens opcionais do catálogo (social, bem-estar, etc.). Ajuda hotéis, passeadores e vets a entender seu pet.</p>
+              <div class="alergias-row">
+                <input type="text" [(ngModel)]="traitBusca" (input)="filtrarSugestoesTraits()" placeholder="Busque e selecione..." />
+              </div>
+              <div class="dropdown" *ngIf="showSugestoesTraits">
+                <div class="option" *ngFor="let s of sugestoesTraits" (click)="adicionarSugestaoTrait(s)">
+                  <span class="trait-opt-nome">{{ s.nome }}</span>
+                  <span class="trait-opt-cat muted" *ngIf="s.categoria">{{ s.categoria }}</span>
+                </div>
+              </div>
+              <div class="ativos-badges" *ngIf="traitsSelecionados.length">
+                <span class="badge badge--trait" *ngFor="let sel of traitsSelecionados; let i = index">
+                  {{ sel.nome }}
+                  <button type="button" class="badge-remove" (click)="traitsSelecionados.splice(i,1)">x</button>
                 </span>
               </div>
             </div>

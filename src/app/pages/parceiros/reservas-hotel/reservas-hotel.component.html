@@ -154,6 +154,9 @@
             <small *ngIf="leito.exibir_na_vitrine === 1 || leito.exibir_na_vitrine === true">
               Exibido na vitrine como serviço de hospedagem
             </small>
+            <div class="leito-ofertas" *ngIf="getLeitoOfertaLabels(leito).length">
+              <span class="oferta-chip" *ngFor="let lbl of getLeitoOfertaLabels(leito)">{{ lbl }}</span>
+            </div>
             <small *ngIf="leito.proxima_reserva">Próxima reserva: {{ formatDate(leito.proxima_reserva) }}</small>
           </article>
         }
@@ -258,10 +261,29 @@
             <span>Capacidade (nº de pets)</span>
             <input type="number" min="1" [ngModel]="draftLeitoCapacidade()" (ngModelChange)="draftLeitoCapacidade.set($event)" />
           </label>
-          <label>
-            <span>Foto do espaço (URL)</span>
-            <input type="url" [ngModel]="draftLeitoFotoUrl()" (ngModelChange)="draftLeitoFotoUrl.set($event)" placeholder="https://..." />
-          </label>
+          <div class="leito-foto-block">
+            <span class="field-label">Foto do espaço</span>
+            <div class="leito-foto-row">
+              <input type="file" accept="image/*" (change)="onLeitoFotoSelected($event)" />
+              <button type="button" class="btn-ghost btn-sm" *ngIf="draftLeitoFotoFile() || leitoFotoPreviewObjectUrl()" (click)="clearLeitoFoto()">
+                Remover arquivo
+              </button>
+            </div>
+            <div class="leito-foto-preview" *ngIf="leitoFotoDisplay() as src">
+              <img [src]="src" alt="Pré-visualização do espaço" />
+            </div>
+            <label class="leito-foto-url">
+              <span>Ou URL da imagem</span>
+              <input type="url" [ngModel]="draftLeitoFotoUrl()" (ngModelChange)="draftLeitoFotoUrl.set($event)" placeholder="https://..." [disabled]="!!draftLeitoFotoFile()" />
+            </label>
+          </div>
+          <fieldset class="ofertas-fieldset" *ngIf="catalogLeitoEntries().length">
+            <legend>O que este espaço oferece</legend>
+            <label class="checkbox-row" *ngFor="let o of catalogLeitoEntries()">
+              <input type="checkbox" [checked]="draftHasLeitoOferta(o.slug)" (change)="toggleDraftLeitoOferta(o.slug)" />
+              <span>{{ o.label_pt }}</span>
+            </label>
+          </fieldset>
           <label class="checkbox-row">
             <input type="checkbox" [ngModel]="draftLeitoExibirVitrine()" (ngModelChange)="draftLeitoExibirVitrine.set($event)" />
             <span>Exibir na vitrine como serviço de hospedagem</span>

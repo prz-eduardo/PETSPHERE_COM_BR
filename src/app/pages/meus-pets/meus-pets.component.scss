@@ -373,6 +373,14 @@
   font-weight: 600;
 }
 
+.pet-stat__v--narrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  max-width: 72px;
+}
+
 .pet-card__ribbons {
   position: absolute;
   top: 12px;
@@ -460,6 +468,16 @@
   background: rgba(196, 214, 0, 0.1);
   color: #d4e36b;
   border: 1px solid rgba(196, 214, 0, 0.2);
+}
+
+.pet-chip.pet-chip--trait {
+  background: rgba(56, 189, 248, 0.1);
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.pet-card__traits {
+  margin: 0;
 }
 
 .pet-card__allergies {

@@ -1,0 +1,82 @@
+<div class="planos-page">
+  <header class="page-header">
+    <div>
+      <h1>Planos SaaS</h1>
+      <p class="subtitle">Tiers comerciais que parceiros podem assinar (free, mensal híbrido, etc.). O modelo principal é por créditos — planos pagos podem incluir créditos mensais e habilitar automações.</p>
+    </div>
+    <button type="button" class="btn primary" (click)="novoPlano()">+ Novo plano</button>
+  </header>
+
+  <p *ngIf="errorMsg()" class="msg msg-error">{{ errorMsg() }}</p>
+  <p *ngIf="successMsg()" class="msg msg-ok">{{ successMsg() }}</p>
+
+  <section *ngIf="loading()" class="state">Carregando…</section>
+
+  <section *ngIf="!loading() && planos().length === 0" class="state empty">
+    Nenhum plano cadastrado ainda. Comece criando o plano <strong>Free</strong>.
+  </section>
+
+  <section class="planos-grid" *ngIf="!loading() && planos().length">
+    <article class="plano-card" *ngFor="let p of planos(); trackBy: trackById" [class.inactive]="!p.ativo">
+      <header>
+        <h3>{{ p.nome }}</h3>
+        <span class="slug">{{ p.slug }}</span>
+      </header>
+      <p class="desc" *ngIf="p.descricao">{{ p.descricao }}</p>
+      <ul class="info">
+        <li><strong>{{ formatBRL(p.preco_mensal) }}</strong> /mês</li>
+        <li>{{ p.creditos_mensais_inclusos | number:'1.0-0' }} créditos inclusos</li>
+        <li [class.warn]="!p.permite_automacoes">
+          Automações: {{ p.permite_automacoes ? 'liberadas' : 'desativadas' }}
+        </li>
+      </ul>
+      <footer>
+        <button type="button" class="btn ghost" (click)="editar(p)">Editar</button>
+        <button type="button" class="btn danger" (click)="remover(p)">Desativar</button>
+      </footer>
+    </article>
+  </section>
+
+  <!-- Form modal -->
+  <div class="modal" *ngIf="editing" (click)="cancelar()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h2>{{ editing.id ? 'Editar plano' : 'Novo plano' }}</h2>
+      <div class="form-grid">
+        <label>
+          Nome
+          <input type="text" [(ngModel)]="editing.nome" placeholder="Ex.: Pro Mensal" />
+        </label>
+        <label>
+          Slug (URL)
+          <input type="text" [(ngModel)]="editing.slug" placeholder="pro-mensal" />
+        </label>
+        <label class="full">
+          Descrição
+          <textarea rows="3" [(ngModel)]="editing.descricao"></textarea>
+        </label>
+        <label>
+          Preço mensal (R$)
+          <input type="number" min="0" step="0.01" [(ngModel)]="editing.preco_mensal" />
+        </label>
+        <label>
+          Créditos mensais inclusos
+          <input type="number" min="0" step="1" [(ngModel)]="editing.creditos_mensais_inclusos" />
+        </label>
+        <label class="check">
+          <input type="checkbox" [checked]="!!editing.permite_automacoes" (change)="toggleAutomacoes($any($event.target).checked)" />
+          Permite automações (WhatsApp, e-mail, lembretes…)
+        </label>
+        <label class="check">
+          <input type="checkbox" [checked]="!!editing.ativo" (change)="toggleAtivo($any($event.target).checked)" />
+          Plano ativo
+        </label>
+      </div>
+      <footer class="modal-actions">
+        <button type="button" class="btn ghost" (click)="cancelar()" [disabled]="saving()">Cancelar</button>
+        <button type="button" class="btn primary" (click)="salvar()" [disabled]="saving()">
+          {{ saving() ? 'Salvando…' : 'Salvar plano' }}
+        </button>
+      </footer>
+    </div>
+  </div>
+</div>

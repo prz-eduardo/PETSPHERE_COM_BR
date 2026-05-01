@@ -25,7 +25,7 @@ export interface BannerPositionOption {
  */
 export const BANNER_POSITIONS: BannerPositionOption[] = [
   { value: 'home_hero',   label: 'Home — Hero',            description: 'Faixa principal da página inicial', desktopRatio: 16 / 5, mobileRatio: 4 / 5 },
-  { value: 'loja_hero',   label: 'Loja — Hero',            description: 'Topo da listagem de produtos',      desktopRatio: 21 / 9, mobileRatio: 16 / 9 },
+  { value: 'loja_hero',   label: 'Loja — Hero',            description: 'Topo da loja — faixa fixa 16:9 em todos os dispositivos', desktopRatio: 16 / 9, mobileRatio: 16 / 9 },
   { value: 'loja_inline', label: 'Loja — Entre produtos',  description: 'Cartão intercalado no grid da loja', desktopRatio: 16 / 5, mobileRatio: 16 / 5 },
   { value: 'categoria',   label: 'Página de Categoria',    description: 'Topo das páginas por categoria',    desktopRatio: 16 / 5, mobileRatio: 16 / 5 },
   { value: 'checkout',    label: 'Checkout',               description: 'Mensagem/aviso no processo de compra', desktopRatio: 16 / 3, mobileRatio: 3 / 2 },

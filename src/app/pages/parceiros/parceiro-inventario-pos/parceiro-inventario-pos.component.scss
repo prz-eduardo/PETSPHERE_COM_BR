@@ -1,0 +1,185 @@
+.inv {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 2rem;
+}
+
+.inv-head h1 {
+  margin: 0 0 0.35rem;
+}
+
+.lead {
+  color: #475569;
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+
+.inv-nav {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.92rem;
+}
+
+.inv-nav a {
+  color: #0d6efd;
+  text-decoration: none;
+}
+
+.inv-nav a:hover {
+  text-decoration: underline;
+}
+
+.inv-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.inv-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.inv-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1.25rem;
+}
+
+@media (max-width: 860px) {
+  .inv-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inv-list ul,
+.inv-cart ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inv-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+}
+
+.inv-row:hover {
+  background: #f8fafc;
+}
+
+.inv-row-main {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.inv-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.inv-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  margin-top: 0.25rem;
+  color: #64748b;
+}
+
+.pill {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: #e2e8f0;
+}
+
+.pill.on {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pill.off {
+  background: #f1f5f9;
+}
+
+.inv-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-link {
+  cursor: pointer;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.btn-primary {
+  background: #0d6efd;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-ghost {
+  background: transparent;
+}
+
+.btn-link {
+  background: transparent;
+  color: #0d6efd;
+  padding-left: 0;
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

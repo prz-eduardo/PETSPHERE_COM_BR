@@ -3,7 +3,7 @@
   <div class="warn" *ngIf="warning">{{ warning }}</div>
 
   <div class="frame" #frame [style.height.px]="frameHeight" (pointerdown)="onPointerDown($event)" (wheel)="onWheel($event)" (dragover)="onFrameDragOver($event)" (dragleave)="onFrameDragLeave($event)" (drop)="onFrameDrop($event)" (click)="onFrameClick($event)">
-    <div class="placeholder" *ngIf="!imageSrc">Arraste a imagem aqui ou clique (Ctrl+Scroll para zoom)</div>
+    <div class="placeholder" *ngIf="!imageSrc">Arraste aqui ou clique — Ctrl + scroll para aproximar/afastar (área vazia no export usa a cor média das bordas da foto)</div>
 
     <div class="editor" *ngIf="imageSrc">
       <img #imgEl class="editor-img" [src]="imageSrc" draggable="false"

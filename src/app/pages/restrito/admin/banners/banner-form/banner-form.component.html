@@ -108,11 +108,12 @@
           <span>Proporção fixa: <strong>{{ desktopRatio | number:'1.0-2' }}:1</strong></span>
           <small *ngIf="desktopWarn()" class="fx-alert fx-alert--warn">{{ desktopWarn() }}</small>
         </div>
+        <!-- previewChange não pode atualizar desktopPreview: o preview é só ~320px (canvas)
+             e volta como [initialImage], degradando/reescalando a arte a cada zoom/drag -->
         <app-banner-image-editor
           #desktopEditor
           [expectedRatio]="desktopRatio"
           [initialImage]="desktopPreview"
-          (previewChange)="desktopPreview = $event"
           (fileChange)="desktopFile = $event"
           (warnChange)="desktopWarn.set($event)">
         </app-banner-image-editor>
@@ -127,7 +128,6 @@
           #mobileEditor
           [expectedRatio]="mobileRatio"
           [initialImage]="mobilePreview"
-          (previewChange)="mobilePreview = $event"
           (fileChange)="mobileFile = $event"
           (warnChange)="mobileWarn.set($event)">
         </app-banner-image-editor>

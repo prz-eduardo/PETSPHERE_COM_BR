@@ -249,10 +249,11 @@
         <p class="ps-sheet__subtitle">Atalhos rápidos do seu ecossistema pet</p>
       </header>
       <ul class="ps-sheet__list">
-        <li *ngFor="let action of sheetActions; trackBy: trackByQuickActionId">
+        <li *ngFor="let action of sheetActions; trackBy: trackByQuickActionId; let first = first">
           <button
             type="button"
             class="ps-sheet__action"
+            [class.ps-sheet__action--primary]="first"
             [attr.data-tone]="action.tone || 'aurora'"
             (click)="triggerQuickAction(action, 'sheet')"
           >

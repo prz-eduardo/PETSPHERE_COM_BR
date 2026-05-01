@@ -17,6 +17,26 @@ export interface TenantLojaPublicProfile {
   [k: string]: unknown;
 }
 
+export interface TenantLojaHospedagemOfertaItem {
+  slug: string;
+  label_pt: string;
+}
+
+export interface TenantLojaHospedagemLeitoPublic {
+  id: number;
+  nome: string;
+  tipo: string;
+  capacidade: number;
+  foto_url: string | null;
+  preco_diaria: number | null;
+  servicos_oferta: TenantLojaHospedagemOfertaItem[];
+}
+
+export interface TenantLojaHospedagemPublic {
+  leitos: TenantLojaHospedagemLeitoPublic[];
+  hotel_servicos_globais: TenantLojaHospedagemOfertaItem[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class TenantLojaService {
   private readonly baseUrl = environment.apiBaseUrl;
@@ -24,6 +44,8 @@ export class TenantLojaService {
   /** Slug normalizado da vitrine (subdomínio ou query ?loja= em dev). */
   readonly lojaSlug = signal<string | null>(null);
   readonly profile = signal<TenantLojaPublicProfile | null>(null);
+  /** Acomodações na vitrine + ofertas globais do hotel (só preenchido em contexto de loja tenant). */
+  readonly hospedagemPublic = signal<TenantLojaHospedagemPublic | null>(null);
   readonly resolvedFromCustomDomain = signal(false);
   private initDone = false;
 
@@ -110,6 +132,33 @@ export class TenantLojaService {
     this.resolvedFromCustomDomain.set(fromCustom);
     this.lojaSlug.set(slug);
     this.profile.set(prof);
+    if (prof && slug) {
+      await this.loadHospedagemVitrine(slug);
+    } else {
+      this.hospedagemPublic.set(null);
+    }
+  }
+
+  private async loadHospedagemVitrine(slug: string): Promise<void> {
+    try {
+      const data = await firstValueFrom(
+        this.http
+          .get<TenantLojaHospedagemPublic>(
+            `${this.baseUrl}/anunciantes/por-slug/${encodeURIComponent(slug)}/hospedagem`
+          )
+          .pipe(catchError(() => of(null)))
+      );
+      this.hospedagemPublic.set(
+        data && typeof data === 'object'
+          ? {
+              leitos: Array.isArray(data.leitos) ? data.leitos : [],
+              hotel_servicos_globais: Array.isArray(data.hotel_servicos_globais) ? data.hotel_servicos_globais : [],
+            }
+          : null
+      );
+    } catch {
+      this.hospedagemPublic.set(null);
+    }
   }
 
   parceiroId(): number | null {

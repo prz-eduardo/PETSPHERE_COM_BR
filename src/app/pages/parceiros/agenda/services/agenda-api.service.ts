@@ -682,15 +682,30 @@ export class AgendaApiService {
     return response.leitos || [];
   }
 
-  async createHotelLeito(body: {
-    nome: string;
-    tipo?: string;
-    capacidade?: number;
-    foto_url?: string | null;
-    exibir_na_vitrine?: boolean | number;
-    preco_diaria?: number | null;
-    ativo?: boolean | number;
-  }): Promise<HotelLeitoRow | null> {
+  async getHotelOfertaCatalog(): Promise<HotelOfertaCatalogEntry[]> {
+    const response = await lastValueFrom(
+      this.http.get<{ catalog: HotelOfertaCatalogEntry[] }>(
+        `${PARCEIRO_HOSPEDAGEM}/catalogo-ofertas`,
+        { headers: this.getHeaders() }
+      )
+    );
+    return response.catalog || [];
+  }
+
+  async createHotelLeito(
+    body:
+      | FormData
+      | {
+          nome: string;
+          tipo?: string;
+          capacidade?: number;
+          foto_url?: string | null;
+          exibir_na_vitrine?: boolean | number;
+          preco_diaria?: number | null;
+          ativo?: boolean | number;
+          servicos_oferta?: string[];
+        }
+  ): Promise<HotelLeitoRow | null> {
     const response = await lastValueFrom(
       this.http.post<{ leito: HotelLeitoRow | null }>(
         `${PARCEIRO_HOSPEDAGEM}/leitos`,
@@ -703,15 +718,18 @@ export class AgendaApiService {
 
   async updateHotelLeito(
     id: number,
-    body: Partial<{
-      nome: string;
-      tipo: string;
-      capacidade: number;
-      foto_url: string | null;
-      exibir_na_vitrine: boolean | number;
-      preco_diaria: number | null;
-      ativo: boolean | number;
-    }>
+    body:
+      | FormData
+      | Partial<{
+          nome: string;
+          tipo: string;
+          capacidade: number;
+          foto_url: string | null;
+          exibir_na_vitrine: boolean | number;
+          preco_diaria: number | null;
+          ativo: boolean | number;
+          servicos_oferta: string[];
+        }>
   ): Promise<HotelLeitoRow | null> {
     const response = await lastValueFrom(
       this.http.put<{ leito: HotelLeitoRow | null }>(
@@ -795,6 +813,12 @@ export interface HotelReservaRow {
   leito_tipo?: string | null;
 }
 
+export interface HotelOfertaCatalogEntry {
+  slug: string;
+  label_pt: string;
+  scope: 'leito' | 'parceiro' | 'both';
+}
+
 export interface HotelLeitoRow {
   id: number;
   nome: string;
@@ -804,6 +828,8 @@ export interface HotelLeitoRow {
   exibir_na_vitrine?: number | boolean;
   preco_diaria?: number | null;
   servico_id?: number | null;
+  /** Slugs canônicos validados no backend */
+  servicos_oferta?: string[];
   ativo: number | boolean;
   ocupado: number | boolean;
   proxima_reserva?: string | null;

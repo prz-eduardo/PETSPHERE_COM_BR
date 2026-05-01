@@ -138,12 +138,13 @@
             </div>
             <div class="field">
               <label for="barrasProduto" class="field-label">Código de barras</label>
-              <input id="barrasProduto" type="text" formControlName="codigoBarras" placeholder="EAN/GTIN" class="input">
+              <input id="barrasProduto" type="text" formControlName="codigoBarras" placeholder="EAN/GTIN" class="input" appBarcodeScanTarget
+                     (keydown.enter)="$event.preventDefault()">
             </div>
           </div>
         </div>
 
-        <div class="wizard-card">
+        <div class="wizard-card" *ngIf="!partnerMode">
           <header class="card-header">
             <h3>Tipo de produto</h3>
             <p class="card-subtitle">Defina se é um produto pronto ou manipulado com fórmula.</p>
@@ -486,7 +487,7 @@
         </div>
 
         <!-- Campanha -->
-        <div class="wizard-card full-span">
+        <div class="wizard-card full-span" *ngIf="!partnerMode">
           <header class="card-header">
             <h3>Campanha promocional</h3>
             <p class="card-subtitle">Vincule o produto a uma campanha ativa (opcional).</p>
@@ -543,6 +544,7 @@
             </button>
 
             <button type="button"
+                    *ngIf="!partnerMode"
                     class="switch"
                     [class.on]="destaqueHome"
                     (click)="destaqueHome = !destaqueHome"
@@ -551,6 +553,33 @@
               <span class="switch-text">
                 <span class="switch-title">Destaque na home</span>
                 <span class="switch-help">Exibir na página inicial</span>
+              </span>
+            </button>
+
+            <button type="button"
+                    *ngIf="!partnerMode"
+                    class="switch"
+                    [class.on]="form.value.permiteCheckout === false"
+                    (click)="form.patchValue({ permiteCheckout: form.value.permiteCheckout === false })"
+                    [attr.aria-pressed]="form.value.permiteCheckout === false"
+                    title="Produto demonstrativo PetSphere — não vai para o carrinho/checkout">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span class="switch-text">
+                <span class="switch-title">Demo SaaS (sem checkout)</span>
+                <span class="switch-help">Vitrine institucional · leva para cadastro/planos</span>
+              </span>
+            </button>
+
+            <button type="button"
+                    *ngIf="partnerMode"
+                    class="switch"
+                    [class.on]="partnerMostrarNaLoja()"
+                    (click)="togglePartnerMostrarNaLoja()"
+                    [attr.aria-pressed]="partnerMostrarNaLoja()">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span class="switch-text">
+                <span class="switch-title">Mostrar na minha loja</span>
+                <span class="switch-help">Vitrine online do parceiro</span>
               </span>
             </button>
           </div>
@@ -743,8 +772,9 @@
               <h3 id="step-rev-title">Identificação</h3>
             </header>
             <dl class="review-list">
-              <div class="review-row"><dt>Tipo</dt><dd>{{ form.value.formulaId ? 'Manipulado' : (form.value.manipulado ? 'Manipulado' : 'Pronto') }}</dd></div>
-              <div class="review-row" *ngIf="form.value.formulaId"><dt>Fórmula</dt><dd>{{ formulaNameById(form.value.formulaId) }}</dd></div>
+              <div class="review-row" *ngIf="!partnerMode"><dt>Tipo</dt><dd>{{ form.value.formulaId ? 'Manipulado' : (form.value.manipulado ? 'Manipulado' : 'Pronto') }}</dd></div>
+              <div class="review-row" *ngIf="!partnerMode && form.value.formulaId"><dt>Fórmula</dt><dd>{{ formulaNameById(form.value.formulaId) }}</dd></div>
+              <div class="review-row" *ngIf="partnerMode"><dt>Tipo</dt><dd>Produto pronto</dd></div>
               <div class="review-row"><dt>Nome</dt><dd>{{ form.value.name || '—' }}</dd></div>
               <div class="review-row"><dt>Descrição</dt><dd class="review-desc">{{ form.value.description || '—' }}</dd></div>
             </dl>
@@ -779,19 +809,20 @@
                 </ng-container>
                 <ng-template #noTagsV3>—</ng-template>
               </dd></div>
-              <div class="review-row"><dt>Campanha</dt><dd>{{ promocaoSelecionada ? (promocaoSelecionada.nome + ' • ' + (promocaoSelecionada.ui?.valor_label || '')) : '—' }}</dd></div>
+              <div class="review-row" *ngIf="!partnerMode"><dt>Campanha</dt><dd>{{ promocaoSelecionada ? (promocaoSelecionada.nome + ' • ' + (promocaoSelecionada.ui?.valor_label || '')) : '—' }}</dd></div>
               <div class="review-row"><dt>Ativo</dt><dd>{{ form.value.active === 1 ? 'Sim' : 'Não' }}</dd></div>
-              <div class="review-row"><dt>Destaque</dt><dd>{{ destaqueHome ? 'Sim' : 'Não' }}</dd></div>
+              <div class="review-row" *ngIf="!partnerMode"><dt>Destaque home</dt><dd>{{ destaqueHome ? 'Sim' : 'Não' }}</dd></div>
+              <div class="review-row" *ngIf="partnerMode"><dt>Na vitrine da loja</dt><dd>{{ partnerMostrarNaLoja() ? 'Sim' : 'Não' }}</dd></div>
             </dl>
 
-            <div *ngIf="promocaoSelecionada && (promocaoSelecionada.ui?.status === 'expired' || promocaoSelecionada.ui?.status === 'inactive')" class="promo-alert">
+            <div *ngIf="!partnerMode && promocaoSelecionada && (promocaoSelecionada.ui?.status === 'expired' || promocaoSelecionada.ui?.status === 'inactive')" class="promo-alert">
               <strong>Atenção:</strong>
               <span *ngIf="promocaoSelecionada.ui?.status === 'expired'"> campanha expirada{{ promocaoSelecionada.ui?.end?.human ? ' (' + promocaoSelecionada.ui?.end?.human + ')' : '' }}.</span>
               <span *ngIf="promocaoSelecionada.ui?.status === 'inactive'"> campanha inválida.</span>
             </div>
           </div>
 
-          <div class="wizard-card omni-card">
+          <div class="wizard-card omni-card" *ngIf="!partnerMode">
             <header class="card-header">
               <h3>Omni-channel</h3>
               <p class="card-subtitle">Um cadastro na loja pode ser espelhado em marketplaces que aceitam inclusão de anúncio por API. Cada canal exige credenciais no servidor.</p>

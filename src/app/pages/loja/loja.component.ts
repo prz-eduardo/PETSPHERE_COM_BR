@@ -513,7 +513,12 @@ export class LojaComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async onAddToCart(p: ShopProduct, ev: Event) {
-    // If not logged in, clicking cart should trigger login
+    // Demo SaaS: produto institucional vai para o detalhe (lá fica o CTA cadastro/planos).
+    if (p.permiteCheckout === false) {
+      ev?.preventDefault?.();
+      this.router.navigate(['/produto', p.id], { queryParams: { src: 'loja' } });
+      return;
+    }
     if (!this.auth.getToken()) { this.openLoginAfterScrollTop(); return; }
     const ok = await this.addToCart(p);
     if (ok) this.flyToCart(ev);
