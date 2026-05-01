@@ -21,6 +21,12 @@ export class PacientesComponent {
   private auth = inject(AuthService);
   private parceiroAuth = inject(ParceiroAuthService);
 
+  /** Rotas legadas (`/pacientes`) usam a navbar do site; em `/parceiros/...` o shell do prestador já cobre. */
+  get showSiteNav(): boolean {
+    const path = (this.router.url.split('?')[0] || '').split('#')[0] || '';
+    return !path.startsWith('/parceiros/');
+  }
+
   q = '';
   page = 1;
   pageSize = 20;
@@ -96,7 +102,14 @@ export class PacientesComponent {
 
   resetar() { this.q = ''; this.page = 1; this.load(); }
 
-  abrir(p: PacienteSummary) { this.router.navigate(['/pacientes', p.pet_id]); }
+  abrir(p: PacienteSummary) {
+    const path = (this.router.url.split('?')[0] || '').split('#')[0] || '';
+    if (path.startsWith('/parceiros/')) {
+      this.router.navigate(['/parceiros/pacientes', p.pet_id]);
+    } else {
+      this.router.navigate(['/pacientes', p.pet_id]);
+    }
+  }
 
   paginaAnterior() { if (this.page > 1) { this.page--; this.load(); } }
   proximaPagina() { if (this.page < this.totalPages) { this.page++; this.load(); } }

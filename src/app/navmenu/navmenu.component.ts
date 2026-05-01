@@ -13,6 +13,7 @@ import { ClienteAreaModalService, ClienteAreaModalView } from '../services/clien
 import { HapticsService } from '../services/haptics.service';
 import { DockContextService, DockMode, DockActionId } from '../services/dock-context.service';
 import { PsIconComponent, PsIconName } from '../shared/icons/ps-icon.component';
+import { TenantLojaService } from '../services/tenant-loja.service';
 
 export interface NavMainItem {
   id: string;
@@ -30,6 +31,11 @@ export interface QuickAction {
   link: string;
   icon: PsIconName;
   tone?: 'aurora' | 'aqua' | 'coral' | 'neutral';
+}
+
+export interface SheetPanelRow {
+  sectionLabel: string | null;
+  actions: QuickAction[];
 }
 
 @Component({
@@ -79,18 +85,30 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   liveRibbonClosing = false;
   private liveRibbonDismissed = false;
 
-  // ─── Items: dock móvel = 4 abas + FAB ───────────────────────────────────────
-  /**
-   * Top desktop bar — mantém as 4 abas + (carrinho condicional) + sobre.
-   * Carrinho desce para mini-bag em mobile, mas é mantido na lista
-   * desktop para não quebrar `visibleNavItems` no top bar.
-   */
+  // ─── Items: dock móvel = motor tutor (Galeria + Mapa) + FAB ────────────────
+  /** Desktop / dock — apenas galeria e mapa (loja/sobre/planos ficam FAB + linha secundária). */
   readonly mainNavItems: NavMainItem[] = [
     { id: 'galeria', label: 'Galeria', shortLabel: 'Início', link: '/galeria', icon: 'fas fa-fw fa-images', psIcon: 'home' },
     { id: 'mapa',    label: 'Mapa',    shortLabel: 'Mapa',   link: '/mapa',    icon: 'fas fa-fw fa-map-location-dot', psIcon: 'map' },
-    { id: 'loja',    label: 'Loja',    shortLabel: 'Loja',   link: '/',        icon: 'fas fa-fw fa-store', psIcon: 'shop' },
-    { id: 'sobre',   label: 'Sobre',   shortLabel: 'Sobre',  link: '/sobre-nos', icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
   ];
+
+  /** Placeholders de grid quando só há Galeria + Mapa (+ opcional Login) no dock. */
+  private readonly dockFillA: NavMainItem = {
+    id: '__dock-fill-a',
+    label: '',
+    shortLabel: '',
+    link: '#',
+    icon: 'fas fa-fw',
+    psIcon: 'home',
+  };
+  private readonly dockFillB: NavMainItem = {
+    id: '__dock-fill-b',
+    label: '',
+    shortLabel: '',
+    link: '#',
+    icon: 'fas fa-fw',
+    psIcon: 'home',
+  };
 
   private readonly carrinhoNavItem: NavMainItem = {
     id: 'carrinho', label: 'Carrinho', shortLabel: 'Carrinho', link: '/carrinho',
@@ -98,24 +116,18 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   };
 
   /**
-   * Mobile dock — Aurora: 4 abas (Início, Mapa, Loja, Eu) + FAB central.
-   * "Eu" vira "Entrar" para guest. Carrinho NÃO aparece como aba — vai pra mini-bag.
+   * Mobile dock tutor — Galeria + Mapa + FAB + (guest: Entrar · cliente: preenchimento neutro da grade).
+   * Loja / sobre / prestador: FAB e linha desktop secundária.
    */
   get mobileDockItems(): NavMainItem[] {
-    const homeId = 'galeria';
     const left: NavMainItem[] = [
-      { id: homeId, label: 'Início', shortLabel: 'Início', link: '/galeria', icon: 'fas fa-fw fa-house', psIcon: 'home' },
+      { id: 'galeria', label: 'Início', shortLabel: 'Início', link: '/galeria', icon: 'fas fa-fw fa-house', psIcon: 'home' },
       { id: 'mapa', label: 'Mapa', shortLabel: 'Mapa', link: '/mapa', icon: 'fas fa-fw fa-map-location-dot', psIcon: 'map' },
     ];
-    const right: NavMainItem[] = [
-      { id: 'loja', label: 'Loja', shortLabel: 'Loja', link: '/', icon: 'fas fa-fw fa-store', psIcon: 'shop' },
-    ];
     if (this.dockMode === 'guest') {
-      right.push({ id: 'login', label: 'Entrar', shortLabel: 'Entrar', link: '#', icon: 'fas fa-fw fa-right-to-bracket', psIcon: 'login' });
-    } else {
-      right.push({ id: 'esfera', label: 'Minha Esfera', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'sparkle' });
+      return [...left, { id: 'login', label: 'Entrar', shortLabel: 'Entrar', link: '#', icon: 'fas fa-fw fa-right-to-bracket', psIcon: 'login' }, this.dockFillB];
     }
-    return [...left, ...right];
+    return [...left, this.dockFillA, this.dockFillB];
   }
 
   /** Dock para vet/parceiro — variante profissional, mesma linguagem visual. */
@@ -125,7 +137,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         { id: 'pacientes', label: 'Pacientes', shortLabel: 'Pacientes', link: '/pacientes', icon: 'fas fa-fw fa-paw', psIcon: 'paw' },
         { id: 'receitas', label: 'Receitas', shortLabel: 'Receitas', link: '/historico-receitas', icon: 'fas fa-fw fa-file-prescription', psIcon: 'sparkle' },
         { id: 'gerar', label: 'Nova', shortLabel: 'Nova', link: '/gerar-receita', icon: 'fas fa-fw fa-plus', psIcon: 'sparkle' },
-        { id: 'esfera', label: 'Eu', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'sparkle' },
+        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: '/sobre-nos', icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
       ];
     }
     if (this.dockMode === 'parceiro') {
@@ -133,7 +145,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         { id: 'painel', label: 'Painel', shortLabel: 'Painel', link: '/parceiros/painel', icon: 'fas fa-fw fa-gauge', psIcon: 'home' },
         { id: 'agenda', label: 'Agenda', shortLabel: 'Agenda', link: '/parceiros/agenda', icon: 'fas fa-fw fa-calendar', psIcon: 'calendar' },
         { id: 'colab', label: 'Equipe', shortLabel: 'Equipe', link: '/parceiros/colaboradores', icon: 'fas fa-fw fa-users', psIcon: 'person' },
-        { id: 'esfera', label: 'Eu', shortLabel: 'Eu', link: '#', icon: 'fas fa-fw fa-user', psIcon: 'sparkle' },
+        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: '/sobre-nos', icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
       ];
     }
     return this.mobileDockItems;
@@ -161,32 +173,77 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     'parceiro-painel':   { id: 'parceiro-painel',   label: 'Painel',     caption: 'Resumo da loja',       link: '/parceiros/painel', icon: 'home', tone: 'neutral' },
     'parceiro-agenda':   { id: 'parceiro-agenda',   label: 'Agenda',     caption: 'Compromissos',         link: '/parceiros/agenda', icon: 'calendar', tone: 'neutral' },
     'parceiro-equipe':   { id: 'parceiro-equipe',   label: 'Equipe',     caption: 'Colaboradores',        link: '/parceiros/colaboradores', icon: 'person', tone: 'neutral' },
+    'sobre-nos':         { id: 'sobre-nos',       label: 'Quem somos',   caption: 'Institucional Petsphere', link: '/sobre-nos', icon: 'sparkle', tone: 'neutral' },
+    'planos-parceiro':   { id: 'planos-parceiro', label: 'Planos Petsphere', caption: 'Créditos e negócio', link: '/parceiro/planos', icon: 'sparkle', tone: 'neutral' },
+    'prestador-login':   { id: 'prestador-login', label: 'Área do prestador', caption: 'Login parceiros', link: '/parceiros/painel', icon: 'person', tone: 'neutral' },
   };
 
-  /**
-   * Sheet FAB — 5 ações por contexto:
-   * - vet: rotas área veterinário
-   * - parceiro: painel loja física + loja online
-   * - guest / cliente: ecossistema consumidor (igual ao anterior)
-   */
-  get sheetActions(): QuickAction[] {
+  /** Painéis da bottom sheet — tutores ganham agrupamentos; vet/parceiro uma lista compacta. */
+  get sheetPanelRows(): SheetPanelRow[] {
+    const c = this.quickActionCatalog;
     if (this.dockMode === 'vet') {
       const ids: DockActionId[] = ['vet-pacientes', 'vet-receitas', 'vet-gerar', 'vet-panorama', 'telemedicina'];
-      return ids.map(id => this.quickActionCatalog[id]);
+      return [{ sectionLabel: null, actions: ids.map(id => c[id]) }];
     }
     if (this.dockMode === 'parceiro') {
       const ids: DockActionId[] = ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar', 'buscar-vet'];
-      return ids.map(id => this.quickActionCatalog[id]);
+      return [{ sectionLabel: null, actions: ids.map(id => c[id]) }];
     }
-    const baseConsumer: DockActionId[] = this.isCliente
-      ? ['agendar', 'telemedicina', 'buscar-vet', 'comprar', 'hospedagem']
-      : ['buscar-vet', 'agendar', 'telemedicina', 'comprar', 'hospedagem'];
+    return this.buildConsumerSheetPanels();
+  }
+
+  get sheetActions(): QuickAction[] {
+    return this.sheetPanelRows.flatMap(row => row.actions);
+  }
+
+  private buildConsumerSheetPanels(): SheetPanelRow[] {
+    const cat = this.quickActionCatalog;
+    let coreIds: DockActionId[] = this.isCliente
+      ? ['agendar', 'telemedicina', 'buscar-vet', 'hospedagem']
+      : ['buscar-vet', 'agendar', 'telemedicina', 'hospedagem'];
+
+    let lojaPanel: DockActionId[] = ['comprar'];
     if (this.isShoppingRoute) {
-      const rest = baseConsumer.filter((id): id is DockActionId => id !== 'comprar');
-      const ids = (['comprar', ...rest] as DockActionId[]).slice(0, 5);
-      return ids.map(id => this.quickActionCatalog[id]);
+      const rest = coreIds.filter((id) => id !== 'comprar');
+      coreIds = (['comprar', ...rest] as DockActionId[]).slice(0, 5);
+      lojaPanel = [];
     }
-    return baseConsumer.map(id => this.quickActionCatalog[id]);
+
+    const rows: SheetPanelRow[] = [
+      { sectionLabel: 'Mapa e cuidados com o pet', actions: coreIds.map((id) => cat[id]) },
+    ];
+    if (lojaPanel.length > 0) {
+      rows.push({ sectionLabel: 'Loja oficial Petsphere', actions: lojaPanel.map((id) => cat[id]) });
+    }
+    const institucionalIds: DockActionId[] = ['sobre-nos', 'planos-parceiro', 'prestador-login'];
+    rows.push({
+      sectionLabel: 'Institucional e parceiros',
+      actions: institucionalIds.map((id) => cat[id]),
+    });
+    return rows;
+  }
+
+  /** Hub vs galeria no logo desktop; tenant permanece na vitrine `/`. */
+  get brandHomeLink(): string {
+    return this.tenantLoja.isTenantLoja() ? '/' : '/galeria';
+  }
+
+  get brandHomeAriaLabel(): string {
+    return this.tenantLoja.isTenantLoja()
+      ? 'Petsphere — ir para a página inicial da vitrine'
+      : 'Petsphere — ir para a galeria';
+  }
+
+  get lojaHref(): string {
+    return this.tenantLoja.isTenantLoja() ? '/' : '/loja';
+  }
+
+  get showDesktopSecondaryLinks(): boolean {
+    return !!this.showFullMenu && (this.dockMode === 'guest' || this.dockMode === 'cliente');
+  }
+
+  isDockFillItem(item: NavMainItem): boolean {
+    return item.id === '__dock-fill-a' || item.id === '__dock-fill-b';
   }
 
   private fabRadialDefaultIds(): DockActionId[] {
@@ -203,7 +260,8 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Mostra a mini-bag em rotas de compra com itens. */
   get isShoppingRoute(): boolean {
     const p = (this.currentRoute || '').split('?')[0] || '';
-    return p === '/' || p.startsWith('/loja') || p.startsWith('/produto/') || p.startsWith('/favoritos');
+    const tenantStorefront = this.tenantLoja.isTenantLoja() && p === '/';
+    return tenantStorefront || p.startsWith('/loja') || p.startsWith('/produto/') || p.startsWith('/favoritos');
   }
 
   get showMiniBag(): boolean {
@@ -261,6 +319,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     private clienteAreaModal: ClienteAreaModalService,
     private haptics: HapticsService,
     private dockCtx: DockContextService,
+    private tenantLoja: TenantLojaService,
   ) {}
 
   ngOnInit(): void {
@@ -524,9 +583,13 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     return action.id;
   }
 
-  /** Item especial: Esfera (perfil) ou Login. Não navega — abre modal. */
+  /** Item especial: Login (guest). Não navega — abre modal. */
   onMobileItemActivate(item: NavMainItem, ev?: Event): void {
-    if (item.id === 'esfera' || item.id === 'login') {
+    if (this.isDockFillItem(item)) {
+      ev?.preventDefault();
+      return;
+    }
+    if (item.id === 'login') {
       ev?.preventDefault();
       this.haptics.light();
       this.abrirClienteModal();
@@ -536,8 +599,17 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isMobileTabHighlighted(item: NavMainItem): boolean {
-    if (item.id === 'esfera' || item.id === 'login') return false;
+    if (item.id === 'login') return false;
+    if (this.isDockFillItem(item)) return false;
     return this.isTabHighlighted(item);
+  }
+
+  /** Fotinha no FAB — mesma área que a antiga aba "Eu" (modal da conta). */
+  onFabAvatarClick(ev: Event): void {
+    ev.stopPropagation();
+    ev.preventDefault();
+    this.haptics.light();
+    this.abrirClienteModal();
   }
 
   isTabHighlighted(item: NavMainItem): boolean {
@@ -548,7 +620,10 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   isNavActive(item: NavMainItem): boolean {
     const path = (this.currentRoute || '').split('?')[0] || '';
     switch (item.id) {
-      case 'loja':       return path === '/' || path.startsWith('/loja') || path.startsWith('/produto/') || path.startsWith('/favoritos') || path.startsWith('/checkout');
+      case 'loja':       return (
+        (path === '/' && this.tenantLoja.isTenantLoja()) ||
+        path.startsWith('/loja') || path.startsWith('/produto/') || path.startsWith('/favoritos') || path.startsWith('/checkout')
+      );
       case 'sobre':      return path.startsWith('/sobre-nos');
       case 'mapa':       return path.startsWith('/mapa');
       case 'galeria':    return path.startsWith('/galeria');
@@ -569,7 +644,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   get visibleNavItems(): NavMainItem[] {
     if (this.isCliente) {
-      const i = this.mainNavItems.findIndex(x => x.id === 'loja') + 1;
+      const i = this.mainNavItems.findIndex(x => x.id === 'mapa') + 1;
       return [...this.mainNavItems.slice(0, i), this.carrinhoNavItem, ...this.mainNavItems.slice(i)];
     }
     return this.mainNavItems;

@@ -57,11 +57,11 @@
                   <span class="stat-value">Área Vet</span>
                 </span>
               </button>
-              <button class="stat" (click)="goToMinhaLoja()">
-                <span class="stat-icon stat-icon--amber"><i class="fa fa-store"></i></span>
+              <button class="stat" (click)="goToPetshopOnline()">
+                <span class="stat-icon stat-icon--amber"><i class="fa fa-shopping-cart"></i></span>
                 <span class="stat-info">
-                  <span class="stat-label">Vitrine</span>
-                  <span class="stat-value">Minha loja</span>
+                  <span class="stat-label">Loja digital</span>
+                  <span class="stat-value">Petshop online</span>
                 </span>
               </button>
               <button class="stat" (click)="goToPacientes()">
@@ -76,6 +76,15 @@
                 <span class="stat-info">
                   <span class="stat-label">Receitas</span>
                   <span class="stat-value">Gerar</span>
+                </span>
+              </button>
+              <button type="button" class="stat stat--credits" (click)="goToPlanosCreditos()">
+                <span class="stat-icon stat-icon--gold"><i class="fa fa-bolt"></i></span>
+                <span class="stat-info">
+                  <span class="stat-label">Créditos PetSphere</span>
+                  <span class="stat-value" *ngIf="creditosLoading">···</span>
+                  <span class="stat-value" *ngIf="!creditosLoading && creditosSaldo !== null">{{ fmtCreditos(creditosSaldo) }}</span>
+                  <span class="stat-value stat-value--muted" *ngIf="!creditosLoading && creditosSaldo === null">—</span>
                 </span>
               </button>
             </div>
@@ -196,10 +205,10 @@
           <span>Hospedagem pet &amp; creche</span>
           <i class="fa fa-arrow-right item-arrow"></i>
         </button>
-        <button class="item item--soon" *ngIf="matches('atendimento chat suporte omnichannel')" tabindex="0" disabled>
+        <button class="item" *ngIf="matches('atendimento chat mensagens clientes conversas suporte')" (click)="goToMensagens()" tabindex="0">
           <i class="fa fa-comments"></i>
-          <span>Atendimento</span>
-          <span class="badge-soon">Em breve</span>
+          <span>Mensagens com clientes</span>
+          <i class="fa fa-arrow-right item-arrow"></i>
         </button>
       </div>
     </section>
@@ -274,10 +283,10 @@
         <i class="fa fa-chevron-down chevron"></i>
       </header>
       <div class="items" *ngIf="!isCollapsed('saas')">
-        <button class="item item--soon" *ngIf="matches('petshop online loja ecommerce')" tabindex="0" disabled>
+        <button class="item" *ngIf="matches('petshop online loja ecommerce produtos catalogo inventario pagamento marketplace')" (click)="goToPetshopOnline()" tabindex="0">
           <i class="fa fa-shopping-cart"></i>
-          <span>Petshop Online</span>
-          <span class="badge-soon">Em breve</span>
+          <span>Petshop online</span>
+          <i class="fa fa-arrow-right item-arrow"></i>
         </button>
         <button class="item item--soon" *ngIf="matches('hotel creche hospedagem pets')" tabindex="0" disabled>
           <i class="fa fa-home"></i>
@@ -330,12 +339,12 @@
           <span>Colaboradores</span>
           <i class="fa fa-arrow-right item-arrow"></i>
         </button>
-        <button class="item" *ngIf="matches('minha loja vitrine slug url subdominio site institucional pagamento')" (click)="goToMinhaLoja()" tabindex="0">
-          <i class="fa fa-store"></i>
-          <span>Minha loja</span>
+        <button class="item" *ngIf="matches('configuracoes vitrine slug url subdominio site institucional pagamento mp mercado token')" (click)="goToConfiguracoes()" tabindex="0">
+          <i class="fa fa-sliders"></i>
+          <span>Configurações</span>
           <i class="fa fa-arrow-right item-arrow"></i>
         </button>
-        <button class="item item--soon" *ngIf="matches('perfil conta configuracoes')" tabindex="0" disabled>
+        <button class="item item--soon" *ngIf="matches('perfil conta')" tabindex="0" disabled>
           <i class="fa fa-cog"></i>
           <span>Perfil & Conta</span>
           <span class="badge-soon">Em breve</span>

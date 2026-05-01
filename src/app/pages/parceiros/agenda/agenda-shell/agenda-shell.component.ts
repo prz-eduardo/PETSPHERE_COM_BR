@@ -2,6 +2,7 @@ import {
   Component, OnInit, signal, computed, effect
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import {
   Agendamento, AgendaConfig, AgendaFiltros, AgendaStatus,
   PartnerType, Profissional, Recurso, Servico, SlotInfo, ViewMode
@@ -29,6 +30,7 @@ import {
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     AgendaConvitesDadosComponent,
     AgendaFiltersComponent,
     AgendaGridComponent,

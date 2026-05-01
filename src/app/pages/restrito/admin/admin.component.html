@@ -1,6 +1,14 @@
 <div class="admin-wrapper animate-fade">
   <app-admin-header [title]="headerTitle" [isSuper]="isSuper">
     <div header-actions class="admin-header-actions-slot">
+      <app-admin-credits-summary
+        variant="chip"
+        [loading]="creditosResumoLoading"
+        [error]="creditosResumoError"
+        [data]="creditosResumo"
+        (openPainel)="goToCreditos()"
+        (refresh)="loadCreditosResumo()"
+      ></app-admin-credits-summary>
       <app-admin-notification></app-admin-notification>
       <div class="command" [class.open]="showUserMenu">
         <button class="btn-command" (click)="toggleUserMenu()" aria-haspopup="menu" [attr.aria-expanded]="showUserMenu">
@@ -79,6 +87,17 @@
             </span>
           </button>
         </div>
+      </div>
+
+      <div class="hero-credits-wrap" *ngIf="!isCollapsed('welcome')">
+        <app-admin-credits-summary
+          variant="banner"
+          [loading]="creditosResumoLoading"
+          [error]="creditosResumoError"
+          [data]="creditosResumo"
+          (openPainel)="goToCreditos()"
+          (refresh)="loadCreditosResumo()"
+        ></app-admin-credits-summary>
       </div>
     </section>
 

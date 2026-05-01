@@ -10,8 +10,8 @@ import {
   ViewChild,
   ElementRef,
 } from '@angular/core';
-import { firstValueFrom, forkJoin, of } from 'rxjs';
-import { filter, take } from 'rxjs/operators';
+import { firstValueFrom, forkJoin, of, Subject } from 'rxjs';
+import { filter, take, takeUntil } from 'rxjs/operators';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api.service';
@@ -29,7 +29,7 @@ import { BannerSlotComponent } from '../../shared/banner-slot/banner-slot.compon
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { FP_MAP_STYLES } from './mapa-map-styles';
 import { MapLocationConsentService } from '../../services/map-location-consent.service';
-import { TenantLojaService } from '../../services/tenant-loja.service';
+import { TenantLojaHospedagemLeitoPublic, TenantLojaService } from '../../services/tenant-loja.service';
 
 const FP_MAPA_LS_PREFIX = 'fp_mapa_';
 const DEFAULT_SEARCH_RADIUS_KM = 15;
@@ -73,6 +73,10 @@ export class MapaComponent implements OnInit, OnDestroy {
   private mapReadyResolver: (() => void) | null = null;
   marcaNome = MARCA_NOME;
   readonly marcaNomeMapa = MARCA_NOME;
+  /** Pill da camada principal: texto claro para tutores vs vitrine tenant. */
+  get mapLegendReferenceLabel(): string {
+    return this.tenantLoja.isTenantLoja() ? `${this.marcaNome} · sua vitrine` : 'Petsphere · rede nacional';
+  }
   lojaEnderecoExibicao = `${LOJA_ENDERECO_TEXTO}, CEP ${LOJA_CEP}`;
   /** Cidade e UF para o hero (default = loja demo; tenant sobrescreve em applyStoreAddressFromParts). */
   mapHeroCidadeEstado = 'Curitiba - PR';
@@ -128,10 +132,62 @@ export class MapaComponent implements OnInit, OnDestroy {
     return this.api.resolveMediaUrl(url || '', '/imagens/image.png');
   }
 
+  /** Primeira URL http(s) na galeria; senão `foto_url`. */
+  tenantHospLeadRawUrl(leito: TenantLojaHospedagemLeitoPublic): string | null {
+    const gal = leito.galeria_urls;
+    if (Array.isArray(gal)) {
+      const hit = gal.find((u) => typeof u === 'string' && /^https?:\/\//i.test(u.trim()));
+      if (hit) return hit.trim();
+    }
+    const f = leito.foto_url;
+    return typeof f === 'string' && f.trim() ? f.trim() : null;
+  }
+
+  tenantHospLeadPhoto(leito: TenantLojaHospedagemLeitoPublic): string {
+    const raw = this.tenantHospLeadRawUrl(leito);
+    return this.resolveHospedagemFoto(raw || '');
+  }
+
+  tenantHospVitrineBadge(leito: TenantLojaHospedagemLeitoPublic): string | null {
+    const v = String(leito.vitrine_nivel || 'basico').toLowerCase();
+    if (v === 'destaque') return 'Destaque';
+    if (v === 'top') return 'Top';
+    return null;
+  }
+
+  tenantHospGaleriaStripUrls(leito: TenantLojaHospedagemLeitoPublic): string[] {
+    const gal = Array.isArray(leito.galeria_urls) ? leito.galeria_urls : [];
+    const thumbs = gal
+      .filter((u) => typeof u === 'string' && /^https?:\/\//i.test(u.trim()))
+      .map((u) => u.trim())
+      .slice(0, 12);
+    const lead = this.tenantHospLeadRawUrl(leito);
+    const extra = lead ? thumbs.filter((u) => u !== lead) : thumbs;
+    return extra.slice(0, 8);
+  }
+
+  tenantHospConfortoLabel(lc: string | null | undefined): string | null {
+    const k = String(lc || '').trim().toLowerCase();
+    const map: Record<string, string> = {
+      basico: 'Básico',
+      conforto: 'Conforto',
+      premium: 'Premium',
+      luxo: 'Luxo',
+    };
+    return map[k] || (k ? String(lc).trim() : null);
+  }
+
+  tenantHospAmbienteLabel(a: string | null | undefined): string | null {
+    const k = String(a || '').trim().toLowerCase();
+    const map: Record<string, string> = { interno: 'Interno', externo: 'Externo', misto: 'Misto' };
+    return map[k] || (k ? String(a).trim() : null);
+  }
+
   private mobileLayoutMql: MediaQueryList | null = null;
   private mobileLayoutListener: (() => void) | null = null;
   private requestedPartnerSlug: string | null = null;
   private requestedPartnerId: number | null = null;
+  private readonly destroyRoute$ = new Subject<void>();
 
   constructor(
     private api: ApiService,
@@ -158,6 +214,39 @@ export class MapaComponent implements OnInit, OnDestroy {
     f.on = !f.on;
     try { this.applyFilters(); } catch (e) { console.warn('applyFilters failed', e); }
     this.scheduleMapResize();
+  }
+
+  /** Lista lateral: mensagem rápida (abre fluxo cliente / login). */
+  onResultPartnerChat(p: any, ev: Event): void {
+    ev.stopPropagation();
+    ev.preventDefault();
+    this.goToPartnerChatFromMap(p);
+  }
+
+  /** URL da vitrine do parceiro (subdomínio), se existir slug. */
+  partnerStoreHref(p: any): string | null {
+    if (!isPlatformBrowser(this.platformId)) return null;
+    return this.buildPartnerStoreUrl(this.getPartnerStoreSlug(p));
+  }
+
+  /** Lista vazia: voltar a ver todos os pontos disponíveis. */
+  explorarLimparFiltrosMapa(ev?: Event): void {
+    ev?.stopPropagation();
+    ev?.preventDefault();
+    this.mapTextQuery = '';
+    if (this.mapSearchUiOpen) this.closeMapSearchUi();
+    const todosId = this.tabs.find(x => x.id === 'todos')?.id;
+    this.select(todosId ?? this.tabs[0]?.id ?? 'todos');
+    for (const list of Object.values(this.filtersByTab)) {
+      for (const chip of list) chip.on = false;
+    }
+    try {
+      this.applyFilters();
+    } catch {
+      /* ignore */
+    }
+    if (this.isMobileMapLayout) this.resultsAccordionOpen = true;
+    this.toast.info('Mostrando todas as categorias — filtros de texto e chips foram limpos.');
   }
 
   openMapSearchUi(): void {
@@ -723,6 +812,24 @@ export class MapaComponent implements OnInit, OnDestroy {
     // follow the same pattern as other pages: only call API from the browser
     // to avoid SSR network errors.
     if (isPlatformBrowser(this.platformId)) {
+      this.route.paramMap.pipe(takeUntil(this.destroyRoute$)).subscribe(() => {
+        this.capturePartnerFromRoute();
+        try {
+          this.resolveRequestedPartnerIdFromLoadedPartners();
+        } catch {
+          /* ignore */
+        }
+        try {
+          this.applyFilters();
+        } catch {
+          /* ignore */
+        }
+        void this.maybeCenterRequestedPartner();
+        if (this.requestedPartnerId != null || this.requestedPartnerSlug) {
+          this.resultsAccordionOpen = true;
+        }
+      });
+
       this.capturePartnerFromRoute();
       this.applyStoreAddressFromTenantProfile();
       if (this.tenantLoja.isTenantLoja()) {
@@ -756,6 +863,12 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    try {
+      this.destroyRoute$.next();
+      this.destroyRoute$.complete();
+    } catch {
+      /* ignore */
+    }
     try { window.removeEventListener('error', this.__errHandler); window.removeEventListener('unhandledrejection', this.__unhandledRejection); } catch (e) {}
     this.teardownMobileLayoutListener();
     this.stopPharmacyPulse();
@@ -2036,6 +2149,9 @@ export class MapaComponent implements OnInit, OnDestroy {
 
     try {
       await this.centerOnPartner(target, { scrollPage: false });
+      if (this.isMobileMapLayout) {
+        this.resultsAccordionOpen = true;
+      }
     } catch (e) {
       console.warn('maybeCenterRequestedPartner failed', e);
     }

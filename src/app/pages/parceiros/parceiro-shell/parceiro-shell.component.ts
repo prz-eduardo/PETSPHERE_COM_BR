@@ -1,6 +1,7 @@
 import { Component, OnInit, HostListener, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { ParceiroCreditsBadgeComponent } from '../../../shared/parceiro-credits-badge/parceiro-credits-badge.component';
 import { filter } from 'rxjs/operators';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
 import { Colaborador } from '../../../types/agenda.types';
@@ -8,7 +9,7 @@ import { Colaborador } from '../../../types/agenda.types';
 @Component({
   selector: 'app-parceiro-shell',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, ParceiroCreditsBadgeComponent],
   templateUrl: './parceiro-shell.component.html',
   styleUrls: ['./parceiro-shell.component.scss'],
 })
@@ -17,6 +18,8 @@ export class ParceiroShellComponent implements OnInit {
   showUserMenu = signal(false);
   showVetMenu = signal(false);
   showClinicaMenu = signal(false);
+  showPetshopMenu = signal(false);
+  showPosMenu = signal(false);
   showMobileNav = signal(false);
   private currentUrl = '';
 
@@ -43,6 +46,23 @@ export class ParceiroShellComponent implements OnInit {
     if (clinicaNavGroup && !clinicaNavGroup.contains(target) && this.showClinicaMenu()) {
       this.showClinicaMenu.set(false);
     }
+    const petshopNavGroup = this.el.nativeElement.querySelector('.nav-group--petshop');
+    const petshopMobile = this.el.nativeElement.querySelector('.mobile-group--petshop');
+    const insidePetshop =
+      (petshopNavGroup && petshopNavGroup.contains(target)) ||
+      (petshopMobile && petshopMobile.contains(target));
+    if (!insidePetshop && this.showPetshopMenu()) {
+      this.showPetshopMenu.set(false);
+    }
+
+    const posNavGroup = this.el.nativeElement.querySelector('.nav-group--pos');
+    const posMobile = this.el.nativeElement.querySelector('.mobile-group--pos');
+    const insidePos =
+      (posNavGroup && posNavGroup.contains(target)) ||
+      (posMobile && posMobile.contains(target));
+    if (!insidePos && this.showPosMenu()) {
+      this.showPosMenu.set(false);
+    }
 
     const mobileNavNode = this.el.nativeElement.querySelector('.mobile-nav');
     const burgerNode = this.el.nativeElement.querySelector('.burger-btn');
@@ -61,6 +81,8 @@ export class ParceiroShellComponent implements OnInit {
         this.currentUrl = e.urlAfterRedirects || e.url;
         this.showVetMenu.set(false);
         this.showClinicaMenu.set(false);
+        this.showPetshopMenu.set(false);
+        this.showPosMenu.set(false);
         this.showUserMenu.set(false);
         this.showMobileNav.set(false);
       });
@@ -86,11 +108,27 @@ export class ParceiroShellComponent implements OnInit {
            this.currentUrl.includes('/parceiros/hospedagem');
   }
 
+  isPetshopActive(): boolean {
+    return (
+      this.currentUrl.includes('/parceiros/petshop-online') ||
+      this.currentUrl.includes('/parceiros/catalogo-produto')
+    );
+  }
+
+  isPosActive(): boolean {
+    return (
+      this.currentUrl.includes('/parceiros/inventario-pos') ||
+      this.currentUrl.includes('/parceiros/caixa')
+    );
+  }
+
   toggleUserMenu(val?: boolean): void {
     this.showUserMenu.set(val ?? !this.showUserMenu());
     if (this.showUserMenu()) {
       this.showVetMenu.set(false);
       this.showClinicaMenu.set(false);
+      this.showPetshopMenu.set(false);
+      this.showPosMenu.set(false);
     }
   }
 
@@ -99,6 +137,8 @@ export class ParceiroShellComponent implements OnInit {
     if (this.showVetMenu()) {
       this.showUserMenu.set(false);
       this.showClinicaMenu.set(false);
+      this.showPetshopMenu.set(false);
+      this.showPosMenu.set(false);
     }
   }
 
@@ -107,6 +147,28 @@ export class ParceiroShellComponent implements OnInit {
     if (this.showClinicaMenu()) {
       this.showUserMenu.set(false);
       this.showVetMenu.set(false);
+      this.showPetshopMenu.set(false);
+      this.showPosMenu.set(false);
+    }
+  }
+
+  togglePetshopMenu(val?: boolean): void {
+    this.showPetshopMenu.set(val ?? !this.showPetshopMenu());
+    if (this.showPetshopMenu()) {
+      this.showUserMenu.set(false);
+      this.showVetMenu.set(false);
+      this.showClinicaMenu.set(false);
+      this.showPosMenu.set(false);
+    }
+  }
+
+  togglePosMenu(val?: boolean): void {
+    this.showPosMenu.set(val ?? !this.showPosMenu());
+    if (this.showPosMenu()) {
+      this.showUserMenu.set(false);
+      this.showVetMenu.set(false);
+      this.showClinicaMenu.set(false);
+      this.showPetshopMenu.set(false);
     }
   }
 
@@ -116,6 +178,8 @@ export class ParceiroShellComponent implements OnInit {
       this.showUserMenu.set(false);
       this.showVetMenu.set(false);
       this.showClinicaMenu.set(false);
+      this.showPetshopMenu.set(false);
+      this.showPosMenu.set(false);
     }
   }
 

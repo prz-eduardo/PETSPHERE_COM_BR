@@ -1,0 +1,20 @@
+<a
+  class="pcredits"
+  routerLink="/parceiro/planos"
+  [attr.aria-label]="'Seus créditos PetSphere: ' + (saldo() !== null ? fmt(saldo()!) : 'carregando') + '. Abrir planos e recarga.'"
+>
+  <span class="pcredits__glow" aria-hidden="true"></span>
+  <span class="pcredits__icon" aria-hidden="true"><i class="fa fa-bolt"></i></span>
+  <span class="pcredits__body">
+    <span class="pcredits__eyebrow">Créditos</span>
+    <ng-container *ngIf="loading(); else valBlock">
+      <span class="pcredits__value pcredits__pulse">···</span>
+    </ng-container>
+    <ng-template #valBlock>
+      <span class="pcredits__value" *ngIf="!error() && saldo() !== null">{{ fmt(saldo()!) }}</span>
+      <span class="pcredits__value pcredits__muted" *ngIf="error()">—</span>
+    </ng-template>
+  </span>
+  <span class="pcredits__hint" *ngIf="!loading() && !error() && saldo() !== null">recarregar</span>
+  <i class="fa fa-angle-right pcredits__chev" aria-hidden="true"></i>
+</a>

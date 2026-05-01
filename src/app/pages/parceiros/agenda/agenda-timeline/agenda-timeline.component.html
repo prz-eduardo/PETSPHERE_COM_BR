@@ -1,3 +1,4 @@
+<div class="timeline-scroll">
 <div class="timeline-wrap">
 
   <!-- Time axis (sticky top) -->
@@ -25,7 +26,7 @@
       </div>
 
       <!-- Row track -->
-      <div class="row-track" [style.min-width.px]="timelineWidth" (click)="onSlotClick(prof, hours[0])">
+      <div class="row-track" [style.min-width.px]="timelineWidth" (click)="onRowTrackClick(prof)">
 
         <!-- Gap markers -->
         <div
@@ -57,4 +58,5 @@
       </div>
     </div>
   </div>
+</div>
 </div>

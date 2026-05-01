@@ -1,0 +1,48 @@
+<div class="hub">
+  <header class="hub__hero">
+    <div class="hub__logo-wrap" aria-hidden="true">
+      <img class="hub__logo" src="/imagens/logo-marca.svg" width="120" height="120" alt="" decoding="async" />
+    </div>
+    <h1 class="hub__title">{{ marca }}</h1>
+    <p class="hub__lead">Escolha como quer usar a plataforma — tutores, compras ou parceiros.</p>
+  </header>
+
+  <section class="hub__grid" aria-label="Entradas principais">
+    <a class="hub-card hub-card--tutor" routerLink="/galeria">
+      <span class="hub-card__icon" aria-hidden="true">🐾</span>
+      <span class="hub-card__kicker">Para tutores</span>
+      <span class="hub-card__title">Comunidade e mapa</span>
+      <p class="hub-card__text">Galeria de pets e mapa para encontrar serviços perto de você.</p>
+      <span class="hub-card__cta">
+        <span>Abrir galeria</span>
+        <span class="hub-card__cta-sub">e explorar o mapa no app</span>
+      </span>
+    </a>
+
+    <a class="hub-card hub-card--shop" routerLink="/loja">
+      <span class="hub-card__icon" aria-hidden="true">🛒</span>
+      <span class="hub-card__kicker">Loja</span>
+      <span class="hub-card__title">Produtos Petsphere</span>
+      <p class="hub-card__text">Vitrine oficial, favoritos, carrinho e checkout.</p>
+      <span class="hub-card__cta">Ir para a loja</span>
+    </a>
+
+    <div class="hub-card hub-card--biz">
+      <span class="hub-card__icon" aria-hidden="true">💼</span>
+      <span class="hub-card__kicker">Para negócios</span>
+      <span class="hub-card__title">Prestadores e parceiros</span>
+      <p class="hub-card__text">Planos, créditos e cadastro para colocar seu negócio no mapa.</p>
+      <div class="hub-card__actions">
+        <a class="hub-btn hub-btn--primary" routerLink="/parceiro/planos">Ver planos</a>
+        <a class="hub-btn hub-btn--ghost" routerLink="/parceiro/cadastrar">Cadastrar parceiro</a>
+        <a class="hub-btn hub-btn--ghost" routerLink="/parceiros/painel">Área do prestador</a>
+      </div>
+    </div>
+  </section>
+
+  <p class="hub__footnote">
+    <a routerLink="/sobre-nos">Sobre nós</a>
+    <span class="hub__dot" aria-hidden="true">·</span>
+    <a routerLink="/mapa">Mapa</a>
+  </p>
+</div>

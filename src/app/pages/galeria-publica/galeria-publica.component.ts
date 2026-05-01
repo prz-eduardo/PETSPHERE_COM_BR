@@ -640,6 +640,7 @@ export class GaleriaPublicaComponent implements OnInit, AfterViewInit, OnDestroy
       this.loadingMore = true;
     }
     try {
+      await this.tenantLoja.ensureHostResolved();
       // use ApiService so baseUrl and headers are handled consistently
       // pass JWT when available so the gallery can return auth-aware data
       const token = this.auth.getToken() ?? undefined;

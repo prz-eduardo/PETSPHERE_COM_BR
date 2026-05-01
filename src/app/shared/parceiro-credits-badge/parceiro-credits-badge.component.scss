@@ -1,0 +1,128 @@
+@use '../styles/admin-tokens' as *;
+
+.pcredits {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 8px;
+  border-radius: var(--admin-radius-pill);
+  text-decoration: none;
+  color: #fef3c7;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.75));
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.12);
+  max-width: min(200px, 42vw);
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(252, 211, 77, 0.55);
+    box-shadow: 0 4px 18px rgba(245, 158, 11, 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fbbf24;
+    outline-offset: 2px;
+  }
+}
+
+.pcredits__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    rgba(251, 191, 36, 0.2),
+    transparent 45%,
+    rgba(168, 85, 247, 0.12),
+    transparent 75%
+  );
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.pcredits__icon {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: #1c1917;
+  background: linear-gradient(145deg, #fbbf24, #d97706);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+}
+
+.pcredits__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  min-width: 0;
+}
+
+.pcredits__eyebrow {
+  font-size: 9px;
+  font-weight: var(--admin-font-weight-semibold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(254, 243, 199, 0.75);
+}
+
+.pcredits__value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fffbeb;
+}
+
+.pcredits__muted {
+  color: var(--admin-muted);
+  font-weight: 600;
+}
+
+.pcredits__pulse {
+  animation: pc-pulse 1s ease-in-out infinite;
+}
+
+@keyframes pc-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.pcredits__hint {
+  position: relative;
+  z-index: 1;
+  display: none;
+  font-size: 9px;
+  color: rgba(226, 232, 240, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+
+  @media (min-width: 900px) {
+    display: inline;
+    padding-left: 8px;
+    margin-left: 4px;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
+}
+
+.pcredits__chev {
+  position: relative;
+  z-index: 1;
+  font-size: 0.75rem;
+  color: rgba(254, 243, 199, 0.45);
+  flex-shrink: 0;
+}

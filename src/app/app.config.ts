@@ -6,6 +6,7 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { accountBannedInterceptor } from './interceptors/account-banned.interceptor';
 import { CookiePreferencesService } from './services/cookie-preferences.service';
+import { TenantLojaService } from './services/tenant-loja.service';
 
 function rehydrateCookiePreferencesFactory(cookie: CookiePreferencesService, platformId: object) {
   return () => {
@@ -15,9 +16,23 @@ function rehydrateCookiePreferencesFactory(cookie: CookiePreferencesService, pla
   };
 }
 
+function tenantHostResolverFactory(tenant: TenantLojaService) {
+  return () => tenant.initFromLocation();
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
     { provide: LOCALE_ID, useValue: 'pt-BR' },
+    /**
+     * Resolve host/subdomínio antes da primeira navegação para que `canMatch` na raiz
+     * escolha corretamente entre hub marca e vitrine tenant.
+     */
+    {
+      provide: APP_INITIALIZER,
+      useFactory: tenantHostResolverFactory,
+      deps: [TenantLojaService],
+      multi: true,
+    },
     {
       provide: APP_INITIALIZER,
       useFactory: rehydrateCookiePreferencesFactory,

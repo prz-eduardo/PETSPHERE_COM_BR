@@ -10,7 +10,7 @@ import { ProdutoComponent } from '../../restrito/admin/produto/produto.component
   template: `
     <div class="wrap">
       <nav class="back">
-        <a routerLink="/parceiros/minha-loja" class="back-link">&larr; Minha loja</a>
+        <a routerLink="/parceiros/petshop-online" class="back-link">&larr; Petshop online</a>
         <a routerLink="/parceiros/inventario-pos" class="back-link muted">Inventário / POS</a>
       </nav>
       <app-produto [embedded]="true" [partnerMode]="true"></app-produto>

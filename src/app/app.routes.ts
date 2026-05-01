@@ -11,9 +11,21 @@ import { vetGuard } from './guards/vet.guard';
 import { parceiroGuard } from './guards/parceiro.guard';
 import { parceiroVetGuard } from './guards/parceiro-vet.guard';
 import { clienteSessionGuard } from './guards/cliente-session.guard';
+import { petsphereHubRootCanMatch, tenantLojaRootCanMatch } from './guards/tenant-root-can-match.guard';
 
 export const routes: Routes = [
-  { path: '', loadChildren: () => import('./pages/loja/loja.module').then(m => m.LojaModule) }, // Página pública (loja)
+  /** Vitrine do parceiro: raiz `/` só quando há tenant (subdomínio / host). */
+  {
+    path: '',
+    loadChildren: () => import('./pages/loja/loja.module').then((m) => m.LojaModule),
+    canMatch: [tenantLojaRootCanMatch],
+  },
+  /** Hub marca no domínio principal (sem tenant). */
+  {
+    path: '',
+    loadComponent: () => import('./pages/home-hub/home-hub.component').then((m) => m.HomeHubComponent),
+    canMatch: [petsphereHubRootCanMatch],
+  },
   { path: 'institucional', loadChildren: () => import('./pages/home/home.module').then(m => m.HomeModule) },
   { path: 'sobre-nos', loadComponent: () => import('./pages/sobre-nos/sobre-nos.component').then(m => m.SobreNosComponent) },
   {
@@ -155,6 +167,7 @@ export const routes: Routes = [
   { path: 'meus-enderecos', loadComponent: () => import('./pages/meus-enderecos/meus-enderecos.component').then(m => m.MeusEnderecosComponent)},
   { path: 'meus-cartoes', loadComponent: () => import('./pages/restrito/area-cliente/meus-cartoes/meus-cartoes.component').then(m => m.MeusCartoesComponent)},
   { path: 'editar-perfil', loadComponent: () => import('./pages/perfil/perfil.component').then(m => m.PerfilComponent)},
+  /** Loja global Petsphere (domínio principal). */
   { path: 'loja', loadChildren: () => import('./pages/loja/loja.module').then(m => m.LojaModule) },
   { path: 'produto/:id', loadComponent: () => import('./product-details/product-details.component').then(m => m.ProductDetailsComponent)},
   { path: 'favoritos', loadComponent: () => import('./pages/favoritos/favoritos.component').then(m => m.FavoritosComponent)},
@@ -211,6 +224,22 @@ export const routes: Routes = [
         data: { title: 'Meus clientes' },
       },
       {
+        path: 'mensagens',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-mensagens/parceiro-mensagens.component').then(
+            (m) => m.ParceiroMensagensComponent
+          ),
+        data: { title: 'Mensagens com clientes' },
+      },
+      {
+        path: 'mensagens/:clienteId',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-mensagens/parceiro-mensagens.component').then(
+            (m) => m.ParceiroMensagensComponent
+          ),
+        data: { title: 'Mensagens com cliente' },
+      },
+      {
         path: 'chat/:clienteId',
         loadComponent: () =>
           import('./pages/parceiros/parceiro-chat-cliente/parceiro-chat-cliente.component').then(
@@ -230,10 +259,23 @@ export const routes: Routes = [
         data: { title: 'Hospedagem pet & creche' },
       },
       {
-        path: 'minha-loja',
+        path: 'configuracoes',
         loadComponent: () =>
           import('./pages/parceiros/parceiro-minha-loja/parceiro-minha-loja.component').then(m => m.ParceiroMinhaLojaComponent),
-        data: { title: 'Minha loja' },
+        data: { title: 'Configurações' },
+      },
+      {
+        path: 'minha-loja',
+        redirectTo: 'configuracoes',
+        pathMatch: 'full',
+      },
+      {
+        path: 'petshop-online',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-petshop-online/parceiro-petshop-online.component').then(
+            (m) => m.ParceiroPetshopOnlineComponent
+          ),
+        data: { title: 'Petshop online' },
       },
       {
         path: 'catalogo-produto',
@@ -250,6 +292,12 @@ export const routes: Routes = [
             (m) => m.ParceiroInventarioPosComponent
           ),
         data: { title: 'Inventário / POS' },
+      },
+      {
+        path: 'caixa',
+        loadComponent: () =>
+          import('./pages/parceiros/parceiro-caixa/parceiro-caixa.component').then((m) => m.ParceiroCaixaComponent),
+        data: { title: 'Caixa' },
       },
       {
         path: 'gestao-clinica',

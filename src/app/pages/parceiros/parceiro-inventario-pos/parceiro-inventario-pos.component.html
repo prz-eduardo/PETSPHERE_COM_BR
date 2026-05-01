@@ -1,12 +1,23 @@
 <div class="inv">
   <header class="inv-head">
-    <h1>Inventário / POS</h1>
-    <p class="lead">Busque por nome, SKU ou código de barras (leitor USB + Enter). Em seguida edite o cadastro completo ou use o carrinho local para um fluxo de balcão simples.</p>
+    <h1>POS / Balcão</h1>
+    <p class="lead">
+      Busque por nome, SKU ou código de barras (leitor USB + Enter). É necessário ter o
+      <a routerLink="/parceiros/caixa">caixa aberto</a> para finalizar vendas.
+    </p>
     <nav class="inv-nav">
-      <a routerLink="/parceiros/minha-loja">Minha loja</a>
-      <a routerLink="/parceiros/catalogo-produto">Cadastro completo (novo)</a>
+      <a routerLink="/parceiros/caixa">Caixa</a>
+      <a routerLink="/parceiros/petshop-online">Petshop online</a>
+      <a routerLink="/parceiros/catalogo-produto">Novo produto (assistente)</a>
     </nav>
   </header>
+
+  <div *ngIf="!caixaAberto()" class="inv-alert" role="status">
+    <strong>Caixa fechado.</strong> Abra um turno em <a routerLink="/parceiros/caixa">Caixa</a> para registrar vendas aqui.
+  </div>
+  <div *ngIf="caixaAberto() && sessaoCaixa() as sc" class="inv-ok" role="status">
+    Caixa aberto (turno #{{ sc.id }}).
+  </div>
 
   <div class="inv-search">
     <label class="sr-only" for="inv-q">Buscar</label>
@@ -57,22 +68,48 @@
     </section>
 
     <aside class="inv-cart">
-      <h2>Carrinho (MVP)</h2>
-      <p class="muted small">Use para conferência no balcão; integração com pedido/pagamento pode vir depois.</p>
+      <h2>Carrinho</h2>
       <ul *ngIf="cartLines().length; else emptyCart">
-        <li *ngFor="let l of cartLines()">
-          <span>{{ l.nome }} × {{ l.qty }}</span>
-          <span>{{ l.preco * l.qty | currency : 'BRL' }}</span>
+        <li *ngFor="let l of cartLines()" class="cart-line">
+          <div class="cart-line-info">
+            <span class="cart-name">{{ l.nome }}</span>
+            <span class="cart-sub">{{ l.preco | currency : 'BRL' }} × {{ l.qty }}</span>
+          </div>
+          <div class="cart-line-actions">
+            <button type="button" class="btn-ghost" (click)="bumpQty(l, -1)" aria-label="Menos um">−</button>
+            <button type="button" class="btn-ghost" (click)="bumpQty(l, 1)" aria-label="Mais um">+</button>
+            <button type="button" class="btn-ghost" (click)="removeLine(l)" aria-label="Remover">✕</button>
+          </div>
+          <span class="cart-line-total">{{ l.preco * l.qty | currency : 'BRL' }}</span>
         </li>
       </ul>
       <ng-template #emptyCart>
-        <p class="muted">Clique num produto ou em “+ Carrinho”.</p>
+        <p class="muted">Clique num produto ou em “+ Carrinho”. Com leitor, Enter no campo de busca adiciona por código.</p>
       </ng-template>
       <div class="cart-total" *ngIf="cartLines().length">
         <strong>Total</strong>
         <strong>{{ cartTotal() | currency : 'BRL' }}</strong>
       </div>
-      <button type="button" class="btn-link" *ngIf="cartLines().length" (click)="clearCart()">Limpar</button>
+      <div class="checkout" *ngIf="cartLines().length">
+        <label class="checkout-label">
+          <span>Forma de pagamento</span>
+          <select [(ngModel)]="formaPagamento" class="inv-input inv-input--full">
+            <option value="dinheiro">Dinheiro</option>
+            <option value="pix">Pix</option>
+            <option value="cartao">Cartão</option>
+            <option value="outro">Outro</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          class="btn-primary checkout-btn"
+          [disabled]="!caixaAberto() || checkoutBusy()"
+          (click)="confirmarVenda()"
+        >
+          {{ checkoutBusy() ? 'Processando…' : 'Confirmar venda' }}
+        </button>
+      </div>
+      <button type="button" class="btn-link" *ngIf="cartLines().length" (click)="clearCart()">Limpar carrinho</button>
     </aside>
   </div>
 </div>

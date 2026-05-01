@@ -75,21 +75,31 @@
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
-.demo-pill {
+.saas-pill {
   position: absolute;
-  right: 8px;
-  bottom: 8px;
+  left: 8px;
+  top: 8px;
   z-index: 2;
-  background: linear-gradient(90deg, #2563eb, #1d4ed8);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb 55%, #4f46e5);
   color: #fff;
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 6px 12px 6px 10px;
   font-size: 11px;
   font-weight: 800;
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   pointer-events: none;
+}
+.saas-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
 }
 .fav {
   position: absolute;
@@ -239,4 +249,41 @@
 .icones-carrinho {
   width: 22px;
   height: 22px;
+}
+
+.saas-cta {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  background: linear-gradient(135deg, var(--fp-store-primary, #1d4ed8) 0%, var(--fp-store-accent, #4f46e5) 100%);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.saas-cta:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px rgba(37, 99, 235, 0.28);
+}
+.saas-cta:active {
+  transform: translateY(0);
+}
+.saas-cta__arrow {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+.saas-cta:hover .saas-cta__arrow {
+  transform: translateX(2px);
 }

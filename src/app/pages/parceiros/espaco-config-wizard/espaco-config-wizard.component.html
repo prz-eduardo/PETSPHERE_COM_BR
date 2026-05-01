@@ -1,0 +1,372 @@
+@if (open()) {
+  <div class="esp-overlay" role="dialog" aria-modal="true" aria-labelledby="esp-wizard-title">
+    <div class="esp-shell">
+      <aside class="esp-rail" aria-label="Passos">
+        <div class="esp-rail-head">Passos</div>
+        @for (s of steps; track s.id) {
+          <button type="button" class="esp-step" [attr.data-active]="step() === s.id" (click)="setStep(s.id)">
+            <span class="esp-step-num">{{ s.id }}</span>
+            {{ s.label }}
+          </button>
+        }
+      </aside>
+      <div class="esp-main">
+        <div class="esp-toolbar">
+          <h2 id="esp-wizard-title">{{ leito()?.id ? 'Editar espaço' : 'Novo espaço' }}</h2>
+          <span class="esp-progress">{{ step() }} / 7</span>
+          <button type="button" class="esp-btn esp-btn-ghost" (click)="dismiss()">Fechar</button>
+        </div>
+
+        @if (loadError()) {
+          <p class="esp-scroll esp-error">{{ loadError() }}</p>
+        } @else {
+          <div class="esp-scroll">
+            @switch (step()) {
+              @case (1) {
+                <p class="esp-muted">Identifique esta unidade na operação diária.</p>
+                <div class="esp-fields">
+                  <label>
+                    Nome do espaço
+                    <input
+                      type="text"
+                      name="nm"
+                      [ngModel]="draft().nome"
+                      (ngModelChange)="patchDraft({ nome: $event })"
+                      placeholder="Ex.: Suíte 02, Baia média" />
+                  </label>
+                  <label>
+                    Capacidade total (pets)
+                    <input
+                      type="number"
+                      name="cap"
+                      min="1"
+                      [ngModel]="draft().capacidade"
+                      (ngModelChange)="patchCapacidadeTotal($event)"
+                    />
+                  </label>
+                </div>
+              }
+              @case (2) {
+                <p class="esp-muted">Combinações refletem ofertas reais (hotel + daycare + premium).</p>
+                <div class="esp-section-title">Tipos de acomodação</div>
+                <div class="esp-grid-checks">
+                  @for (a of acoCat(); track a.slug) {
+                    <label class="esp-check">
+                      <input
+                        type="checkbox"
+                        [checked]="draft().acomodacao_slugs.includes(a.slug)"
+                        (change)="toggleAcomodacaoSlug(a.slug, $any($event.target).checked)" />
+                      {{ a.label_pt }}
+                    </label>
+                  }
+                </div>
+                <div class="esp-fields">
+                  <label>
+                    Nível de conforto
+                    <select
+                      name="nc"
+                      [ngModel]="draft().nivel_conforto"
+                      (ngModelChange)="patchDraft({ nivel_conforto: $event })">
+                      <option value="">—</option>
+                      <option value="basico">Básico</option>
+                      <option value="conforto">Conforto</option>
+                      <option value="premium">Premium</option>
+                      <option value="luxo">Luxo</option>
+                    </select>
+                  </label>
+                  <label>
+                    Ambiente
+                    <select
+                      name="amb"
+                      [ngModel]="draft().ambiente"
+                      (ngModelChange)="patchDraft({ ambiente: $event })">
+                      <option value="">—</option>
+                      <option value="interno">Interno</option>
+                      <option value="externo">Externo</option>
+                      <option value="misto">Misto</option>
+                    </select>
+                  </label>
+                </div>
+              }
+              @case (3) {
+                <p class="esp-muted">Portes são opcionais; a soma não pode ultrapassar o total.</p>
+                <div class="esp-fields">
+                  <label>
+                    Capacidade porte pequeno
+                    <input
+                      type="number"
+                      min="0"
+                      [ngModel]="draft().capacidade_pequeno"
+                      (ngModelChange)="patchPorteCap('capacidade_pequeno', $event)" />
+                  </label>
+                  <label>
+                    Capacidade porte médio
+                    <input
+                      type="number"
+                      min="0"
+                      [ngModel]="draft().capacidade_medio"
+                      (ngModelChange)="patchPorteCap('capacidade_medio', $event)" />
+                  </label>
+                  <label>
+                    Capacidade porte grande
+                    <input
+                      type="number"
+                      min="0"
+                      [ngModel]="draft().capacidade_grande"
+                      (ngModelChange)="patchPorteCap('capacidade_grande', $event)" />
+                  </label>
+                  <div class="esp-section-title">Convivência</div>
+                  <label>
+                    Pode misturar pets diferentes?
+                    <select
+                      name="cm"
+                      [ngModel]="draft().pode_misturar"
+                      (ngModelChange)="patchDraft({ pode_misturar: $event })">
+                      <option value="">—</option>
+                      <option value="sim">Sim</option>
+                      <option value="nao">Não</option>
+                    </select>
+                  </label>
+                  <label>
+                    Apenas mesma família/tutor?
+                    <select
+                      name="fam"
+                      [ngModel]="draft().apenas_mesma_familia"
+                      (ngModelChange)="patchDraft({ apenas_mesma_familia: $event })">
+                      <option value="">—</option>
+                      <option value="sim">Sim</option>
+                      <option value="nao">Não</option>
+                    </select>
+                  </label>
+                  <label>
+                    Isolamento obrigatório (parcial/períodos)?
+                    <select
+                      name="iso"
+                      [ngModel]="draft().isolamento_obrigatorio"
+                      (ngModelChange)="patchDraft({ isolamento_obrigatorio: $event })">
+                      <option value="">—</option>
+                      <option value="sim">Sim</option>
+                      <option value="nao">Não</option>
+                    </select>
+                  </label>
+                </div>
+              }
+              @case (4) {
+                @for (bloc of [{ key: 'basicos', label: 'Cuidados básicos' }, { key: 'atividades', label: 'Atividades' }, { key: 'premium', label: 'Premium' }]; track bloc.key) {
+                  @if (byCategoria(bloc.key).length) {
+                    <div class="esp-section-title">{{ bloc.label }}</div>
+                    <div class="esp-grid-checks">
+                      @for (o of byCategoria(bloc.key); track o.slug) {
+                        <label class="esp-check">
+                          <input
+                            type="checkbox"
+                            [checked]="draft().servicos_slugs.includes(o.slug)"
+                            (change)="toggleServicosSlug(o.slug, $any($event.target).checked)" />
+                          {{ o.label_pt }}
+                        </label>
+                      }
+                    </div>
+                  }
+                }
+                <div class="esp-section-title">Infraestrutura</div>
+                <div class="esp-grid-checks">
+                  @for (inf of infraCat(); track inf.slug) {
+                    <label class="esp-check">
+                      <input
+                        type="checkbox"
+                        [checked]="draft().infra_slugs.includes(inf.slug)"
+                        (change)="toggleInfraSlug(inf.slug, $any($event.target).checked)" />
+                      {{ inf.label_pt }}
+                    </label>
+                  }
+                </div>
+                @if (catalogForLeitoOutros().length) {
+                  <div class="esp-section-title">Demais serviços</div>
+                  <div class="esp-grid-checks">
+                    @for (o of catalogForLeitoOutros(); track o.slug) {
+                      <label class="esp-check">
+                        <input
+                          type="checkbox"
+                          [checked]="draft().servicos_slugs.includes(o.slug)"
+                          (change)="toggleServicosSlug(o.slug, $any($event.target).checked)" />
+                        {{ o.label_pt }}
+                      </label>
+                    }
+                  </div>
+                }
+              }
+              @case (5) {
+                <p class="esp-muted">Para publicar, responda Sim ou Não em todos ao finalizar (passo 7).</p>
+                @for (
+                  campo of [
+                    { k: 'exige_polivalente_v8_v10', l: 'Exige vacinação polivalente (V8/V10)?' },
+                    { k: 'exige_antirrabica', l: 'Exige antirrábica em dia?' },
+                    { k: 'exige_vermifugacao', l: 'Exige vermifugação atualizada?' },
+                    { k: 'aceita_nao_castrado', l: 'Aceita não castrados?' },
+                    { k: 'aceita_femea_no_cio', l: 'Aceita fêmea no cio?' },
+                    { k: 'aceita_agressivos', l: 'Aceita pets agressivos?' },
+                    { k: 'aceita_idosos_ou_especiais', l: 'Aceita idosos ou necessidades especiais?' },
+                    { k: 'aceita_medicacao_continua', l: 'Aceita medicação contínua administrada pela equipe?' },
+                  ];
+                  track campo.k
+                ) {
+                  <div class="esp-fields" style="max-width: none">
+                    <label>
+                      {{ campo.l }}
+                      <select
+                        [name]="campo.k"
+                        [ngModel]="$any(draft())[campo.k]"
+                        (ngModelChange)="patchSaudeField(campo.k, $event)"
+                      >
+                        <option value="">—</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                      </select>
+                    </label>
+                  </div>
+                }
+              }
+              @case (6) {
+                <p class="esp-muted">
+                  Upload de capa opcional (“foto”); outros arquivos vão como galeria. URLs https complementam sem upload.
+                </p>
+                <div class="esp-fields">
+                  <label>Foto principal (upload) <input type="file" accept="image/*" (change)="onCapaFile($event)" /></label>
+                  <label>Galeria (múltiplas imagens) <input type="file" accept="image/*" multiple (change)="onGaleriaFiles($event)" /></label>
+                  <label>
+                    URLs da galeria
+                    <div class="esp-gallery-list">
+                      @for (_ of draft().galeria_urls; track $index) {
+                        <div class="esp-gallery-row">
+                          <input
+                            type="url"
+                            [name]="'g' + $index"
+                            [ngModel]="draft().galeria_urls[$index]"
+                            (ngModelChange)="setGaleriaUrlAt($index, $event)"
+                          />
+                          <button type="button" class="esp-btn esp-btn-ghost" (click)="removeGaleriaUrlRow($index)">×</button>
+                        </div>
+                      }
+                      <button type="button" class="esp-btn esp-btn-ghost" (click)="addGaleriaUrlRow()">+ linha URL</button>
+                    </div>
+                  </label>
+                  <label>
+                    Vídeo do espaço (URL)
+                    <input
+                      type="url"
+                      [ngModel]="draft().video_url"
+                      (ngModelChange)="patchDraft({ video_url: $event })" />
+                  </label>
+                </div>
+              }
+              @case (7) {
+                <p class="esp-muted">Destaque / Top debitam créditos ao confirmar quando a vitrine está ativa.</p>
+                <div class="esp-fields">
+                  <label class="esp-check">
+                    <input
+                      type="checkbox"
+                      [ngModel]="draft().vitrine_exibir"
+                      (ngModelChange)="patchDraft({ vitrine_exibir: $event })" />
+                    Publicar na vitrine da loja
+                  </label>
+                  <label>
+                    Diária (R$)
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      [ngModel]="draft().vitrine_precio"
+                      (ngModelChange)="patchVitrinePrecio($event)"
+                    />
+                  </label>
+                  <div class="esp-section-title">Nível</div>
+                  <div class="vitr-radio">
+                    <label>
+                      <input
+                        type="radio"
+                        name="vn"
+                        [checked]="draft().vitrine_nivel === 'basico'"
+                        (change)="patchDraft({ vitrine_nivel: 'basico' })" />
+                      Básico (gratis)
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        name="vn"
+                        [checked]="draft().vitrine_nivel === 'destaque'"
+                        (change)="patchDraft({ vitrine_nivel: 'destaque' })" />
+                      Destaque
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        name="vn"
+                        [checked]="draft().vitrine_nivel === 'top'"
+                        (change)="patchDraft({ vitrine_nivel: 'top' })" />
+                      Top ranking
+                    </label>
+                  </div>
+                  <div class="esp-section-title">Selos para vitrine</div>
+                  @for (
+                    sx of [
+                      { slug: 'verificado', lb: 'Verificado' },
+                      { slug: 'premium_host', lb: 'Premium host' },
+                      { slug: 'alta_taxa_resposta', lb: 'Alta taxa de resposta' },
+                    ];
+                    track sx.slug
+                  ) {
+                    <label class="esp-check">
+                      <input type="checkbox" [checked]="isSeloOn(sx.slug)" (change)="toggleVitrineSelo(sx.slug, $any($event.target).checked)" />
+                      {{ sx.lb }}
+                    </label>
+                  }
+                  <div class="esp-section-title">Horários / políticas (visíveis aos tutores)</div>
+                  <label>
+                    Check-in (texto/hora)
+                    <input type="text" [ngModel]="draft().chk_in_hora" (ngModelChange)="patchDraft({ chk_in_hora: $event })" />
+                  </label>
+                  <label>
+                    Check-out
+                    <input type="text" [ngModel]="draft().chk_out_hora" (ngModelChange)="patchDraft({ chk_out_hora: $event })" />
+                  </label>
+                  <label>
+                    Adaptação / trial
+                    <textarea [ngModel]="draft().politica_adaptacao" (ngModelChange)="patchDraft({ politica_adaptacao: $event })"></textarea>
+                  </label>
+                  <label>
+                    Limite de estadia (dias)
+                    <input type="number" min="1" [ngModel]="draft().limite_estadia" (ngModelChange)="patchDraft({ limite_estadia: $event })" />
+                  </label>
+                  <label>
+                    Cancelamento
+                    <textarea [ngModel]="draft().politica_cancelamento" (ngModelChange)="patchDraft({ politica_cancelamento: $event })"></textarea>
+                  </label>
+                  <label>
+                    Taxa por comportamento agressivo / política
+                    <input type="text" [ngModel]="draft().taxa_agressivo" (ngModelChange)="patchDraft({ taxa_agressivo: $event })" />
+                  </label>
+                </div>
+              }
+            }
+            @if (formError()) {
+              <p class="esp-error" style="padding-top: 8px">{{ formError() }}</p>
+            }
+          </div>
+        }
+
+        <div class="esp-footer">
+          @if (step() > 1) {
+            <button type="button" class="esp-btn esp-btn-ghost" [disabled]="saving()" (click)="prev()">Anterior</button>
+          }
+          @if (step() < 7) {
+            <button type="button" class="esp-btn esp-btn-primary" [disabled]="saving()" (click)="next()">Próximo</button>
+          } @else {
+            <button type="button" class="esp-btn esp-btn-primary" [disabled]="saving()" (click)="submit()">
+              {{ saving() ? 'Salvando…' : 'Salvar espaço' }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}

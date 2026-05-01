@@ -23,6 +23,9 @@ export type DockActionId =
   | 'hospedagem'
   | 'meus-pets'
   | 'galeria'
+  | 'sobre-nos'
+  | 'planos-parceiro'
+  | 'prestador-login'
   /** Atalhos FAB — modo veterinário (dock profissional) */
   | 'vet-pacientes'
   | 'vet-receitas'

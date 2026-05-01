@@ -141,16 +141,40 @@
         </div>
       }
     } @else {
-      <div class="leitos-toolbar">
-        <button type="button" class="btn-primary" (click)="openCreateLeitoDrawer()">Cadastrar espaço</button>
-      </div>
+      @if (auth.isMaster()) {
+        <div class="leitos-toolbar">
+          <button type="button" class="btn-primary" (click)="openCreateLeitoDrawer()">Cadastrar espaço</button>
+        </div>
+      } @else {
+        <p class="leitos-hint">
+          Só o <strong>usuário master</strong> da conta parceira pode cadastrar ou editar baias e acomodações. Peça ao
+          responsável pela loja para fazer login com a conta principal ou conceder permissão equivalente.
+        </p>
+      }
       <div class="rooms-grid">
         @for (leito of leitos(); track trackLeito($index, leito)) {
           <article class="room-card" [class.occupied]="leito.ocupado === 1 || leito.ocupado === true">
-            <img class="room-photo" *ngIf="leito.foto_url" [src]="leito.foto_url" [alt]="'Foto do espaço ' + leito.nome" />
+            <div class="room-photo-wrap">
+              <img
+                class="room-photo"
+                *ngIf="leitoCoverUrl(leito)"
+                [src]="leitoCoverUrl(leito)!"
+                [alt]="'Foto do espaço ' + leito.nome"
+              />
+              <span class="room-gallery-count" *ngIf="galleryCount(leito) > 1">+{{ galleryCount(leito) - 1 }} fotos</span>
+            </div>
             <h3>{{ leito.nome }}</h3>
             <p>{{ leito.tipo }} · até {{ leito.capacidade }} pet(s)</p>
+            <div class="room-badges" *ngIf="confortoChipLabel(leito) || vitrineNivelLabel(leito)">
+              <span class="room-badge room-badge--conforto" *ngIf="confortoChipLabel(leito) as c">{{ c }}</span>
+              <span class="room-badge room-badge--vitrine" *ngIf="vitrineNivelLabel(leito) as vn">{{ vn }}</span>
+            </div>
             <span class="room-status">{{ (leito.ocupado === 1 || leito.ocupado === true) ? 'Ocupado' : 'Disponível' }}</span>
+            @if (auth.isMaster()) {
+              <div class="room-card-actions">
+                <button type="button" class="btn-link" (click)="openEditLeitoDrawer(leito)">Editar</button>
+              </div>
+            }
             <small *ngIf="leito.exibir_na_vitrine === 1 || leito.exibir_na_vitrine === true">
               Exibido na vitrine como serviço de hospedagem
             </small>
@@ -243,64 +267,6 @@
         </button>
       </footer>
     } @else {
-      @if (drawerMode() === 'create-leito') {
-        <header class="drawer-header">
-          <h2>Novo espaço</h2>
-          <p>Cadastre baia, canil ou suíte com foto e, se quiser, oferta na vitrine.</p>
-        </header>
-        <div class="drawer-form">
-          <label>
-            <span>Nome do espaço</span>
-            <input type="text" [ngModel]="draftLeitoNome()" (ngModelChange)="draftLeitoNome.set($event)" placeholder="Ex.: Box 01, Canil médio" />
-          </label>
-          <label>
-            <span>Tipo</span>
-            <input type="text" [ngModel]="draftLeitoTipo()" (ngModelChange)="draftLeitoTipo.set($event)" placeholder="Ex.: Suíte família, creche" />
-          </label>
-          <label>
-            <span>Capacidade (nº de pets)</span>
-            <input type="number" min="1" [ngModel]="draftLeitoCapacidade()" (ngModelChange)="draftLeitoCapacidade.set($event)" />
-          </label>
-          <div class="leito-foto-block">
-            <span class="field-label">Foto do espaço</span>
-            <div class="leito-foto-row">
-              <input type="file" accept="image/*" (change)="onLeitoFotoSelected($event)" />
-              <button type="button" class="btn-ghost btn-sm" *ngIf="draftLeitoFotoFile() || leitoFotoPreviewObjectUrl()" (click)="clearLeitoFoto()">
-                Remover arquivo
-              </button>
-            </div>
-            <div class="leito-foto-preview" *ngIf="leitoFotoDisplay() as src">
-              <img [src]="src" alt="Pré-visualização do espaço" />
-            </div>
-            <label class="leito-foto-url">
-              <span>Ou URL da imagem</span>
-              <input type="url" [ngModel]="draftLeitoFotoUrl()" (ngModelChange)="draftLeitoFotoUrl.set($event)" placeholder="https://..." [disabled]="!!draftLeitoFotoFile()" />
-            </label>
-          </div>
-          <fieldset class="ofertas-fieldset" *ngIf="catalogLeitoEntries().length">
-            <legend>O que este espaço oferece</legend>
-            <label class="checkbox-row" *ngFor="let o of catalogLeitoEntries()">
-              <input type="checkbox" [checked]="draftHasLeitoOferta(o.slug)" (change)="toggleDraftLeitoOferta(o.slug)" />
-              <span>{{ o.label_pt }}</span>
-            </label>
-          </fieldset>
-          <label class="checkbox-row">
-            <input type="checkbox" [ngModel]="draftLeitoExibirVitrine()" (ngModelChange)="draftLeitoExibirVitrine.set($event)" />
-            <span>Exibir na vitrine como serviço de hospedagem</span>
-          </label>
-          <label *ngIf="draftLeitoExibirVitrine()">
-            <span>Preço da diária (R$)</span>
-            <input type="number" min="0" step="0.01" [ngModel]="draftLeitoPrecoDiaria()" (ngModelChange)="draftLeitoPrecoDiaria.set($event)" />
-          </label>
-          <p class="error-msg" *ngIf="formError()">{{ formError() }}</p>
-        </div>
-        <footer class="drawer-footer">
-          <button type="button" class="btn-ghost" (click)="closeDrawer()">Cancelar</button>
-          <button type="button" class="btn-primary" (click)="saveLeito()" [disabled]="saving()">
-            {{ saving() ? 'Salvando...' : 'Salvar espaço' }}
-          </button>
-        </footer>
-      } @else {
         <header class="drawer-header">
           <h2>Detalhes da estadia</h2>
           <p>Fluxo operacional e notas para a equipe.</p>
@@ -378,7 +344,13 @@
           <button type="button" class="btn-primary" (click)="openCreateDrawer()">Nova reserva</button>
           <button type="button" class="btn-ghost" (click)="closeDrawer()">Fechar</button>
         </footer>
-      }
     }
   </section>
 </app-side-drawer>
+
+<app-espaco-config-wizard
+  [open]="espacoWizardOpen()"
+  [leito]="espacoWizardLeito()"
+  (dismissed)="onEspacoWizardDismiss()"
+  (saved)="onEspacoWizardSaved($event)"
+/>

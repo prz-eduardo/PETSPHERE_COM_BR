@@ -9,7 +9,10 @@
       <span class="count" *ngIf="product.favoritesCount != null">{{ product.favoritesCount }}</span>
     </button>
     <button type="button" class="btn add" *ngIf="product.permiteCheckout !== false" (click)="onAddClick($event)" aria-label="Adicionar ao carrinho"><img src="/icones/carrinho.png" class="icones-carrinho" width="30" height="30" alt="Carrinho"></button>
-    <span class="demo-pill" *ngIf="product.permiteCheckout === false" title="Solução PetSphere — clique para conhecer">Solução SaaS</span>
+    <span class="saas-pill" *ngIf="product.permiteCheckout === false" title="Solução PetSphere — clique para conhecer">
+      <span class="saas-pill__dot" aria-hidden="true"></span>
+      Solução PetSphere
+    </span>
   </div>
   <div class="info">
     <h3 class="nome" [title]="product.name">{{ product.name }}</h3>
@@ -38,10 +41,14 @@
       </div>
       <p class="desc">{{ product.description || '' }}</p>
     </div>
-    <div class="preco">
+    <div class="preco" *ngIf="product.permiteCheckout !== false">
       <span class="atual">{{ priceNow | currency:'BRL' }}</span>
       <span class="old" *ngIf="oldPriceDisplay != null">{{ oldPriceDisplay | currency:'BRL' }}</span>
     </div>
+    <button type="button" class="saas-cta" *ngIf="product.permiteCheckout === false" (click)="onAddClick($event)" aria-label="Conhecer solução PetSphere">
+      <span class="saas-cta__label">Conhecer solução</span>
+      <span class="saas-cta__arrow" aria-hidden="true">→</span>
+    </button>
   </div>
 </ng-template>
 

@@ -1,0 +1,118 @@
+<div class="mensagens">
+  <header class="mensagens__head">
+    <div class="mensagens__titles">
+      <span class="mensagens__eyebrow">Atendimento</span>
+      <h1 class="mensagens__title">Mensagens com clientes</h1>
+      <p class="mensagens__sub">
+        Conversas com tutores que concederam permissão de contacto (LGPD). O mesmo chat abre em
+        <a routerLink="/parceiros/meus-clientes">Meus clientes</a>.
+      </p>
+    </div>
+    <button type="button" class="mensagens__refresh ghost-btn" (click)="refreshList()" [disabled]="listLoading()">
+      {{ listLoading() ? 'A atualizar…' : 'Atualizar lista' }}
+    </button>
+  </header>
+
+  <p class="feedback feedback--err" *ngIf="listErr()">{{ listErr() }}</p>
+
+  <div
+    class="mensagens__split"
+    [class.mensagens__split--conversation]="selectedClienteId() !== null"
+  >
+    <aside class="mensagens__sidebar" aria-label="Lista de clientes">
+      <div class="sidebar__search">
+        <i class="fa fa-search" aria-hidden="true"></i>
+        <input
+          type="search"
+          placeholder="Filtrar por nome, e-mail ou n.º..."
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="sidebar__meta">
+        <span class="pill">{{ filteredClients().length }} convers{{ filteredClients().length === 1 ? 'a' : 'as' }}</span>
+        <span class="muted" *ngIf="chatEligible().length === 0 && !listLoading()"
+          >Nenhum cliente com permissão concedida.</span
+        >
+      </div>
+
+      <div class="sidebar__list scroll-y" *ngIf="!listLoading(); else listaSkel">
+        <button
+          type="button"
+          class="row"
+          *ngFor="let row of filteredClients(); trackBy: trackByClienteId"
+          [class.row--active]="selectedClienteId() === row.cliente_id"
+          (click)="pickCliente(row)"
+        >
+          <span class="row__avatar" aria-hidden="true">
+            {{ (row.cliente_nome || row.cliente_email || '?')[0] | uppercase }}
+          </span>
+          <span class="row__txt">
+            <span class="row__name">{{ row.cliente_nome || 'Cliente' }}</span>
+            <span class="row__email">{{ row.cliente_email || ('#' + row.cliente_id) }}</span>
+          </span>
+          <i class="fa fa-chevron-right row__caret" aria-hidden="true"></i>
+        </button>
+        <p class="muted empty-hint" *ngIf="filteredClients().length === 0 && chatEligible().length">
+          Nenhum resultado para este filtro.
+        </p>
+        <div class="empty-cta" *ngIf="chatEligible().length === 0 && !listErr()">
+          <p>Convide clientes e peça permissão de dados em Meus clientes para desbloquear o chat.</p>
+          <a routerLink="/parceiros/meus-clientes" class="primary-lite">Ir a Meus clientes</a>
+        </div>
+      </div>
+      <ng-template #listaSkel>
+        <p class="muted skel-p">A carregar clientes…</p>
+      </ng-template>
+
+      <footer class="sidebar__footer">
+        <a routerLink="/parceiros/painel" class="muted-link"><i class="fa fa-th-large"></i> Painel</a>
+      </footer>
+    </aside>
+
+    <section class="mensagens__main" aria-label="Conversa">
+      <ng-container *ngIf="selectedClienteId() !== null; else pickHint">
+        <div class="thread-head">
+          <button type="button" class="back-mobile ghost-btn ghost-btn--icon" (click)="goBackLista()" aria-label="Voltar à lista">
+            <i class="fa fa-angle-left"></i>
+          </button>
+          <div class="thread-head__txt">
+            <h2>{{ selectedLabel() }}</h2>
+            <span class="thread-head__muted">Cliente #{{ selectedClienteId() }}</span>
+          </div>
+        </div>
+
+        <p class="feedback feedback--err" *ngIf="threadBootErr()">{{ threadBootErr() }}</p>
+
+        <div class="thread-surface" *ngIf="threadBootLoading(); else threadBlock">
+          <p class="muted center-p">A abrir conversa…</p>
+        </div>
+        <ng-template #threadBlock>
+          <div class="thread-surface" *ngIf="threadId(); else bootFail">
+            <app-partner-chat-thread
+              [threadId]="threadId()!"
+              [mode]="modeParceiro"
+              [variant]="'painel'"
+            />
+          </div>
+        </ng-template>
+        <ng-template #bootFail>
+          <p class="muted center-p" *ngIf="!threadBootErr()">Não foi possível carregar o chat.</p>
+        </ng-template>
+      </ng-container>
+
+      <ng-template #pickHint>
+        <div class="empty-main">
+          <div class="empty-main__card">
+            <span class="empty-main__icon"><i class="fa fa-comments"></i></span>
+            <h2>Escolha um cliente</h2>
+            <p class="muted">Selecione uma conversa na lista à esquerda para ler e responder mensagens.</p>
+            <p class="muted small">No telemóvel, a lista aparece primeiro; ao escolher, abre a conversa.</p>
+          </div>
+        </div>
+      </ng-template>
+    </section>
+  </div>
+</div>

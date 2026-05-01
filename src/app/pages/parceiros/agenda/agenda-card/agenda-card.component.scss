@@ -4,14 +4,14 @@
   background: var(--admin-surface-2);
   border: 1px solid var(--admin-border);
   border-radius: var(--admin-radius-md);
-  border-left: 3px solid var(--admin-muted);
+  border-left: 4px solid var(--admin-muted);
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   width: 100%;
 
   &:hover {
-    border-color: var(--admin-border-strong);
+    border-color: rgba(13, 184, 222, 0.35);
     box-shadow: var(--admin-shadow-md);
     transform: translateY(-1px);
   }

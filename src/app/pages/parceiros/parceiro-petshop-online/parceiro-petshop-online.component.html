@@ -1,0 +1,127 @@
+<div class="petshop-online">
+  <header class="petshop-hero">
+    <h1>Petshop online</h1>
+    <p class="lead">
+      Categorias, catálogo, cupons e promoções da sua vitrine em
+      <strong>https://(nome).petsphere.com.br</strong>. Ajuste URL, textos institucionais e pagamentos em
+      <a routerLink="/parceiros/configuracoes">configurações da vitrine</a>.
+    </p>
+    <div class="petshop-hero-links" *ngIf="auth.isMaster()">
+      <a routerLink="/parceiros/catalogo-produto" class="petshop-chip petshop-chip--primary">Cadastrar produto (assistente)</a>
+      <a routerLink="/parceiros/inventario-pos" class="petshop-chip">Inventário / POS</a>
+    </div>
+  </header>
+
+  <div *ngIf="loading()" class="petshop-loading muted" role="status">Carregando…</div>
+
+  <ng-container *ngIf="!loading()">
+    <section class="card" *ngIf="auth.isMaster()" aria-labelledby="petshop-cat-heading">
+      <h2 id="petshop-cat-heading">Categorias</h2>
+      <p class="petshop-section-desc muted">Organize o catálogo com categorias próprias da loja.</p>
+      <div class="grid-2">
+        <input type="text" [(ngModel)]="novaCategoria.nome" placeholder="Nome da categoria" autocomplete="off" />
+        <input type="text" [(ngModel)]="novaCategoria.slug" placeholder="Slug (opcional)" autocomplete="off" />
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-secondary" (click)="criarCategoria()">Cadastrar categoria</button>
+      </div>
+      <ul class="prod-list" *ngIf="comercialCategorias().length">
+        <li *ngFor="let c of comercialCategorias()">
+          <span>{{ c.nome }} <small class="muted" *ngIf="c.slug">({{ c.slug }})</small></span>
+          <button type="button" class="link-danger" (click)="excluirCategoria(c.id)">Excluir</button>
+        </li>
+      </ul>
+      <p *ngIf="!comercialCategorias().length" class="muted petshop-empty-hint">Nenhuma categoria ainda.</p>
+    </section>
+
+    <section class="card" *ngIf="auth.isMaster()" aria-labelledby="petshop-catalog-heading">
+      <h2 id="petshop-catalog-heading">Catálogo na vitrine</h2>
+      <p class="petshop-section-desc muted">
+        Novos produtos e alterações detalhadas (fotos, código de barras, variantes) são feitas pelo assistente de cadastro.
+      </p>
+      <div class="catalog-toolbar">
+        <a routerLink="/parceiros/catalogo-produto" class="btn-primary">Novo produto</a>
+        <span class="catalog-toolbar-note">
+          Estoque e leitura de código de barras: <a routerLink="/parceiros/inventario-pos">Inventário / POS</a>.
+        </span>
+      </div>
+      <ng-container *ngIf="comercialProdutos().length; else emptyCatalog">
+        <ul class="prod-list">
+          <li *ngFor="let p of comercialProdutos()" class="prod-row">
+            <div>
+              <span class="prod-title">#{{ p.id }} — {{ p.nome }} <span class="muted">(R$ {{ p.preco }})</span></span>
+              <span class="prod-badge prod-badge--live" *ngIf="p.vitrine_ativo === 1">Na vitrine</span>
+              <span class="prod-badge prod-badge--stock" *ngIf="p.vitrine_ativo !== 1">Só estoque</span>
+            </div>
+            <div class="prod-actions">
+              <a routerLink="/parceiros/catalogo-produto" [queryParams]="{ produto_id: p.id }">Editar</a>
+              <button type="button" class="link-muted" (click)="toggleVitrineProduto(p)">
+                {{ p.vitrine_ativo === 1 ? 'Ocultar da loja' : 'Mostrar na loja' }}
+              </button>
+              <button type="button" class="link-danger" (click)="excluirProdutoComercial(p.id)">Excluir</button>
+            </div>
+          </li>
+        </ul>
+      </ng-container>
+      <ng-template #emptyCatalog>
+        <div class="empty-catalog">
+          <strong>Nenhum produto cadastrado</strong>
+          Use o assistente para criar o primeiro item do catálogo.
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="card" *ngIf="auth.isMaster()" aria-labelledby="petshop-cupom-heading">
+      <h2 id="petshop-cupom-heading">Cupons</h2>
+      <p class="petshop-section-desc muted">Descontos por código na finalização do pedido na vitrine.</p>
+      <div class="grid-2">
+        <input type="text" [(ngModel)]="novoCupom.codigo" placeholder="Código (ex.: PET10)" autocomplete="off" />
+        <input type="text" [(ngModel)]="novoCupom.valor" placeholder="Valor" />
+        <select [(ngModel)]="novoCupom.tipo">
+          <option value="percentual">Percentual (%)</option>
+          <option value="valor">Valor fixo (R$)</option>
+        </select>
+        <input type="date" [(ngModel)]="novoCupom.validade" />
+      </div>
+      <input type="text" [(ngModel)]="novoCupom.descricao" placeholder="Descrição do cupom" />
+      <div class="actions">
+        <button type="button" class="btn-secondary" (click)="criarCupom()">Cadastrar cupom</button>
+      </div>
+      <ul class="prod-list" *ngIf="comercialCupons().length">
+        <li *ngFor="let c of comercialCupons()">
+          <span>{{ c.codigo }} — {{ c.tipo === 'valor' ? 'R$' : '%' }} {{ c.valor }} ({{ c.validade || 'sem validade' }})</span>
+          <button type="button" class="link-danger" (click)="excluirCupom(c.id)">Excluir</button>
+        </li>
+      </ul>
+      <p *ngIf="!comercialCupons().length" class="muted petshop-empty-hint">Nenhum cupom.</p>
+    </section>
+
+    <section class="card" *ngIf="auth.isMaster()" aria-labelledby="petshop-promo-heading">
+      <h2 id="petshop-promo-heading">Promoções</h2>
+      <p class="petshop-section-desc muted">Campanhas com período definido.</p>
+      <div class="grid-2">
+        <input type="text" [(ngModel)]="novaPromocao.nome" placeholder="Nome da promoção" autocomplete="off" />
+        <input type="text" [(ngModel)]="novaPromocao.valor" placeholder="Valor" />
+        <select [(ngModel)]="novaPromocao.tipo">
+          <option value="percentual">Percentual (%)</option>
+          <option value="valor">Valor fixo (R$)</option>
+        </select>
+        <input type="text" [(ngModel)]="novaPromocao.descricao" placeholder="Descrição" />
+        <input type="datetime-local" [(ngModel)]="novaPromocao.inicio" />
+        <input type="datetime-local" [(ngModel)]="novaPromocao.fim" />
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-secondary" (click)="criarPromocao()">Cadastrar promoção</button>
+      </div>
+      <ul class="prod-list" *ngIf="comercialPromocoes().length">
+        <li *ngFor="let p of comercialPromocoes()">
+          <span>{{ p.nome }} — {{ p.tipo === 'valor' ? 'R$' : '%' }} {{ p.valor }}</span>
+          <button type="button" class="link-danger" (click)="excluirPromocao(p.id)">Excluir</button>
+        </li>
+      </ul>
+      <p *ngIf="!comercialPromocoes().length" class="muted petshop-empty-hint">Nenhuma promoção.</p>
+    </section>
+
+    <p *ngIf="!auth.isMaster()" class="muted">Somente o master pode gerenciar o catálogo online.</p>
+  </ng-container>
+</div>

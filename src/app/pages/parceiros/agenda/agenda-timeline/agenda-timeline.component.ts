@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { Agendamento, AgendaConfig, Profissional, SlotInfo } from '../../../../types/agenda.types';
 import { AgendaCardComponent, QuickActionEvent } from '../agenda-card/agenda-card.component';
 import { toDate, getTime } from '../utils/date-helpers';
+import { normalizeWorkWindow, profissionaisAsList } from '../utils/agenda-view.utils';
 
 interface TimeHour {
   label: string;
@@ -30,27 +31,44 @@ export class AgendaTimelineComponent {
 
   readonly PX_PER_HOUR = 120;
 
-  get workStart(): number { return this.config?.workStart ?? 8; }
-  get workEnd(): number   { return this.config?.workEnd ?? 19; }
+  private get bounds(): { start: number; end: number } {
+    const c = this.config;
+    if (!c) return { start: 8, end: 19 };
+    return normalizeWorkWindow(undefined, undefined, c.workStart, c.workEnd);
+  }
+
+  get workStart(): number {
+    return this.bounds.start;
+  }
+
+  get workEnd(): number {
+    return this.bounds.end;
+  }
 
   get hours(): TimeHour[] {
+    const { start, end } = this.bounds;
     const h: TimeHour[] = [];
-    for (let i = this.workStart; i <= this.workEnd; i++) {
+    for (let i = start; i <= end; i++) {
       h.push({ label: `${String(i).padStart(2, '0')}:00`, hour: i });
     }
     return h;
   }
 
   get totalMinutes(): number {
-    return (this.workEnd - this.workStart) * 60;
+    const { start, end } = this.bounds;
+    return (end - start) * 60;
   }
 
   get timelineWidth(): number {
-    return (this.workEnd - this.workStart) * this.PX_PER_HOUR;
+    const { start, end } = this.bounds;
+    return (end - start) * this.PX_PER_HOUR;
   }
 
   get profRows(): Profissional[] {
-    return this.config?.multiProfessional ? this.profissionais : [this.profissionais[0]].filter(Boolean);
+    const list = profissionaisAsList(this.profissionais);
+    if (this.config?.multiProfessional) return list;
+    const first = list[0];
+    return first ? [first] : [];
   }
 
   agendamentosForProf(profId: string): Agendamento[] {
@@ -58,9 +76,10 @@ export class AgendaTimelineComponent {
   }
 
   leftPx(a: Agendamento): string {
+    const { start } = this.bounds;
     const date = toDate(a.inicio);
     const startMin = date.getHours() * 60 + date.getMinutes();
-    const offset = startMin - this.workStart * 60;
+    const offset = startMin - start * 60;
     return Math.max(0, (offset / 60) * this.PX_PER_HOUR) + 'px';
   }
 
@@ -70,22 +89,25 @@ export class AgendaTimelineComponent {
   }
 
   get nowLeftPx(): string | null {
+    const { start, end } = this.bounds;
+    const spanMin = (end - start) * 60;
     const now = new Date();
     if (now.toDateString() !== this.selectedDate?.toDateString()) return null;
     const nowMin = now.getHours() * 60 + now.getMinutes();
-    const offset = nowMin - this.workStart * 60;
-    if (offset < 0 || offset > this.totalMinutes) return null;
+    const offset = nowMin - start * 60;
+    if (offset < 0 || offset > spanMin) return null;
     return ((offset / 60) * this.PX_PER_HOUR) + 'px';
   }
 
   gapsForProf(profId: string): Array<{ leftPx: string; widthPx: string }> {
+    const { start: ws, end } = this.bounds;
     const busy = this.agendamentosForProf(profId)
       .filter(a => a.status !== 'CANCELADO')
       .sort((a, b) => getTime(a.inicio) - getTime(b.inicio));
 
     const gaps: Array<{ leftPx: string; widthPx: string }> = [];
-    let cursor = this.workStart * 60;
-    const end = this.workEnd * 60;
+    let cursor = ws * 60;
+    const windowEndMin = end * 60;
 
     for (const a of busy) {
       const aStartDate = toDate(a.inicio);
@@ -93,7 +115,7 @@ export class AgendaTimelineComponent {
       if (aStart > cursor + 30) {
         const gapMin = aStart - cursor;
         gaps.push({
-          leftPx: ((cursor - this.workStart * 60) / 60 * this.PX_PER_HOUR) + 'px',
+          leftPx: ((cursor - ws * 60) / 60 * this.PX_PER_HOUR) + 'px',
           widthPx: (gapMin / 60 * this.PX_PER_HOUR) + 'px',
         });
       }
@@ -102,10 +124,10 @@ export class AgendaTimelineComponent {
       cursor = Math.max(cursor, aEnd);
     }
 
-    if (cursor < end - 30) {
+    if (cursor < windowEndMin - 30) {
       gaps.push({
-        leftPx: ((cursor - this.workStart * 60) / 60 * this.PX_PER_HOUR) + 'px',
-        widthPx: ((end - cursor) / 60 * this.PX_PER_HOUR) + 'px',
+        leftPx: ((cursor - ws * 60) / 60 * this.PX_PER_HOUR) + 'px',
+        widthPx: ((windowEndMin - cursor) / 60 * this.PX_PER_HOUR) + 'px',
       });
     }
 
@@ -116,5 +138,11 @@ export class AgendaTimelineComponent {
     const hora = new Date(this.selectedDate);
     hora.setHours(hour.hour, 0, 0, 0);
     this.slotClick.emit({ hora, profissionalId: prof.id });
+  }
+
+  onRowTrackClick(prof: Profissional): void {
+    const h = this.hours[0];
+    if (!h) return;
+    this.onSlotClick(prof, h);
   }
 }

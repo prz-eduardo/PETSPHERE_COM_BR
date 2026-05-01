@@ -12,8 +12,16 @@ import {
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { ParceiroAuthService } from '../../../../services/parceiro-auth.service';
+import { ApiService } from '../../../../services/api.service';
+import { ToastService } from '../../../../services/toast.service';
+import {
+  AgendaApiService,
+  PanoramaClientePermitidoPet,
+  PermissaoDadosRow,
+} from '../../../parceiros/agenda/services/agenda-api.service';
 import { RouteDistanceService } from './route-distance.service';
 import { AtendimentoPanoramaStorageService } from './atendimento-panorama-storage.service';
 import type {
@@ -40,6 +48,14 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
   mapaModo: 'origem' | 'destino' = 'destino';
   calculandoRota = false;
   msgRota = '';
+  geocodingOrigem = false;
+  geocodingDestino = false;
+  carregandoPermissoes = false;
+  carregandoTutorApi = false;
+  permissoesConcedidas: PermissaoDadosRow[] = [];
+  petsDaPermissao: PanoramaClientePermitidoPet[] = [];
+  escopoPetsOk = false;
+
   private map: import('leaflet').Map | null = null;
   private layerRota: import('leaflet').Layer | null = null;
   private mkOrigem: import('leaflet').Marker | null = null;
@@ -80,6 +96,9 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     private router: Router,
     private routeDistance: RouteDistanceService,
     private storage: AtendimentoPanoramaStorageService,
+    private agendaApi: AgendaApiService,
+    private api: ApiService,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -103,9 +122,16 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     return (this.router.url || '').includes('/parceiros/') ? '/parceiros' : '';
   }
 
+  get isParceiroShell(): boolean {
+    return (this.router.url || '').includes('/parceiros/');
+  }
+
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     this.recarregarLista();
+    if (this.isParceiroShell && this.parceiroAuth.getCurrentColaborador()) {
+      void this.carregarPermissoesConcedidas();
+    }
     if (this.itens.length && !this.selecionado) {
       this.selecionar(this.itens[0]);
     } else {
@@ -118,6 +144,97 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     this.destruirMapa();
   }
 
+  async carregarPermissoesConcedidas(): Promise<void> {
+    this.carregandoPermissoes = true;
+    this.cdr.markForCheck();
+    try {
+      const rows = await this.agendaApi.listPermissoesDados();
+      const concedidos = (Array.isArray(rows) ? rows : []).filter(
+        (r) => String(r.status || '').toLowerCase() === 'concedido'
+      );
+      const byCliente = new Map<number, PermissaoDadosRow>();
+      for (const r of concedidos) {
+        const prev = byCliente.get(r.cliente_id);
+        if (!prev || r.id > prev.id) {
+          byCliente.set(r.cliente_id, r);
+        }
+      }
+      this.permissoesConcedidas = [...byCliente.values()].sort((a, b) =>
+        String(a.cliente_nome || '').localeCompare(String(b.cliente_nome || ''), 'pt', { sensitivity: 'base' })
+      );
+    } catch {
+      this.permissoesConcedidas = [];
+      this.toast.error('Não foi possível carregar os tutores com permissão para esta loja.');
+    } finally {
+      this.carregandoPermissoes = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  onClientePermitidoChangeRaw(ev: unknown): void {
+    const id = ev == null || ev === '' ? NaN : Number(ev);
+    void this.onClientePermitidoChange(Number.isFinite(id) && id > 0 ? id : null);
+  }
+
+  onPetPermitidoChangeRaw(ev: unknown): void {
+    const id = ev == null || ev === '' ? NaN : Number(ev);
+    this.onPetPermitidoChange(Number.isFinite(id) && id > 0 ? id : null);
+  }
+
+  async onClientePermitidoChange(clienteId: number | null): Promise<void> {
+    const s = this.selecionado;
+    if (!s) return;
+    s.clienteIdPermitido = clienteId ?? null;
+    if (!clienteId) {
+      this.petsDaPermissao = [];
+      this.escopoPetsOk = false;
+      this.cdr.markForCheck();
+      return;
+    }
+    await this.aplicarPanoramaPermitido(s, clienteId);
+  }
+
+  onPetPermitidoChange(petId: number | null): void {
+    const s = this.selecionado;
+    if (!s) return;
+    s.petId = petId ?? null;
+    const p = this.petsDaPermissao.find((x) => x.id === petId);
+    if (p) {
+      s.petNome = p.nome || '';
+    }
+    this.cdr.markForCheck();
+  }
+
+  private async aplicarPanoramaPermitido(s: PanoramaAtendimento, clienteId: number): Promise<void> {
+    this.carregandoTutorApi = true;
+    this.cdr.markForCheck();
+    try {
+      const data = await this.agendaApi.getClientePanoramaDados(clienteId);
+      s.tutorNome = data.tutor?.nome || '';
+      s.tutorTelefone = (data.tutor?.telefone || '').trim() || s.tutorTelefone;
+      if (data.endereco_texto) {
+        s.destinoEnderecoTexto = data.endereco_texto;
+      }
+      this.petsDaPermissao = Array.isArray(data.pets) ? data.pets : [];
+      this.escopoPetsOk = !!data.escopo_pets;
+      if (s.petId != null && !this.petsDaPermissao.some((p) => Number(p.id) === Number(s.petId))) {
+        s.petId = null;
+        s.petNome = '';
+      }
+    } catch (e: unknown) {
+      const msg =
+        (e as { error?: { error?: string } })?.error?.error ||
+        'Não foi possível carregar os dados deste tutor.';
+      this.toast.error(msg);
+      s.clienteIdPermitido = null;
+      this.petsDaPermissao = [];
+      this.escopoPetsOk = false;
+    } finally {
+      this.carregandoTutorApi = false;
+      this.cdr.markForCheck();
+    }
+  }
+
   recarregarLista(): void {
     this.itens = this.storage.listar(this.ns);
     this.cdr.markForCheck();
@@ -128,13 +245,20 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     this.recarregarLista();
     this.selecionar(criado);
     this.msgRota = '';
+    this.petsDaPermissao = [];
+    this.escopoPetsOk = false;
   }
 
   selecionar(row: PanoramaAtendimento): void {
     this.selecionado = { ...row };
     this.msgRota = '';
+    this.petsDaPermissao = [];
+    this.escopoPetsOk = false;
     this.cdr.detectChanges();
     this.cdr.markForCheck();
+    if (this.isParceiroShell && row.clienteIdPermitido) {
+      void this.aplicarPanoramaPermitido(this.selecionado!, row.clienteIdPermitido);
+    }
     setTimeout(() => this.initMapa(), 50);
   }
 
@@ -238,6 +362,50 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  async geocodificar(modo: 'origem' | 'destino'): Promise<void> {
+    const s = this.selecionado;
+    if (!s) return;
+    const q =
+      modo === 'origem'
+        ? String(s.origemEnderecoTexto || '').trim()
+        : String(s.destinoEnderecoTexto || '').trim();
+    if (q.length < 4) {
+      this.toast.error('Digite o endereço completo (rua, número, cidade…) com ao menos 4 caracteres.');
+      return;
+    }
+    if (modo === 'origem') this.geocodingOrigem = true;
+    else this.geocodingDestino = true;
+    this.cdr.markForCheck();
+    try {
+      const res = await firstValueFrom(this.api.osmGeocodeAddress(q));
+      const hit = (res.results || []).find(
+        (r) => r.lat != null && r.lon != null && Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lon))
+      );
+      if (!hit) {
+        this.toast.error('Nenhum resultado encontrado para este endereço. Ajuste o texto e tente de novo.');
+        return;
+      }
+      const lat = Number(hit.lat);
+      const lng = Number(hit.lon);
+      if (modo === 'origem') {
+        s.origemLat = lat;
+        s.origemLng = lng;
+      } else {
+        s.destinoLat = lat;
+        s.destinoLng = lng;
+      }
+      this.msgRota = hit.display_name ? `Local encontrado: ${hit.display_name}` : 'Coordenadas atualizadas (OpenStreetMap).';
+      this.refreshMapa();
+      this.toast.success('Endereço localizado no mapa.');
+    } catch {
+      this.toast.error('Falha na geocodificação. Tente novamente em instantes.');
+    } finally {
+      if (modo === 'origem') this.geocodingOrigem = false;
+      else this.geocodingDestino = false;
+      this.cdr.markForCheck();
+    }
+  }
+
   addExtra(): void {
     const s = this.selecionado;
     if (!s) return;
@@ -298,10 +466,20 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     const iconHtml = (label: string, bg: string) =>
       `<div style="width:22px;height:22px;border-radius:50%;background:${bg};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#0f172a;">${label}</div>`;
     dragO.setIcon(
-      L.default.divIcon({ className: 'ps-pano-marker', html: iconHtml('O', '#38bdf8'), iconSize: [22, 22], iconAnchor: [11, 11] })
+      L.default.divIcon({
+        className: 'ps-pano-marker',
+        html: iconHtml('O', '#38bdf8'),
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+      })
     );
     dragD.setIcon(
-      L.default.divIcon({ className: 'ps-pano-marker', html: iconHtml('D', '#f472b6'), iconSize: [22, 22], iconAnchor: [11, 11] })
+      L.default.divIcon({
+        className: 'ps-pano-marker',
+        html: iconHtml('D', '#f472b6'),
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+      })
     );
 
     dragO.on('dragend', () => {
@@ -348,9 +526,8 @@ export class PanoramaAtendimentoComponent implements AfterViewInit, OnDestroy {
     );
   }
 
-  /** Recria o mapa após mudança manual de coordenadas nos inputs. */
   refreshMapa(): void {
-    this.initMapa();
+    void this.initMapa();
   }
 
   private desenharRotaNoMapa(path?: [number, number][]): void {

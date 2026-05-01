@@ -377,6 +377,7 @@
   &.stat-icon--purple { background: rgba(168,85,247,0.15);  color: #c084fc; }
   &.stat-icon--green  { background: rgba(16,185,129,0.15);  color: #34d399; }
   &.stat-icon--amber  { background: rgba(245,158,11,0.15);  color: #fbbf24; }
+  &.stat-icon--gold   { background: rgba(234,179,8,0.18);   color: #fde047; box-shadow: inset 0 0 0 1px rgba(250,204,21,0.25); }
 }
 
 .stat-info {
@@ -398,6 +399,16 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--admin-text-strong);
+}
+
+.stat-value--muted {
+  color: var(--admin-muted);
+  font-weight: 600;
+}
+
+.stat--credits {
+  border-color: rgba(234, 179, 8, 0.22);
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.06), rgba(255, 255, 255, 0.02));
 }
 
 /* ── Empty search ────────────────────────────────────────────────────────── */

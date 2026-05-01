@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService, PacienteDetail } from '../../../../services/api.service';
 import { AuthService } from '../../../../services/auth.service';
 import { ParceiroAuthService } from '../../../../services/parceiro-auth.service';
@@ -16,8 +16,15 @@ import { NavmenuComponent } from '../../../../navmenu/navmenu.component';
 export class PacienteDetalheComponent {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private auth = inject(AuthService);
   private parceiroAuth = inject(ParceiroAuthService);
+
+  /** Rotas legadas precisam da navbar; em `/parceiros/...` o shell do prestador já cobre. */
+  get showSiteNav(): boolean {
+    const path = (this.router.url.split('?')[0] || '').split('#')[0] || '';
+    return !path.startsWith('/parceiros/');
+  }
 
   carregando = true;
   erro: string | null = null;

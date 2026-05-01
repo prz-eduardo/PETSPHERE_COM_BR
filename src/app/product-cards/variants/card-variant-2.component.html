@@ -1,18 +1,26 @@
 <ng-template #content>
   <div class="hero" [style.aspectRatio]="imageAspect">
     <img [src]="displayImage" [alt]="product.name" loading="lazy" decoding="async" />
+    <span class="saas-pill" *ngIf="product.permiteCheckout === false">
+      <span class="saas-pill__dot" aria-hidden="true"></span>
+      Solução PetSphere
+    </span>
   </div>
   <div class="box-content">
-    <button class="buy" type="button" (click)="onAddClick($event)">+</button>
+    <button class="buy" *ngIf="product.permiteCheckout !== false" type="button" (click)="onAddClick($event)">+</button>
     <div class="title">{{ product.name }}</div>
     <div class="desc">{{ product.category }}<span *ngIf="showMarca"> • {{ product.marca }}</span></div>
-    <span class="price">{{ priceNow | currency:'BRL' }}</span>
+    <span class="price" *ngIf="product.permiteCheckout !== false">{{ priceNow | currency:'BRL' }}</span>
+    <button type="button" class="saas-cta" *ngIf="product.permiteCheckout === false" (click)="onAddClick($event)" aria-label="Conhecer solução PetSphere">
+      <span class="saas-cta__label">Conhecer solução</span>
+      <span class="saas-cta__arrow" aria-hidden="true">→</span>
+    </button>
   </div>
 </ng-template>
 
-<div *ngIf="disableLink" class="v2" [style.max-width]="cardWidth">
+<div *ngIf="disableLink" class="v2" [class.v2--saas]="product.permiteCheckout === false" [style.max-width]="cardWidth">
   <ng-container *ngTemplateOutlet="content"></ng-container>
 </div>
-<a *ngIf="!disableLink" class="v2" [routerLink]="['/produto', product.id]" [queryParams]="{ src: 'loja' }" [style.max-width]="cardWidth">
+<a *ngIf="!disableLink" class="v2" [class.v2--saas]="product.permiteCheckout === false" [routerLink]="['/produto', product.id]" [queryParams]="{ src: 'loja' }" [style.max-width]="cardWidth">
   <ng-container *ngTemplateOutlet="content"></ng-container>
 </a>

@@ -1,83 +1,268 @@
-<main class="ps-planos">
+<main class="ps-pricing">
+  <!-- ============================================================ -->
+  <!-- 1. HERO                                                      -->
+  <!-- ============================================================ -->
   <header class="hero">
-    <span class="kicker">PetSphere — pague conforme usa</span>
-    <h1>Planos &amp; créditos para o seu negócio pet</h1>
-    <p>Comece de graça e contrate só os pacotes de créditos que você for usar — automações de WhatsApp, e-mail, agenda inteligente, IA, destaque no mapa e integrações.</p>
-    <div class="hero-cta">
-      <a class="btn primary" [routerLink]="['/parceiro/cadastrar']">Quero ser parceiro</a>
-      <a class="btn ghost" href="#pacotes">Ver pacotes de créditos</a>
+    <div class="hero-orbs" aria-hidden="true">
+      <span class="orb orb-aurora"></span>
+      <span class="orb orb-violet"></span>
+    </div>
+
+    <div class="hero-inner">
+      <span class="kicker">
+        <span class="kicker-dot"></span>
+        Plataforma de crescimento para negócios pet
+      </span>
+
+      <h1>
+        Automatize seu negócio pet e pague apenas pelo
+        <em>que gera resultado</em>.
+      </h1>
+
+      <p class="lead">
+        Menos faltas. Mais clientes recorrentes. Atendimento no automático com WhatsApp, IA e
+        agenda inteligente — para petshops, clínicas, hotéis, banhistas e dog walkers.
+      </p>
+
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" [routerLink]="['/parceiro/cadastrar']">
+          Começar grátis
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+        <a class="btn btn-ghost btn-lg" href="#como-funciona">Ver como funciona</a>
+      </div>
+
+      <ul class="hero-trust">
+        <li><i class="fa-solid fa-check"></i> Sem cartão de crédito</li>
+        <li><i class="fa-solid fa-check"></i> Em produção em 1 dia</li>
+        <li><i class="fa-solid fa-check"></i> Cancela quando quiser</li>
+      </ul>
     </div>
   </header>
 
-  <section *ngIf="loading()" class="state">Carregando…</section>
-  <p *ngIf="errorMsg()" class="msg-error">{{ errorMsg() }}</p>
+  <!-- ============================================================ -->
+  <!-- 2. TRANSFORMAÇÃO (antes vs depois)                            -->
+  <!-- ============================================================ -->
+  <section class="block transform">
+    <div class="block-head">
+      <span class="eyebrow">A diferença real</span>
+      <h2>Sua rotina hoje <span class="vs">vs.</span> com PetSphere</h2>
+      <p>
+        Sem migrar processo, sem treinamento longo. Você liga as automações certas e o
+        atendimento começa a girar sozinho.
+      </p>
+    </div>
 
-  <!-- Planos -->
-  <section *ngIf="!loading() && planos().length" class="block">
-    <header class="block-header">
-      <h2>Planos de assinatura</h2>
-      <p>Tier base + créditos mensais inclusos. Escolha o que combina com o seu volume.</p>
-    </header>
-    <div class="cards-grid">
-      <article class="plan-card" *ngFor="let p of planos(); trackBy: trackById" [class.free]="p.preco_mensal === 0">
+    <div class="transform-grid">
+      <article class="transform-card before">
         <header>
-          <h3>{{ p.nome }}</h3>
-          <div class="price">
-            <ng-container *ngIf="p.preco_mensal > 0; else freeLabel">
-              <strong>{{ formatBRL(p.preco_mensal) }}</strong><span>/mês</span>
-            </ng-container>
-            <ng-template #freeLabel><strong>Grátis</strong></ng-template>
+          <span class="t-icon"><i class="fa-solid fa-circle-xmark"></i></span>
+          <div>
+            <span class="tag">Antes</span>
+            <h3>Operação manual e improvisada</h3>
           </div>
         </header>
-        <p class="desc" *ngIf="p.descricao">{{ p.descricao }}</p>
-        <ul class="features">
-          <li><span class="check">✓</span> {{ p.creditos_mensais_inclusos | number:'1.0-0' }} créditos / mês</li>
-          <li [class.warn]="!p.permite_automacoes">
-            <span class="check">{{ p.permite_automacoes ? '✓' : '×' }}</span>
-            Automações (WhatsApp, e-mail, lembretes)
+        <ul>
+          <li *ngFor="let item of rotinaAntes">
+            <i class="fa-solid" [ngClass]="item.icon" aria-hidden="true"></i>
+            <span>{{ item.label }}</span>
           </li>
         </ul>
-        <a class="btn primary block" [routerLink]="['/parceiro/cadastrar']" [queryParams]="{ plano: p.slug }">
-          {{ p.preco_mensal === 0 ? 'Começar grátis' : 'Assinar plano' }}
-        </a>
       </article>
-    </div>
-  </section>
 
-  <!-- Pacotes -->
-  <section id="pacotes" *ngIf="!loading() && pacotes().length" class="block">
-    <header class="block-header">
-      <h2>Pacotes de créditos</h2>
-      <p>Compre créditos avulsos quando precisar. Dão pra usar em qualquer automação ou destaque dentro da PetSphere.</p>
-    </header>
-    <div class="cards-grid">
-      <article class="pack-card" *ngFor="let pk of pacotes(); trackBy: trackById" [class.featured]="pk.destaque">
+      <article class="transform-card after">
         <header>
-          <h3>{{ pk.nome }}</h3>
-          <span class="badge" *ngIf="pk.destaque">Mais popular</span>
+          <span class="t-icon"><i class="fa-solid fa-circle-check"></i></span>
+          <div>
+            <span class="tag">Depois</span>
+            <h3>Negócio rodando no automático</h3>
+          </div>
         </header>
-        <div class="price"><strong>{{ formatBRL(pk.preco_reais) }}</strong></div>
         <ul>
-          <li>{{ pk.creditos_incluidos | number:'1.0-0' }} créditos</li>
-          <li *ngIf="pk.bonus_creditos">+ {{ pk.bonus_creditos | number:'1.0-0' }} bônus</li>
-          <li class="total"><strong>{{ totalCreditos(pk) | number:'1.0-0' }}</strong> créditos no total</li>
+          <li *ngFor="let item of rotinaDepois">
+            <i class="fa-solid" [ngClass]="item.icon" aria-hidden="true"></i>
+            <span>{{ item.label }}</span>
+          </li>
         </ul>
-        <p class="desc" *ngIf="pk.descricao">{{ pk.descricao }}</p>
-        <a class="btn primary block" [routerLink]="['/parceiro/cadastrar']" [queryParams]="{ pacote: pk.slug }">
-          Quero esse pacote
-        </a>
       </article>
     </div>
   </section>
 
-  <section class="block howto">
-    <h2>Como funciona</h2>
-    <ol>
-      <li><strong>Crie sua conta de parceiro</strong> em segundos — petshop, clínica, hotel, dog walker ou prestador autônomo.</li>
-      <li><strong>Use a plataforma:</strong> agenda, atendimento, vitrine, mapa e prontuário rolam de graça no plano base.</li>
-      <li><strong>Pague só pelo que usar:</strong> automações (WhatsApp, e-mail, IA, destaque no mapa) consomem créditos.</li>
-      <li><strong>Cresça sem limite:</strong> compre pacotes maiores conforme o volume aumenta — escala sem mudar de plano.</li>
-    </ol>
-    <a class="btn primary" [routerLink]="['/parceiro/cadastrar']">Criar minha conta de parceiro</a>
+  <!-- ============================================================ -->
+  <!-- 3. PLANOS (3 trilhas claras, Pro destacado)                  -->
+  <!-- ============================================================ -->
+  <section id="planos" class="block plans">
+    <div class="block-head">
+      <span class="eyebrow">Planos</span>
+      <h2>Comece grátis. Escale quando fizer sentido.</h2>
+      <p>Três caminhos simples. Sem letras miúdas, sem tarifa escondida.</p>
+    </div>
+
+    <p *ngIf="loading()" class="state">Carregando planos…</p>
+    <p *ngIf="errorMsg()" class="msg-error">{{ errorMsg() }}</p>
+
+    <div class="plans-grid" *ngIf="!loading()">
+      <article
+        *ngFor="let t of tiers(); trackBy: trackByKey"
+        class="plan-card"
+        [class.is-highlighted]="t.highlighted"
+        [attr.data-tier]="t.key"
+      >
+        <span class="plan-badge" *ngIf="t.badge">{{ t.badge }}</span>
+
+        <header class="plan-header">
+          <h3>{{ t.nome }}</h3>
+          <p class="plan-tagline">{{ t.tagline }}</p>
+        </header>
+
+        <div class="plan-price">
+          <strong>{{ t.precoLabel }}</strong>
+          <span *ngIf="t.precoSub">{{ t.precoSub }}</span>
+        </div>
+
+        <ul class="plan-benefits">
+          <li *ngFor="let b of t.benefits">
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
+            <span>{{ b }}</span>
+          </li>
+        </ul>
+
+        <a
+          class="btn btn-block"
+          [class.btn-primary]="t.highlighted"
+          [class.btn-outline]="!t.highlighted"
+          [routerLink]="t.cta.route"
+          [queryParams]="t.cta.queryParams"
+        >
+          {{ t.cta.label }}
+        </a>
+      </article>
+    </div>
+
+    <p class="plans-foot">
+      <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+      Migre, faça upgrade ou cancele quando quiser. Seus dados sempre seus.
+    </p>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 4. COMO FUNCIONA                                              -->
+  <!-- ============================================================ -->
+  <section id="como-funciona" class="block howto">
+    <div class="block-head">
+      <span class="eyebrow">Como funciona</span>
+      <h2>Três passos para o seu negócio rodar sozinho</h2>
+    </div>
+
+    <div class="steps-grid">
+      <article class="step-card" *ngFor="let s of passos">
+        <span class="step-num">{{ s.numero }}</span>
+        <h3>{{ s.titulo }}</h3>
+        <p>{{ s.descricao }}</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 5. AUTOMAÇÕES (cards com impacto de negócio)                 -->
+  <!-- ============================================================ -->
+  <section id="automacoes" class="block automations">
+    <div class="block-head">
+      <span class="eyebrow">Automações que pagam o plano</span>
+      <h2>O que entra no Pro</h2>
+      <p>Cada recurso aqui é uma máquina de receita. Você liga e mede o impacto direto no seu painel.</p>
+    </div>
+
+    <div class="auto-grid">
+      <article class="auto-card" *ngFor="let a of automacoes">
+        <span class="auto-icon"><i [ngClass]="a.icon" aria-hidden="true"></i></span>
+        <h3>{{ a.titulo }}</h3>
+        <p>{{ a.descricao }}</p>
+        <span class="auto-metric">
+          <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+          {{ a.metrica }}
+        </span>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 6. CRÉDITOS — bloco secundário, técnico                       -->
+  <!-- ============================================================ -->
+  <section id="creditos" class="block credits-strip">
+    <div class="credits-inner">
+      <div class="credits-head">
+        <span class="eyebrow muted">Detalhe técnico</span>
+        <h2>Créditos = combustível das automações</h2>
+        <p>
+          Créditos <strong>não são plano</strong> e <strong>não são assinatura</strong>. Cada
+          disparo de WhatsApp, chamada de IA ou destaque no mapa consome créditos do seu saldo.
+          O plano Pro já vem com créditos mensais inclusos — você só compra mais se quiser
+          acelerar.
+        </p>
+      </div>
+      <div class="credits-pills">
+        <span class="pill"><i class="fa-solid fa-bolt"></i> Saldo mensal incluso no Pro</span>
+        <span class="pill"><i class="fa-solid fa-receipt"></i> Cobrança transparente por uso</span>
+        <span class="pill"><i class="fa-solid fa-rotate-left"></i> Estorno automático em falha</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 7. PACOTES — opcional, hierarquia baixa (collapsável)        -->
+  <!-- ============================================================ -->
+  <section id="pacotes" *ngIf="!loading() && pacotes().length" class="block packs">
+    <details class="packs-details">
+      <summary>
+        <span class="packs-summary-text">
+          <strong>Quer comprar combustível extra?</strong>
+          <em>Pacotes avulsos para picos de campanha</em>
+        </span>
+        <i class="fa-solid fa-chevron-down chev" aria-hidden="true"></i>
+      </summary>
+
+      <div class="packs-grid">
+        <article
+          class="pack-card"
+          *ngFor="let pk of pacotes(); trackBy: trackById"
+          [class.is-featured]="pk.destaque"
+        >
+          <header>
+            <h4>{{ pk.nome }}</h4>
+            <span class="badge" *ngIf="pk.destaque">+ popular</span>
+          </header>
+          <div class="pack-price">{{ formatBRL(pk.preco_reais) }}</div>
+          <p class="pack-amount">
+            <strong>{{ totalCreditos(pk) | number: '1.0-0' }}</strong> créditos
+            <span *ngIf="pk.bonus_creditos">+ {{ pk.bonus_creditos | number: '1.0-0' }} bônus</span>
+          </p>
+          <a
+            class="btn btn-outline btn-block"
+            [routerLink]="['/parceiro/cadastrar']"
+            [queryParams]="{ pacote: pk.slug }"
+          >
+            Quero esse pacote
+          </a>
+        </article>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 8. CTA FINAL                                                  -->
+  <!-- ============================================================ -->
+  <section class="block final-cta">
+    <div class="final-inner">
+      <h2>Pronto pra escalar? Comece em 30 segundos.</h2>
+      <p>Sem cartão. Sem compromisso. Liga as automações quando quiser.</p>
+      <div class="final-actions">
+        <a class="btn btn-primary btn-lg" [routerLink]="['/parceiro/cadastrar']">
+          Começar grátis agora
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+        <a class="btn btn-ghost-light btn-lg" href="#planos">Ver planos novamente</a>
+      </div>
+    </div>
   </section>
 </main>

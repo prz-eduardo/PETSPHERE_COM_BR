@@ -3,6 +3,7 @@
   <div
     class="log"
     #logContainer
+    (scroll)="onLogScroll()"
     *ngIf="!err || messages.length"
     aria-live="polite"
     aria-relevant="additions"
@@ -10,25 +11,73 @@
     <div
       *ngFor="let m of messages; trackBy: trackById"
       class="bubble"
-      [class.bubble--me]="
-        (mode === 'cliente' && m.senderRole === 'cliente') ||
-        (mode === 'parceiro' && m.senderRole === 'parceiro_staff')
-      "
+      [class.bubble--me]="isMine(m)"
     >
       <span class="meta">{{ labelFor(m) }} · {{ m.ts | date : 'short' }}</span>
-      <div class="text">{{ m.text }}</div>
+      <div class="reply-ref" *ngIf="m.replyTo">
+        <span class="reply-ref__label">Resposta a {{ m.replyRole === 'cliente' ? 'Cliente' : 'Loja' }}</span>
+        <span class="reply-ref__text">{{ replyPreviewText(m) }}</span>
+      </div>
+      <div class="text" *ngIf="m.text?.trim()">{{ m.text }}</div>
+      <div class="audio-wrap" *ngIf="m.audioUrl">
+        <audio controls preload="metadata" [src]="m.audioUrl"></audio>
+      </div>
+      <div class="attachments" *ngIf="attachmentList(m).length">
+        <ng-container *ngFor="let a of attachmentList(m)">
+          <a *ngIf="a.mime?.startsWith('image/')" class="att-img" [href]="a.url" target="_blank" rel="noopener">
+            <img [src]="a.url" [alt]="a.name || 'imagem'" />
+          </a>
+          <a *ngIf="!a.mime?.startsWith('image/')" class="att-link" [href]="a.url" target="_blank" rel="noopener">
+            {{ a.name || 'Abrir anexo' }}
+          </a>
+        </ng-container>
+      </div>
+      <div class="bubble-actions" *ngIf="threadId">
+        <button type="button" class="linkish" (click)="startReply(m)">Responder</button>
+      </div>
+      <div class="read-row" *ngIf="readStatus(m)">
+        <span class="read-badge">{{ readStatus(m) }}</span>
+      </div>
     </div>
   </div>
-  <form class="input-row" (ngSubmit)="$event.preventDefault(); send()" *ngIf="!err">
-    <input
-      type="text"
-      class="text-input"
-      name="body"
-      [(ngModel)]="draft"
-      placeholder="Escreva uma mensagem…"
-      maxlength="4000"
-      [disabled]="sending"
-    />
-    <button type="submit" class="send" [disabled]="sending || !draft.trim()">Enviar</button>
-  </form>
+
+  <div class="composer" *ngIf="!err">
+    <div class="reply-bar" *ngIf="replyingTo">
+      <div class="reply-bar__inner">
+        <span class="reply-bar__title">A responder a {{ replyingTo.senderRole === 'cliente' ? 'Cliente' : 'Loja' }}</span>
+        <span class="reply-bar__snippet">{{ replyPreviewText(replyingTo) }}</span>
+      </div>
+      <button type="button" class="reply-bar__x" (click)="cancelReply()" aria-label="Cancelar resposta">×</button>
+    </div>
+
+    <div class="pending-files" *ngIf="pendingAttachments.length">
+      <span *ngFor="let p of pendingAttachments; let i = index" class="chip">
+        {{ p.name || 'Ficheiro' }}
+        <button type="button" (click)="removePendingAtt(i)" aria-label="Remover">×</button>
+      </span>
+    </div>
+
+    <div class="record-bar" *ngIf="recording">
+      <span class="rec-dot"></span>
+      A gravar… {{ recordElapsedSec }}s
+      <button type="button" class="btn-ghost" (click)="stopRecording(false)">Cancelar</button>
+      <button type="button" class="btn-primary" (click)="stopRecording(true)">Enviar áudio</button>
+    </div>
+
+    <form class="input-row" (ngSubmit)="$event.preventDefault(); send()" *ngIf="!recording">
+      <input type="file" #fileInput class="visually-hidden" multiple (change)="onFilesSelected($event)" />
+      <button type="button" class="icon-btn icon-btn--wide" (click)="triggerFilePick()" [disabled]="sending" title="Anexar ficheiros">Anexo</button>
+      <button type="button" class="icon-btn icon-btn--wide" (click)="startRecording()" [disabled]="sending" title="Mensagem de áudio">Áudio</button>
+      <input
+        type="text"
+        class="text-input"
+        name="body"
+        [(ngModel)]="draft"
+        placeholder="Escreva uma mensagem…"
+        maxlength="4000"
+        [disabled]="sending"
+      />
+      <button type="submit" class="send" [disabled]="sending || !canSend()">Enviar</button>
+    </form>
+  </div>
 </div>

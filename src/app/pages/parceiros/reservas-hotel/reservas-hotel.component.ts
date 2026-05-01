@@ -1,23 +1,25 @@
-import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, Inject, OnInit, PLATFORM_ID, computed, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AgendaApiService,
+  HotelHospedagemCatalogBundle,
   HotelLeitoRow,
-  HotelOfertaCatalogEntry,
   HotelReservaRow,
   HotelReservaStatus,
 } from '../agenda/services/agenda-api.service';
 import { SideDrawerComponent } from '../../../shared/side-drawer/side-drawer.component';
+import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
+import { EspacoConfigWizardComponent } from '../espaco-config-wizard/espaco-config-wizard.component';
 
 type PeriodoFiltro = 'todos' | 'hoje' | '7dias' | '30dias';
 type AbaAtiva = 'reservas' | 'leitos';
-type DrawerMode = 'create' | 'details' | 'create-leito';
+type DrawerMode = 'create' | 'details';
 
 @Component({
   selector: 'app-reservas-hotel',
   standalone: true,
-  imports: [CommonModule, FormsModule, SideDrawerComponent],
+  imports: [CommonModule, FormsModule, SideDrawerComponent, EspacoConfigWizardComponent],
   templateUrl: './reservas-hotel.component.html',
   styleUrls: ['./reservas-hotel.component.scss'],
 })
@@ -67,16 +69,9 @@ export class ReservasHotelComponent implements OnInit {
   readonly draftCuidadosEspeciais = signal('');
   readonly draftAlimentacaoObs = signal('');
   readonly formError = signal<string | null>(null);
-  readonly draftLeitoNome = signal('');
-  readonly draftLeitoTipo = signal('Canil / baia');
-  readonly draftLeitoCapacidade = signal(1);
-  readonly draftLeitoFotoUrl = signal('');
-  readonly draftLeitoExibirVitrine = signal(false);
-  readonly draftLeitoPrecoDiaria = signal<number | null>(null);
-  readonly draftLeitoServicosOferta = signal<string[]>([]);
-  readonly draftLeitoFotoFile = signal<File | null>(null);
-  readonly leitoFotoPreviewObjectUrl = signal<string | null>(null);
-  readonly ofertaCatalog = signal<HotelOfertaCatalogEntry[]>([]);
+  readonly hospedagemCatalog = signal<HotelHospedagemCatalogBundle>({ catalog: [], infra: [], acomodacao_tipos: [] });
+  readonly espacoWizardOpen = signal(false);
+  readonly espacoWizardLeito = signal<HotelLeitoRow | null>(null);
 
   /** Rascunho no drawer de detalhes para salvar notas operacionais */
   readonly detailObservacoes = signal('');
@@ -103,25 +98,21 @@ export class ReservasHotelComponent implements OnInit {
 
   readonly leitosDisponiveisCount = computed(() => this.leitos().filter((leito) => !this.toBool(leito.ocupado)).length);
 
-  readonly catalogLeitoEntries = computed(() =>
-    this.ofertaCatalog().filter((e) => e.scope === 'leito' || e.scope === 'both')
-  );
-
   constructor(
     private readonly agendaApi: AgendaApiService,
-    @Inject(PLATFORM_ID) private readonly platformId: object
+    public readonly auth: ParceiroAuthService
   ) {}
 
   async ngOnInit(): Promise<void> {
-    await Promise.all([this.loadOfertaCatalog(), this.reload()]);
+    await Promise.all([this.loadHospedagemCatalog(), this.reload()]);
   }
 
-  private async loadOfertaCatalog(): Promise<void> {
+  private async loadHospedagemCatalog(): Promise<void> {
     try {
-      const c = await this.agendaApi.getHotelOfertaCatalog();
-      this.ofertaCatalog.set(Array.isArray(c) ? c : []);
+      const b = await this.agendaApi.getHotelHospedagemCatalog();
+      this.hospedagemCatalog.set(b);
     } catch {
-      this.ofertaCatalog.set([]);
+      this.hospedagemCatalog.set({ catalog: [], infra: [], acomodacao_tipos: [] });
     }
   }
 
@@ -159,81 +150,66 @@ export class ReservasHotelComponent implements OnInit {
   }
 
   openCreateLeitoDrawer(): void {
-    this.revokeLeitoFotoPreview();
-    this.draftLeitoFotoFile.set(null);
-    this.draftLeitoServicosOferta.set([]);
-    this.drawerMode.set('create-leito');
-    this.formError.set(null);
-    this.draftLeitoNome.set('');
-    this.draftLeitoTipo.set('Canil / baia');
-    this.draftLeitoCapacidade.set(1);
-    this.draftLeitoFotoUrl.set('');
-    this.draftLeitoExibirVitrine.set(false);
-    this.draftLeitoPrecoDiaria.set(null);
-    this.drawerOpen.set(true);
+    if (!this.auth.isMaster()) return;
+    this.espacoWizardLeito.set(null);
+    this.espacoWizardOpen.set(true);
   }
 
-  private revokeLeitoFotoPreview(): void {
-    const u = this.leitoFotoPreviewObjectUrl();
-    if (u && isPlatformBrowser(this.platformId)) {
-      try {
-        URL.revokeObjectURL(u);
-      } catch {
-        /* ignore */
-      }
-    }
-    this.leitoFotoPreviewObjectUrl.set(null);
+  openEditLeitoDrawer(leito: HotelLeitoRow): void {
+    if (!this.auth.isMaster()) return;
+    this.espacoWizardLeito.set(leito);
+    this.espacoWizardOpen.set(true);
   }
 
-  onLeitoFotoSelected(ev: Event): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-    const input = ev.target as HTMLInputElement;
-    const file = input.files && input.files.length ? input.files[0] : null;
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      this.formError.set('Selecione um arquivo de imagem.');
-      input.value = '';
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      this.formError.set('A imagem deve ter no máximo 5MB.');
-      input.value = '';
-      return;
-    }
-    this.formError.set(null);
-    this.revokeLeitoFotoPreview();
-    this.draftLeitoFotoFile.set(file);
-    this.leitoFotoPreviewObjectUrl.set(URL.createObjectURL(file));
-    input.value = '';
+  onEspacoWizardDismiss(): void {
+    this.espacoWizardOpen.set(false);
+    this.espacoWizardLeito.set(null);
   }
 
-  clearLeitoFoto(): void {
-    this.revokeLeitoFotoPreview();
-    this.draftLeitoFotoFile.set(null);
+  async onEspacoWizardSaved(_leito: HotelLeitoRow): Promise<void> {
+    this.espacoWizardOpen.set(false);
+    this.espacoWizardLeito.set(null);
+    await this.reload();
   }
 
-  leitoFotoDisplay(): string | null {
-    return this.leitoFotoPreviewObjectUrl() || (this.draftLeitoFotoUrl().trim() || null);
+  leitoCoverUrl(leito: HotelLeitoRow): string | null {
+    const g = Array.isArray(leito.galeria_urls) ? leito.galeria_urls : [];
+    const first = g.find((u) => typeof u === 'string' && /^https?:\/\//i.test(u));
+    return first || leito.foto_url || null;
   }
 
-  toggleDraftLeitoOferta(slug: string): void {
-    const cur = [...this.draftLeitoServicosOferta()];
-    const i = cur.indexOf(slug);
-    if (i >= 0) cur.splice(i, 1);
-    else cur.push(slug);
-    this.draftLeitoServicosOferta.set(cur);
+  vitrineNivelLabel(leito: HotelLeitoRow): string | null {
+    const v = String(leito.vitrine_nivel || 'basico').toLowerCase();
+    if (v === 'destaque') return 'Destaque';
+    if (v === 'top') return 'Top';
+    return null;
   }
 
-  draftHasLeitoOferta(slug: string): boolean {
-    return this.draftLeitoServicosOferta().includes(slug);
+  confortoChipLabel(leito: HotelLeitoRow): string | null {
+    const k = String(leito.nivel_conforto || '').trim().toLowerCase();
+    const map: Record<string, string> = {
+      basico: 'Básico',
+      conforto: 'Conforto',
+      premium: 'Premium',
+      luxo: 'Luxo',
+    };
+    return map[k] || null;
+  }
+
+  galleryCount(leito: HotelLeitoRow): number {
+    return Array.isArray(leito.galeria_urls) ? leito.galeria_urls.filter((u) => typeof u === 'string').length : 0;
   }
 
   getLeitoOfertaLabels(leito: HotelLeitoRow): string[] {
-    const raw = leito.servicos_oferta;
-    const slugs = Array.isArray(raw) ? raw.map(String) : [];
-    if (!slugs.length) return [];
-    const map = new Map(this.ofertaCatalog().map((e) => [e.slug, e.label_pt]));
-    return slugs.map((s) => map.get(s) || s);
+    const cat = this.hospedagemCatalog();
+    const mapServ = new Map(cat.catalog.map((e) => [e.slug, e.label_pt]));
+    const mapInf = new Map(cat.infra.map((e) => [e.slug, e.label_pt]));
+    const out: string[] = [];
+    const serv = Array.isArray(leito.servicos_oferta) ? leito.servicos_oferta.map(String) : [];
+    for (const s of serv) out.push(mapServ.get(s) || s);
+    const inf = Array.isArray(leito.infra_slugs) ? leito.infra_slugs.map(String) : [];
+    for (const s of inf) out.push(mapInf.get(s) || s);
+    return out;
   }
 
   private syncDetailDraftsFromReserva(r: HotelReservaRow): void {
@@ -258,8 +234,6 @@ export class ReservasHotelComponent implements OnInit {
   }
 
   closeDrawer(): void {
-    this.revokeLeitoFotoPreview();
-    this.draftLeitoFotoFile.set(null);
     this.drawerOpen.set(false);
   }
 
@@ -358,69 +332,6 @@ export class ReservasHotelComponent implements OnInit {
       this.syncDetailDraftsFromReserva(created);
     } catch (err: unknown) {
       const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao salvar reserva';
-      this.formError.set(msg);
-    } finally {
-      this.saving.set(false);
-    }
-  }
-
-  async saveLeito(): Promise<void> {
-    const nome = this.draftLeitoNome().trim();
-    const tipo = this.draftLeitoTipo().trim() || 'Canil / baia';
-    const capacidade = Number(this.draftLeitoCapacidade() || 1);
-    const fotoUrl = this.draftLeitoFotoUrl().trim();
-    const exibir = this.draftLeitoExibirVitrine();
-    const preco = this.draftLeitoPrecoDiaria();
-
-    if (!nome) {
-      this.formError.set('Informe o nome do espaço de hospedagem.');
-      return;
-    }
-    if (!Number.isFinite(capacidade) || capacidade < 1) {
-      this.formError.set('Capacidade inválida.');
-      return;
-    }
-    if (exibir && (preco == null || !Number.isFinite(preco) || Number(preco) < 0)) {
-      this.formError.set('Defina um preço de diária válido para exibir na vitrine.');
-      return;
-    }
-
-    try {
-      this.saving.set(true);
-      this.formError.set(null);
-      const file = this.draftLeitoFotoFile();
-      let created: HotelLeitoRow | null;
-      if (file) {
-        const fd = new FormData();
-        fd.append('nome', nome);
-        fd.append('tipo', tipo);
-        fd.append('capacidade', String(capacidade));
-        fd.append('exibir_na_vitrine', exibir ? '1' : '0');
-        if (exibir && preco != null) fd.append('preco_diaria', String(preco));
-        fd.append('foto', file, file.name);
-        fd.append('servicos_oferta', JSON.stringify(this.draftLeitoServicosOferta()));
-        created = await this.agendaApi.createHotelLeito(fd);
-      } else {
-        created = await this.agendaApi.createHotelLeito({
-          nome,
-          tipo,
-          capacidade,
-          foto_url: fotoUrl || null,
-          exibir_na_vitrine: exibir,
-          preco_diaria: exibir ? Number(preco) : null,
-          servicos_oferta: this.draftLeitoServicosOferta(),
-        });
-      }
-      if (!created) {
-        this.formError.set('Não foi possível cadastrar o espaço.');
-        return;
-      }
-      this.revokeLeitoFotoPreview();
-      this.draftLeitoFotoFile.set(null);
-      await this.reload();
-      this.drawerOpen.set(false);
-    } catch (err: unknown) {
-      const msg = (err as { error?: { error?: string } })?.error?.error || 'Falha ao cadastrar espaço';
       this.formError.set(msg);
     } finally {
       this.saving.set(false);

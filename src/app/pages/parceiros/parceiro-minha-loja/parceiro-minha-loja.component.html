@@ -1,34 +1,63 @@
 <div class="minha-loja">
-  <h1>Minha loja (vitrine)</h1>
-  <p class="lead">Configure o endereço público <strong>https://(nome).petsphere.com.br</strong>, textos e produtos exibidos na loja.</p>
+  <header class="page-head">
+    <h1>Configurações</h1>
+    <p class="lead">
+      URL pública da vitrine, textos institucionais e integração com pagamentos.
+      Catálogo (produtos, cupons, promoções):
+      <a routerLink="/parceiros/petshop-online">Petshop online</a>.
+    </p>
+  </header>
 
   <div *ngIf="loading()" class="muted">Carregando…</div>
 
-  <form *ngIf="!loading()" [formGroup]="form" (ngSubmit)="salvarLoja()" class="card">
-    <label>URL da loja</label>
-    <div class="slug-row">
-      <span class="muted">https://</span>
-      <input formControlName="loja_slug" maxlength="63" />
-      <span class="muted">.petsphere.com.br</span>
+  <form *ngIf="!loading()" [formGroup]="form" (ngSubmit)="salvarLoja()" class="form-card">
+    <div class="field">
+      <label class="field-label" for="cfg-loja-slug">URL da loja</label>
+      <div class="slug-row">
+        <span class="slug-prefix" aria-hidden="true">https://</span>
+        <input id="cfg-loja-slug" formControlName="loja_slug" maxlength="63" autocomplete="off" />
+        <span class="slug-suffix" aria-hidden="true">.petsphere.com.br</span>
+      </div>
+      <small class="muted" *ngIf="vitrine()?.status !== 'approved'">
+        Sua loja só ficará pública após aprovação do cadastro.
+      </small>
     </div>
-    <small class="muted" *ngIf="vitrine()?.status !== 'approved'">Sua loja só ficará pública após aprovação do cadastro.</small>
 
-    <label>Institucional (HTML ou texto)</label>
-    <textarea formControlName="texto_institucional" rows="8" placeholder="Sobre nós, horários, diferenciais…"></textarea>
+    <div class="field">
+      <label class="field-label" for="cfg-institucional">Institucional (HTML ou texto)</label>
+      <textarea
+        id="cfg-institucional"
+        formControlName="texto_institucional"
+        rows="8"
+        placeholder="Sobre nós, horários, diferenciais…"
+      ></textarea>
+    </div>
 
     <fieldset *ngIf="auth.isMaster() && catalogParceiroEntries().length" class="hotel-globais-fieldset">
       <legend>Serviços globais do hotel (vitrine pública)</legend>
-      <p class="muted small">Aparecem na loja do parceiro junto com as acomodações cadastradas em Hospedagem pet.</p>
-      <label class="checkbox-row" *ngFor="let o of catalogParceiroEntries()">
-        <input type="checkbox" [checked]="hotelGlobalSelected(o.slug)" (change)="toggleHotelGlobal(o.slug)" />
-        <span>{{ o.label_pt }}</span>
-      </label>
+      <p class="muted fieldset-hint">
+        Aparecem na loja do parceiro junto com as acomodações cadastradas em Hospedagem pet.
+      </p>
+      <div class="checkbox-list">
+        <label class="checkbox-row" *ngFor="let o of catalogParceiroEntries()">
+          <input type="checkbox" [checked]="hotelGlobalSelected(o.slug)" (change)="toggleHotelGlobal(o.slug)" />
+          <span>{{ o.label_pt }}</span>
+        </label>
+      </div>
     </fieldset>
 
     <ng-container *ngIf="auth.isMaster()">
-      <label>Mercado Pago — access token (opcional)</label>
-      <input type="password" formControlName="mercadopago_access_token" autocomplete="off" placeholder="Deixe em branco para não alterar; salve vazio para remover" />
-      <small class="muted">Pagamentos de pedidos desta vitrine usarão esta credencial quando configurada e ativa.</small>
+      <div class="field">
+        <label class="field-label" for="cfg-mp-token">Mercado Pago — access token (opcional)</label>
+        <input
+          id="cfg-mp-token"
+          type="password"
+          formControlName="mercadopago_access_token"
+          autocomplete="off"
+          placeholder="Deixe em branco para não alterar; salve vazio para remover"
+        />
+        <small class="muted">Pagamentos de pedidos desta vitrine usarão esta credencial quando configurada e ativa.</small>
+      </div>
     </ng-container>
 
     <div class="actions">
@@ -38,107 +67,4 @@
       <span *ngIf="!auth.isMaster()" class="muted">Somente o master pode editar.</span>
     </div>
   </form>
-
-  <section class="card" *ngIf="auth.isMaster()">
-    <h2>Categorias da minha loja</h2>
-    <p class="muted">Crie categorias próprias para organizar seus produtos.</p>
-    <div class="grid-2">
-      <input type="text" [(ngModel)]="novaCategoria.nome" placeholder="Nome da categoria" />
-      <input type="text" [(ngModel)]="novaCategoria.slug" placeholder="Slug (opcional)" />
-    </div>
-    <div class="actions">
-      <button type="button" class="btn-secondary" (click)="criarCategoria()">Cadastrar categoria</button>
-    </div>
-    <ul class="prod-list">
-      <li *ngFor="let c of comercialCategorias()">
-        <span>{{ c.nome }} <small class="muted" *ngIf="c.slug">({{ c.slug }})</small></span>
-        <button type="button" class="link-danger" (click)="excluirCategoria(c.id)">Excluir</button>
-      </li>
-    </ul>
-  </section>
-
-  <section class="card" *ngIf="auth.isMaster()">
-    <h2>Produtos da minha loja</h2>
-    <p class="muted">
-      Cadastro rápido abaixo ou
-      <a routerLink="/parceiros/catalogo-produto">cadastro completo</a>
-      (fotos, código de barras, variantes). Inventário:
-      <a routerLink="/parceiros/inventario-pos">Inventário / POS</a>.
-    </p>
-    <div class="grid-2">
-      <input type="text" [(ngModel)]="novoProduto.nome" placeholder="Nome do produto" />
-      <input type="text" [(ngModel)]="novoProduto.preco" placeholder="Preço (ex.: 89,90)" />
-      <select [(ngModel)]="novoProduto.categoria_id">
-        <option value="">Sem categoria</option>
-        <option *ngFor="let c of comercialCategorias()" [value]="c.id">{{ c.nome }}</option>
-      </select>
-    </div>
-    <textarea rows="3" [(ngModel)]="novoProduto.descricao" placeholder="Descrição"></textarea>
-    <div class="actions">
-      <button type="button" class="btn-secondary" (click)="criarProdutoComercial()">Cadastrar produto</button>
-    </div>
-    <ul class="prod-list">
-      <li *ngFor="let p of comercialProdutos()" class="prod-row">
-        <div>
-          <span>#{{ p.id }} — {{ p.nome }} (R$ {{ p.preco }})</span>
-          <small class="muted" *ngIf="p.vitrine_ativo === 1"> · na vitrine</small>
-          <small class="muted" *ngIf="p.vitrine_ativo !== 1"> · só estoque</small>
-        </div>
-        <div class="prod-actions">
-          <a routerLink="/parceiros/catalogo-produto" [queryParams]="{ produto_id: p.id }">Editar completo</a>
-          <button type="button" class="link-muted" (click)="toggleVitrineProduto(p)">
-            {{ p.vitrine_ativo === 1 ? 'Ocultar da loja' : 'Mostrar na loja' }}
-          </button>
-          <button type="button" class="link-danger" (click)="excluirProdutoComercial(p.id)">Excluir</button>
-        </div>
-      </li>
-    </ul>
-  </section>
-
-  <section class="card" *ngIf="auth.isMaster()">
-    <h2>Cupons da minha loja</h2>
-    <div class="grid-2">
-      <input type="text" [(ngModel)]="novoCupom.codigo" placeholder="Código (ex.: PET10)" />
-      <input type="text" [(ngModel)]="novoCupom.valor" placeholder="Valor" />
-      <select [(ngModel)]="novoCupom.tipo">
-        <option value="percentual">Percentual (%)</option>
-        <option value="valor">Valor fixo (R$)</option>
-      </select>
-      <input type="date" [(ngModel)]="novoCupom.validade" />
-    </div>
-    <input type="text" [(ngModel)]="novoCupom.descricao" placeholder="Descrição do cupom" />
-    <div class="actions">
-      <button type="button" class="btn-secondary" (click)="criarCupom()">Cadastrar cupom</button>
-    </div>
-    <ul class="prod-list">
-      <li *ngFor="let c of comercialCupons()">
-        <span>{{ c.codigo }} — {{ c.tipo === 'valor' ? 'R$' : '%' }} {{ c.valor }} ({{ c.validade || 'sem validade' }})</span>
-        <button type="button" class="link-danger" (click)="excluirCupom(c.id)">Excluir</button>
-      </li>
-    </ul>
-  </section>
-
-  <section class="card" *ngIf="auth.isMaster()">
-    <h2>Promoções da minha loja</h2>
-    <div class="grid-2">
-      <input type="text" [(ngModel)]="novaPromocao.nome" placeholder="Nome da promoção" />
-      <input type="text" [(ngModel)]="novaPromocao.valor" placeholder="Valor" />
-      <select [(ngModel)]="novaPromocao.tipo">
-        <option value="percentual">Percentual (%)</option>
-        <option value="valor">Valor fixo (R$)</option>
-      </select>
-      <input type="text" [(ngModel)]="novaPromocao.descricao" placeholder="Descrição" />
-      <input type="datetime-local" [(ngModel)]="novaPromocao.inicio" />
-      <input type="datetime-local" [(ngModel)]="novaPromocao.fim" />
-    </div>
-    <div class="actions">
-      <button type="button" class="btn-secondary" (click)="criarPromocao()">Cadastrar promoção</button>
-    </div>
-    <ul class="prod-list">
-      <li *ngFor="let p of comercialPromocoes()">
-        <span>{{ p.nome }} — {{ p.tipo === 'valor' ? 'R$' : '%' }} {{ p.valor }}</span>
-        <button type="button" class="link-danger" (click)="excluirPromocao(p.id)">Excluir</button>
-      </li>
-    </ul>
-  </section>
 </div>

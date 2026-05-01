@@ -11,3 +11,55 @@
 .actions { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
 .fav { border: 0; background: transparent; font-size: 16px; color: #ef4444; }
 .cart { border: 0; border-radius: 8px; background: #11e95b; color: #fff; font-weight: 800; padding: 6px 10px; }
+
+.v4--saas .head { background: linear-gradient(135deg, #1d4ed8 0%, #4f46e5 100%); }
+
+.saas-pill {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 6px 12px 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+.saas-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+}
+
+.saas-cta {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--fp-store-primary, #1d4ed8) 0%, var(--fp-store-accent, #4f46e5) 100%);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.saas-cta:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.saas-cta__arrow { font-size: 16px; line-height: 1; transition: transform 0.15s ease; }
+.saas-cta:hover .saas-cta__arrow { transform: translateX(2px); }

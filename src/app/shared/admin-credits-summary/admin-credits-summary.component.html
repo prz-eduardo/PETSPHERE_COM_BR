@@ -1,0 +1,88 @@
+<!-- Chip compacto (header) -->
+<div class="credits-chip-wrap" *ngIf="variant === 'chip'">
+  <button
+    type="button"
+    class="credits-chip"
+    (click)="openPainel.emit()"
+    [attr.aria-label]="'Créditos na rede PetSphere. Total ' + (data ? fmtInt(data.saldo_total) : '') + '. Abrir gestão de créditos.'"
+  >
+    <span class="credits-chip__aurora" aria-hidden="true"></span>
+    <span class="credits-chip__icon" aria-hidden="true"><i class="fa fa-bolt"></i></span>
+    <span class="credits-chip__text">
+      <span class="credits-chip__eyebrow">Créditos</span>
+      <span *ngIf="loading" class="credits-chip__value credits-chip__value--pulse">···</span>
+      <span *ngIf="!loading && error" class="credits-chip__value credits-chip__value--muted">—</span>
+      <span *ngIf="!loading && !error && data" class="credits-chip__value">{{ fmtInt(data.saldo_total) }}</span>
+    </span>
+    <span class="credits-chip__meta" *ngIf="!loading && !error && data">
+      <span class="dot"></span>
+      {{ fmtInt(data.parceiros_com_saldo_positivo) }} parceiros
+    </span>
+    <span class="credits-chip__chev" aria-hidden="true"><i class="fa fa-angle-right"></i></span>
+  </button>
+  <button
+    *ngIf="error"
+    type="button"
+    class="credits-chip__retry"
+    (click)="refresh.emit(); $event.stopPropagation()"
+    title="Atualizar resumo de créditos"
+  >
+    <i class="fa fa-refresh"></i>
+  </button>
+</div>
+
+<!-- Banner (hero / overview) -->
+<section *ngIf="variant === 'banner'" class="credits-banner" aria-labelledby="credits-banner-title">
+  <div class="credits-banner__glow" aria-hidden="true"></div>
+  <div class="credits-banner__head">
+    <div class="credits-banner__title-wrap">
+      <span class="credits-banner__badge"><i class="fa fa-bolt"></i> Monetização</span>
+      <h3 id="credits-banner-title" class="credits-banner__title">Créditos na rede PetSphere</h3>
+      <p class="credits-banner__sub">Soma dos saldos de todos os parceiros — uso, pacotes e ajustes aparecem no extrato.</p>
+    </div>
+    <div class="credits-banner__actions">
+      <button type="button" class="btn-ghost" (click)="refresh.emit()" [disabled]="loading" title="Atualizar">
+        <i class="fa fa-refresh" [class.fa-spin]="loading"></i>
+      </button>
+      <button type="button" class="btn-primary" (click)="openPainel.emit()">
+        Gerir créditos
+        <i class="fa fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="credits-banner__grid">
+    <ng-container *ngIf="loading">
+      <div class="metric metric--hero"><span class="metric__label">Saldo total</span><span class="metric__value metric__value--shimmer"></span></div>
+      <div class="metric"><span class="metric__label">Parceiros</span><span class="metric__value metric__value--shimmer"></span></div>
+      <div class="metric"><span class="metric__label">Com saldo</span><span class="metric__value metric__value--shimmer"></span></div>
+      <div class="metric"><span class="metric__label">Mov. 24h</span><span class="metric__value metric__value--shimmer"></span></div>
+    </ng-container>
+    <ng-container *ngIf="!loading && error">
+      <div class="metric metric--wide">
+        <span class="metric__label">Erro</span>
+        <span class="metric__value metric__value--small">{{ error }}</span>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="!loading && !error && data">
+      <div class="metric metric--hero">
+        <span class="metric__label">Saldo total na rede</span>
+        <span class="metric__value metric__value--xl">{{ fmtInt(data.saldo_total) }}</span>
+        <span class="metric__hint">créditos PetSphere</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">Parceiros cadastrados</span>
+        <span class="metric__value">{{ fmtInt(data.total_parceiros) }}</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">Com saldo &gt; 0</span>
+        <span class="metric__value">{{ fmtInt(data.parceiros_com_saldo_positivo) }}</span>
+      </div>
+      <div class="metric">
+        <span class="metric__label">Movimentos (24h)</span>
+        <span class="metric__value">{{ fmtInt(data.movimentos_ultimas_24h) }}</span>
+        <span class="metric__hint">ledger</span>
+      </div>
+    </ng-container>
+  </div>
+</section>

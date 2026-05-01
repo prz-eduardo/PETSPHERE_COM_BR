@@ -171,8 +171,13 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
+}
+
+.header-user-area {
+  display: flex;
+  align-items: center;
 }
 
 /* ── User menu ── */
@@ -231,6 +236,30 @@
       padding: 4px 8px;
     }
 
+    a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: var(--admin-radius-sm);
+      color: var(--admin-text);
+      text-decoration: none;
+      font-size: var(--admin-font-size-sm);
+      cursor: pointer;
+      transition: background 0.12s ease;
+
+      i {
+        width: 18px;
+        text-align: center;
+        color: #fbbf24;
+      }
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+    }
+
     button {
       display: block;
       width: 100%;
@@ -265,10 +294,17 @@
   min-width: 0;
 }
 
-/* Routed pages: allow inner scroll areas (e.g. agenda timeline) to shrink and show overflow-x */
+/* Routed pages: allow inner scroll areas (e.g. agenda) to shrink and fill viewport height */
 .parceiro-main > * {
   min-width: 0;
   min-height: 0;
+}
+
+.parceiro-main > app-agenda-shell {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Mobile hamburger — desktop: oculto */
@@ -362,8 +398,8 @@
     color: var(--admin-primary);
   }
 
-  /* hide desktop user actions on mobile — moved into mobile menu */
-  .header-actions { display: none; }
+  /* No mobile: mantém créditos no header; só o menu Conta vai para o sheet */
+  .header-user-area { display: none; }
 
   .mobile-group-btn {
     display: flex;
@@ -468,6 +504,38 @@
     color: var(--admin-text-strong);
     padding: 0 12px 10px;
     line-height: 1.35;
+  }
+
+  .mobile-user .mobile-user-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    padding: 11px 12px;
+    border-radius: var(--admin-radius-md);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    background: rgba(251, 191, 36, 0.08);
+    color: #fcd34d;
+    font: inherit;
+    font-size: var(--admin-font-size-sm);
+    font-weight: var(--admin-font-weight-semibold);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .mobile-user .mobile-user-link:hover {
+    background: rgba(251, 191, 36, 0.14);
+    border-color: rgba(251, 191, 36, 0.4);
+    color: #fde68a;
+  }
+
+  .mobile-user .mobile-user-link i {
+    width: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: #fbbf24;
   }
 
   .mobile-user button {

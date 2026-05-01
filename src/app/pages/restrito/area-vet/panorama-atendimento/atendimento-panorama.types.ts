@@ -38,6 +38,13 @@ export interface PanoramaAtendimento {
   tutorNome: string;
   petNome: string;
   tutorTelefone?: string;
+  /** Quando preenchido a partir de «Meus clientes» / permissões LGPD. */
+  clienteIdPermitido?: number | null;
+  petId?: number | null;
+  /** Texto livre para geocodificar a origem (ex.: clínica) via OpenStreetMap. */
+  origemEnderecoTexto?: string;
+  /** Texto livre para geocodificar o destino (domicílio). */
+  destinoEnderecoTexto?: string;
   status: PanoramaAtendimentoStatus;
   /** Origem do deslocamento (ex.: clínica) */
   origemLat: number;

@@ -9,6 +9,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
+import { ParceiroCreditosService } from '../../../services/parceiro-creditos.service';
 import { AdminHomeOverviewComponent } from '../../restrito/admin/home-overview/home-overview.component';
 import { ParceiroPainelOperacaoVendasComponent } from './parceiro-painel-operacao-vendas/parceiro-painel-operacao-vendas.component';
 import { ParceiroPainelOperacaoHotelariaComponent } from './parceiro-painel-operacao-hotelaria/parceiro-painel-operacao-hotelaria.component';
@@ -43,6 +45,10 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
   heroFlipped = false;
   operacaoTipo: ParceiroOperacaoTipo = 'vendas';
 
+  /** Saldo de créditos PetSphere (hero + eco do header) */
+  creditosSaldo: number | null = null;
+  creditosLoading = false;
+
   private collapsed: Record<string, boolean> = {};
 
   private sectionItems: Record<SectionKey, string[]> = {
@@ -52,7 +58,7 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
       'meus clientes loja permissao dados lgpd tutores',
       'telemedicina video atendimento',
       'reservas hotel creche hospedagem pet baias acomodacoes espacos canil',
-      'atendimento chat suporte omnichannel',
+      'atendimento chat mensagens clientes conversas suporte omnichannel',
     ],
     vet: [
       'ativos formulas compostos ingredientes',
@@ -61,20 +67,24 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
       'pacientes pets clientes tutores',
     ],
     saas: [
-      'petshop online loja ecommerce',
+      'petshop online loja ecommerce produtos catalogo inventario pagamento marketplace',
       'hotel creche hospedagem pets baias pet daycare',
       'adestramento treinamento comportamento',
-      'planos assinatura financeiro cobranca',
+      'planos assinatura financeiro cobranca creditos saldo consumo',
       'relatorios analytics dados',
     ],
     config: [
       'colaboradores equipe funcionarios',
-      'minha loja vitrine slug url subdominio site institucional pagamento',
-      'perfil conta configuracoes',
+      'configuracoes vitrine slug url subdominio site institucional pagamento mp mercado token',
+      'perfil conta',
     ],
   };
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private parceiroAuth: ParceiroAuthService,
+    private parceiroCreditos: ParceiroCreditosService,
+  ) {}
 
   ngOnInit(): void {
     this.greeting = this.computeGreeting();
@@ -105,9 +115,31 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
     } catch {
       /* noop */
     }
+
+    this.loadCreditosSaldo();
   }
 
   ngOnDestroy(): void {}
+
+  loadCreditosSaldo(): void {
+    const h = this.parceiroAuth.getAuthHeaders() as { Authorization?: string };
+    if (!h.Authorization) return;
+    this.creditosLoading = true;
+    this.parceiroCreditos.getSaldo(h as { Authorization: string }).subscribe({
+      next: (r) => {
+        this.creditosSaldo = Number(r.saldo) || 0;
+        this.creditosLoading = false;
+      },
+      error: () => {
+        this.creditosSaldo = null;
+        this.creditosLoading = false;
+      },
+    });
+  }
+
+  fmtCreditos(n: number): string {
+    return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(n);
+  }
 
   private computeGreeting(): string {
     const h = new Date().getHours();
@@ -225,13 +257,24 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
   goToReservasHotel(): void {
     this.router.navigate(['/parceiros/hospedagem']);
   }
-  goToMinhaLoja(): void {
-    this.router.navigate(['/parceiros/minha-loja']);
+  goToConfiguracoes(): void {
+    this.router.navigate(['/parceiros/configuracoes']);
+  }
+  goToPetshopOnline(): void {
+    this.router.navigate(['/parceiros/petshop-online']);
   }
   goToComercial(): void {
-    this.router.navigate(['/parceiros/minha-loja']);
+    this.router.navigate(['/parceiros/petshop-online']);
   }
   goToTelemedicina(): void {
     this.router.navigate(['/parceiros/agenda'], { queryParams: { view: 'telemedicina' } });
+  }
+
+  goToMensagens(): void {
+    this.router.navigate(['/parceiros/mensagens']);
+  }
+
+  goToPlanosCreditos(): void {
+    this.router.navigate(['/parceiro/planos']);
   }
 }

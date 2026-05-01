@@ -111,13 +111,35 @@
         <div *ngIf="hosp.leitos?.length" class="tenant-hospedagem__leitos">
           <p class="tenant-hospedagem__subtitle">Acomodações na vitrine</p>
           <article *ngFor="let l of hosp.leitos" class="tenant-hosp-leito">
-            <img *ngIf="l.foto_url" [src]="resolveHospedagemFoto(l.foto_url)" [alt]="l.nome" class="tenant-hosp-leito__img" />
+            <div class="tenant-hosp-leito__media">
+              <div class="tenant-hosp-leito__thumb-wrap">
+                <img [src]="tenantHospLeadPhoto(l)" [alt]="l.nome" class="tenant-hosp-leito__img" loading="lazy" />
+                <span *ngIf="tenantHospVitrineBadge(l) as vn" class="tenant-hosp-vitrine-badge" [attr.data-nivel]="l.vitrine_nivel">{{ vn }}</span>
+              </div>
+              <div *ngIf="tenantHospGaleriaStripUrls(l).length" class="tenant-hosp-galeria-strip" role="group" aria-label="Mais fotos do espaço">
+                <img
+                  *ngFor="let u of tenantHospGaleriaStripUrls(l)"
+                  [src]="resolveHospedagemFoto(u)"
+                  alt=""
+                  class="tenant-hosp-galeria-strip__thumb"
+                  loading="lazy"
+                />
+              </div>
+            </div>
             <div class="tenant-hosp-leito__body">
               <h3>{{ l.nome }}</h3>
               <p class="muted">{{ l.tipo }} · até {{ l.capacidade }} pet(s)</p>
+              <p *ngIf="tenantHospConfortoLabel(l.nivel_conforto) || tenantHospAmbienteLabel(l.ambiente)" class="tenant-hosp-meta muted">
+                <span *ngIf="tenantHospConfortoLabel(l.nivel_conforto) as cl">{{ cl }}</span>
+                <span *ngIf="tenantHospConfortoLabel(l.nivel_conforto) && tenantHospAmbienteLabel(l.ambiente)"> · </span>
+                <span *ngIf="tenantHospAmbienteLabel(l.ambiente) as al">{{ al }}</span>
+              </p>
               <p *ngIf="l.preco_diaria != null" class="tenant-hosp-preco">{{ l.preco_diaria | currency : 'BRL' }} <small>diária</small></p>
               <div class="tenant-hospedagem__chips" *ngIf="l.servicos_oferta?.length">
                 <span *ngFor="let o of l.servicos_oferta" class="tenant-hosp-ch">{{ o.label_pt }}</span>
+              </div>
+              <div class="tenant-hospedagem__chips tenant-hospedagem__chips--muted" *ngIf="l.infra?.length">
+                <span *ngFor="let i of l.infra" class="tenant-hosp-ch tenant-hosp-ch--infra">{{ i.label_pt }}</span>
               </div>
             </div>
           </article>
@@ -322,14 +344,19 @@
                 </svg>
                 <span>{{ loc }}</span>
               </div>
+              <div class="result-actions" *ngIf="!tenantLoja.isTenantLoja()" (click)="$event.stopPropagation()">
+                <button type="button" class="result-action-btn" (click)="onResultPartnerChat(p, $event)">Mensagem</button>
+                <a *ngIf="partnerStoreHref(p) as lojaHref" class="result-action-link" [href]="lojaHref" target="_blank" rel="noopener noreferrer">Vitrine online</a>
+              </div>
             </div>
           </li>
         </ul>
 
         <div *ngIf="!loading && !partners?.length" class="empty-state">
           <img src="/icones/mapa-pata.png" alt="" aria-hidden="true" />
-          <h4>Nenhum parceiro por aqui ainda</h4>
-          <p>Experimente trocar de categoria ou volte em breve — novos parceiros chegam toda semana.</p>
+          <h4>Nenhum parceiro com estes filtros</h4>
+          <p>Troque a categoria, limpe a busca ou amplie o raio nas configurações do mapa — ou volte mais tarde, pois novos parceiros entram na rede toda semana.</p>
+          <button type="button" class="empty-state-reset" *ngIf="!tenantLoja.isTenantLoja()" (click)="explorarLimparFiltrosMapa($event)">Limpar filtros e ver todos</button>
         </div>
 
         <!-- CTA: Quer aparecer aqui? -->
@@ -365,7 +392,7 @@
               [attr.aria-pressed]="mapCategoryPillsVisible"
               (click)="toggleMapCategoryPillsVisibility()">
               <img src="/icones/pin-pata.svg" alt="" />
-              <span class="map-legend-pill__text">{{ marcaNomeMapa }}</span>
+              <span class="map-legend-pill__text">{{ mapLegendReferenceLabel }}</span>
             </button>
             <ng-container *ngIf="mapCategoryPillsVisible">
               <button
@@ -390,7 +417,7 @@
               [attr.aria-pressed]="mapCategoryPillsVisible"
               (click)="toggleMapCategoryPillsVisibility()">
               <img src="/icones/pin-pata.svg" alt="" />
-              <span class="map-legend-pill__text">{{ marcaNomeMapa }}</span>
+              <span class="map-legend-pill__text">{{ mapLegendReferenceLabel }}</span>
             </button>
             <ng-container *ngIf="mapCategoryPillsVisible">
               <button

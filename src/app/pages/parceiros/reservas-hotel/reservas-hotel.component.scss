@@ -260,6 +260,24 @@ th {
   justify-content: flex-end;
 }
 
+.leitos-hint {
+  margin: 0;
+  padding: 0.75rem 0.9rem 0;
+  color: var(--admin-muted);
+  font-size: var(--admin-font-size-xs);
+  line-height: 1.45;
+
+  strong {
+    color: var(--admin-text);
+    font-weight: var(--admin-font-weight-semibold);
+  }
+}
+
+.room-card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .room-card {
   border: 1px solid var(--admin-border);
   border-radius: var(--admin-radius-md);
@@ -296,6 +314,52 @@ th {
     color: #fcd34d;
     background: rgba(252, 211, 77, 0.1);
   }
+}
+
+.room-photo-wrap {
+  position: relative;
+
+  .room-gallery-count {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 2px 7px;
+    border-radius: var(--admin-radius-pill);
+    font-size: var(--admin-font-size-xs);
+    font-weight: var(--admin-font-weight-semibold);
+    color: var(--admin-text-strong);
+    background: rgba(2, 6, 23, 0.72);
+    border: 1px solid var(--admin-border);
+    pointer-events: none;
+  }
+}
+
+.room-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.room-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--admin-radius-pill);
+  padding: 0.12rem 0.45rem;
+  font-size: var(--admin-font-size-xs);
+  font-weight: var(--admin-font-weight-semibold);
+}
+
+.room-badge--conforto {
+  color: #a5b4fc;
+  border: 1px solid rgba(165, 180, 252, 0.4);
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.room-badge--vitrine {
+  color: #fde68a;
+  border: 1px solid rgba(253, 230, 138, 0.45);
+  background: rgba(245, 158, 11, 0.15);
 }
 
 .room-photo {

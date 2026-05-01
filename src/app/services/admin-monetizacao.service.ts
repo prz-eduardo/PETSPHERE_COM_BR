@@ -78,6 +78,14 @@ export interface CreditMovimento {
   created_at: string;
 }
 
+/** Agregados para o widget de créditos no painel admin */
+export interface CreditosResumo {
+  total_parceiros: number;
+  saldo_total: number;
+  parceiros_com_saldo_positivo: number;
+  movimentos_ultimas_24h: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminMonetizacaoService {
   private http = inject(HttpClient);
@@ -134,6 +142,11 @@ export class AdminMonetizacaoService {
   }
   removePacote(id: number): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(`${this.base}/admin/creditos/pacotes/${id}`, { headers: this.headers });
+  }
+
+  /** Resumo agregado (soma de saldos na rede, totais) — widget header admin */
+  getCreditosResumo(): Observable<CreditosResumo> {
+    return this.http.get<CreditosResumo>(`${this.base}/admin/creditos/resumo`, { headers: this.headers });
   }
 
   // ---------- Saldos & extrato ----------

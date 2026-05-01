@@ -1348,6 +1348,15 @@ export class ApiService {
     );
   }
 
+  /** Geocodificação via Nominatim (proxy no backend — OpenStreetMap). */
+  osmGeocodeAddress(q: string): Observable<{
+    results: Array<{ lat: number | null; lon: number | null; display_name: string | null }>;
+  }> {
+    return this.http.get<{
+      results: Array<{ lat: number | null; lon: number | null; display_name: string | null }>;
+    }>(`${this.baseUrl}/maps/osm-geocode`, { params: { q } });
+  }
+
   searchGoogleMapPlaces(params: {
     q: string;
     lat?: number | null;

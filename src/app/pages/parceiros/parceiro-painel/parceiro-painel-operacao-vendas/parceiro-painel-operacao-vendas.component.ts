@@ -113,7 +113,7 @@ export class ParceiroPainelOperacaoVendasComponent implements OnInit, OnDestroy,
   }
 
   onOrderClick(_p: any): void {
-    void this.router.navigate(['/parceiros/minha-loja']);
+    void this.router.navigate(['/parceiros/petshop-online']);
   }
 
   private async drawSalesChart(): Promise<void> {

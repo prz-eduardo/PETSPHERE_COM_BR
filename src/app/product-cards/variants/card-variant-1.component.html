@@ -1,18 +1,28 @@
 <ng-template #content>
   <div class="thumb" [style.aspectRatio]="imageAspect">
     <img class="thumb-img" [src]="displayImage" [alt]="product.name" loading="lazy" decoding="async" />
-    <div class="price">{{ priceNow | currency:'BRL' }}</div>
-    <button class="buy" type="button" (click)="onAddClick($event)">Comprar</button>
+    <span class="saas-pill" *ngIf="product.permiteCheckout === false">
+      <span class="saas-pill__dot" aria-hidden="true"></span>
+      Solução PetSphere
+    </span>
+    <ng-container *ngIf="product.permiteCheckout !== false">
+      <div class="price">{{ priceNow | currency:'BRL' }}</div>
+      <button class="buy" type="button" (click)="onAddClick($event)">Comprar</button>
+    </ng-container>
   </div>
   <figcaption class="info">
     <h3>{{ product.name }}</h3>
     <p>{{ product.description || 'Produto' }}</p>
+    <button type="button" class="saas-cta" *ngIf="product.permiteCheckout === false" (click)="onAddClick($event)" aria-label="Conhecer solução PetSphere">
+      <span class="saas-cta__label">Conhecer solução</span>
+      <span class="saas-cta__arrow" aria-hidden="true">→</span>
+    </button>
   </figcaption>
 </ng-template>
 
-<figure *ngIf="!disableLink" class="v1" [routerLink]="['/produto', product.id]" [queryParams]="{ src: 'loja' }" [style.max-width]="cardWidth">
+<figure *ngIf="!disableLink" class="v1" [class.v1--saas]="product.permiteCheckout === false" [routerLink]="['/produto', product.id]" [queryParams]="{ src: 'loja' }" [style.max-width]="cardWidth">
   <ng-container *ngTemplateOutlet="content"></ng-container>
 </figure>
-<figure *ngIf="disableLink" class="v1" [style.max-width]="cardWidth">
+<figure *ngIf="disableLink" class="v1" [class.v1--saas]="product.permiteCheckout === false" [style.max-width]="cardWidth">
   <ng-container *ngTemplateOutlet="content"></ng-container>
 </figure>

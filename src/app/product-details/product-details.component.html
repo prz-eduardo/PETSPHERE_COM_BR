@@ -87,7 +87,7 @@
 				<span class="hero-stat" *ngIf="p.sku"><span class="stat-dot" aria-hidden="true"></span>SKU {{ p.sku }}</span>
 			</div>
 
-			<section class="pd-cta-card" role="region" aria-label="Ações rápidas">
+			<section class="pd-cta-card" role="region" aria-label="Ações rápidas" *ngIf="p.permiteCheckout !== false">
 				<img src="/icones/mapa-pata.png" alt="" aria-hidden="true" class="pd-cta-icon" />
 				<div class="pd-cta-body">
 					<h2 class="pd-cta-name">Compre com a <span class="pd-cta-tag">{{ marcaNome }}</span></h2>
@@ -96,6 +96,19 @@
 				<div class="pd-cta-btns">
 					<a routerLink="/loja" class="pd-cta-btn secondary">Loja</a>
 					<button type="button" class="pd-cta-btn" (click)="goToCart()">Carrinho</button>
+				</div>
+			</section>
+
+			<section class="pd-saas-card" role="region" aria-label="Solução PetSphere" *ngIf="p.permiteCheckout === false">
+				<img src="/icones/mapa-pata.png" alt="" aria-hidden="true" class="pd-saas-card__icon" />
+				<div class="pd-saas-card__body">
+					<span class="pd-saas-card__pill">Solução PetSphere</span>
+					<h2 class="pd-saas-card__title">{{ p.name }}</h2>
+					<p class="pd-saas-card__text">{{ p.shortDescription || p.description || 'Solução institucional do ecossistema PetSphere — pague só pelos créditos que usar.' }}</p>
+				</div>
+				<div class="pd-saas-card__btns">
+					<a class="pd-saas-card__btn primary" [routerLink]="['/parceiro/cadastrar']">Quero ser parceiro</a>
+					<a class="pd-saas-card__btn secondary" [routerLink]="['/parceiro/planos']">Planos &amp; créditos</a>
 				</div>
 			</section>
 		</header>
@@ -178,7 +191,7 @@
 						</ul>
 					</section>
 
-					<div class="price-row">
+					<div class="price-row" *ngIf="p.permiteCheckout !== false">
 						<div>
 							<div class="price-meta">
 								<span class="badge tipo" *ngIf="p.tipo">{{ p.tipo | titlecase }}</span>
@@ -188,8 +201,8 @@
 						</div>
 						<div class="badge promo" *ngIf="p?.promoPrice || p?.discount">PROMO</div>
 					</div>
-					<p class="pd-parcelas" *ngIf="p.parcelas_max && (p.parcelas_max! > 0)">Em até {{ p.parcelas_max }}x no cartão (consulte condições na finalização)</p>
-					<p class="pd-price-api" *ngIf="showPriceTableExplainer">
+					<p class="pd-parcelas" *ngIf="p.permiteCheckout !== false && p.parcelas_max && (p.parcelas_max! > 0)">Em até {{ p.parcelas_max }}x no cartão (consulte condições na finalização)</p>
+					<p class="pd-price-api" *ngIf="p.permiteCheckout !== false && showPriceTableExplainer">
 						Preço de tabela: R$ {{ p.priceOriginal | number:'1.2-2' }} → <strong>com promoção: R$ {{ p.priceFinal | number:'1.2-2' }}</strong>
 					</p>
 
@@ -234,7 +247,7 @@
 						</span>
 					</div>
 
-					<section class="pd-promo-block" *ngIf="hasApiPromotionBlock" aria-label="Promoção ativa">
+					<section class="pd-promo-block" *ngIf="p.permiteCheckout !== false && hasApiPromotionBlock" aria-label="Promoção ativa">
 						<h3 class="pd-section-label">Promoção vigente</h3>
 						<ng-container *ngIf="p.activePromotion as pr">
 							<div class="pd-promo-card" *ngIf="pr.nome || pr.id">
@@ -254,7 +267,7 @@
 						</div>
 					</section>
 
-					<div class="pd-variantes" *ngIf="p.variantes && p.variantes.length">
+					<div class="pd-variantes" *ngIf="p.permiteCheckout !== false && p.variantes && p.variantes.length">
 						<label class="pd-section-label" id="var-label">Opções (variantes)</label>
 						<div class="variantes-list" role="group" aria-labelledby="var-label">
 							<button *ngFor="let v of p.variantes" type="button" class="variante-chip"
@@ -311,14 +324,32 @@
 					<!-- Demo SaaS: produto institucional, leva para cadastro/planos -->
 					<div class="saas-cta" *ngIf="p.permiteCheckout === false">
 						<div class="saas-cta__head">
-							<span class="saas-pill">Solução PetSphere</span>
+							<span class="saas-pill">
+								<span class="saas-pill__dot" aria-hidden="true"></span>
+								Solução PetSphere
+							</span>
 							<h3>Pronto para ativar essa solução no seu negócio?</h3>
 							<p>Cadastre seu petshop, clínica, hotel ou serviço pet e escolha o plano de créditos que combina com o seu volume. Você paga só pelo que usar.</p>
 						</div>
+						<ul class="saas-cta__benefits" aria-label="Benefícios">
+							<li>
+								<span class="saas-cta__benefit-ico" aria-hidden="true">✓</span>
+								<span><strong>Sem mensalidade fixa</strong> — pague apenas pelos créditos consumidos.</span>
+							</li>
+							<li>
+								<span class="saas-cta__benefit-ico" aria-hidden="true">✓</span>
+								<span><strong>Ativação rápida</strong> — pronto pra usar logo após o cadastro do parceiro.</span>
+							</li>
+							<li>
+								<span class="saas-cta__benefit-ico" aria-hidden="true">✓</span>
+								<span><strong>Suporte humano</strong> — equipe PetSphere para tirar dúvidas e ajudar a configurar.</span>
+							</li>
+						</ul>
 						<div class="saas-cta__buttons">
 							<a class="btn primary large" [routerLink]="['/parceiro/cadastrar']">Quero ser parceiro</a>
 							<a class="btn outline" [routerLink]="['/parceiro/planos']">Ver planos &amp; créditos</a>
 						</div>
+						<p class="saas-cta__foot">Já é parceiro? <a [routerLink]="['/parceiro/login']">Entrar</a> para ativar essa solução.</p>
 					</div>
 				</aside>
 			</div>
@@ -354,12 +385,12 @@
 		</section>
 
 		<section class="pd-extra" *ngIf="hasTechnicalInfo()" id="pd-ficha-tecnica">
-			<h2 class="pd-extra__head">Ficha técnica e documentos</h2>
+			<h2 class="pd-extra__head">{{ p.permiteCheckout === false ? 'Sobre a solução' : 'Ficha técnica e documentos' }}</h2>
 			<nav class="pd-tabs" role="tablist" aria-label="Conteúdo complementar">
-				<button type="button" role="tab" [class.active]="activeTab === 'composicao'" *ngIf="p.composicao" (click)="activeTab = 'composicao'">Composição</button>
-				<button type="button" role="tab" [class.active]="activeTab === 'modo_uso'" *ngIf="p.modo_uso" (click)="activeTab = 'modo_uso'">Modo de uso</button>
-				<button type="button" role="tab" [class.active]="activeTab === 'indicacoes'" *ngIf="p.indicacoes" (click)="activeTab = 'indicacoes'">Indicações</button>
-				<button type="button" role="tab" [class.active]="activeTab === 'contraindicacoes'" *ngIf="p.contraindicacoes" (click)="activeTab = 'contraindicacoes'">Contraindicações</button>
+				<button type="button" role="tab" [class.active]="activeTab === 'composicao'" *ngIf="p.composicao" (click)="activeTab = 'composicao'">{{ p.permiteCheckout === false ? 'Funcionalidades' : 'Composição' }}</button>
+				<button type="button" role="tab" [class.active]="activeTab === 'modo_uso'" *ngIf="p.modo_uso" (click)="activeTab = 'modo_uso'">{{ p.permiteCheckout === false ? 'Como funciona' : 'Modo de uso' }}</button>
+				<button type="button" role="tab" [class.active]="activeTab === 'indicacoes'" *ngIf="p.indicacoes" (click)="activeTab = 'indicacoes'">{{ p.permiteCheckout === false ? 'Para quem é' : 'Indicações' }}</button>
+				<button type="button" role="tab" [class.active]="activeTab === 'contraindicacoes'" *ngIf="p.permiteCheckout !== false && p.contraindicacoes" (click)="activeTab = 'contraindicacoes'">Contraindicações</button>
 				<button type="button" role="tab" [class.active]="activeTab === 'documentos'" *ngIf="p.documentos?.length" (click)="activeTab = 'documentos'">Documentos</button>
 			</nav>
 			<div class="pd-tab-content">

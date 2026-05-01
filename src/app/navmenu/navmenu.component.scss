@@ -89,16 +89,7 @@ nav.app-navbar {
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
     will-change: transform;
 
-    @media screen and (min-width: 768px) {
-      &::after {
-        content: '';
-        position: absolute;
-        left: 0; right: 0; bottom: -6px;
-        height: 6px;
-        background: var(--fp-site-surface, #e8ebf5);
-        pointer-events: none;
-      }
-    }
+    // Sem faixa “recorte” sob o header no desktop — abas sem pill sólido.
 
     &.hidden { transform: translateY(-120%); }
 
@@ -143,7 +134,46 @@ nav.app-navbar {
     min-width: 0;
     display: none;
     justify-content: center;
-    @media screen and (min-width: 768px) { display: flex; }
+    @media screen and (min-width: 768px) {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+  }
+
+  .navbar-secondary {
+    display: none;
+    @media screen and (min-width: 768px) {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding-bottom: 1px;
+    }
+  }
+
+  .navbar-secondary-inner {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .navbar-secondary-link {
+    color: rgba(255, 255, 255, 0.78);
+    text-decoration: none;
+    &:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+  }
+
+  .navbar-secondary-dot {
+    opacity: 0.45;
+    user-select: none;
   }
 
   .navbar-tabs-track {
@@ -155,15 +185,15 @@ nav.app-navbar {
     max-width: 100%;
   }
 
-  // Liquid pill — desktop hori-selector renovado
+  // Liquid pill — desktop hori-selector renovado (fundo transparente; destaque só no texto/link)
   .hori-selector {
     position: absolute;
     z-index: 0;
     left: 0; top: 0;
     pointer-events: none;
-    background: var(--fp-site-surface, #e8ebf5);
+    background: transparent;
     border-radius: 12px 12px 0 0;
-    box-shadow: 0 -1px 0 rgba(255,255,255,0.18) inset, 0 6px 18px rgba(6, 4, 24, 0.18);
+    box-shadow: none;
     opacity: 0;
     transform: translate(0, 0);
     transition:
@@ -174,7 +204,7 @@ nav.app-navbar {
       opacity 0.2s ease,
       transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
 
-    .hori-cap { position: absolute; width: 16px; height: 16px; background: var(--fp-site-surface, #e8ebf5); bottom: 0; pointer-events: none; }
+    .hori-cap { position: absolute; width: 16px; height: 16px; background: transparent; bottom: 0; pointer-events: none; }
     .hori-cap--right { right: -16px; }
     .hori-cap--left { left: -16px; }
     .hori-cap--right::before,
@@ -183,7 +213,7 @@ nav.app-navbar {
       position: absolute;
       width: 32px; height: 32px;
       border-radius: 50%;
-      background: var(--ps-cosmos);
+      background: transparent;
     }
     .hori-cap--right::before { bottom: 0; right: -16px; }
     .hori-cap--left::before  { bottom: 0; left:  -16px; }
@@ -223,10 +253,10 @@ nav.app-navbar {
   }
 
   .nav-tab-item.active .nav-tab-link {
-    color: var(--ps-cosmos);
+    color: var(--ps-snow);
     transform: translateY(0);
     border-radius: 12px 12px 0 0;
-    i { color: var(--ps-cosmos); }
+    i { color: var(--ps-snow); }
   }
 
   .nav-tab-label { white-space: nowrap; }
@@ -373,6 +403,10 @@ nav.app-navbar {
       height: 100%;
       min-width: 0;
       list-style: none;
+    }
+
+    .ps-dock__item--fill {
+      pointer-events: none;
     }
 
     .ps-dock__link {
@@ -538,12 +572,11 @@ nav.app-navbar {
     }
   }
 
-  // FAB — núcleo de marca centralizado, 'rasga' o topo do dock
-  .ps-fab {
+  // FAB — host fixo + botão principal + fotinha (conta) como botão irmão
+  .ps-fab-host {
     display: none;
-    @include sm { display: inline-flex; }
+    @include sm { display: block; }
 
-    /* Menos atraso de duplo-toque; não captura pan horizontal no botão */
     touch-action: manipulation;
 
     position: fixed;
@@ -556,6 +589,16 @@ nav.app-navbar {
 
     width: var(--ps-fab-size);
     height: var(--ps-fab-size);
+    pointer-events: none;
+  }
+
+  .ps-fab-host .ps-fab {
+    display: inline-flex;
+    pointer-events: auto;
+
+    position: relative;
+    width: 100%;
+    height: 100%;
     border: 0;
     padding: 0;
     border-radius: 999px;
@@ -566,8 +609,7 @@ nav.app-navbar {
     box-shadow: var(--ps-shadow-fab);
     transition:
       transform 0.32s var(--ps-ease-spring),
-      box-shadow 0.28s ease,
-      bottom 0.32s var(--ps-ease-out);
+      box-shadow 0.28s ease;
     align-items: center;
     justify-content: center;
     will-change: transform;
@@ -578,7 +620,7 @@ nav.app-navbar {
     }
 
     &:active {
-      transform: translateX(-50%) scale(0.92);
+      transform: scale(0.92);
       transition-duration: 0.12s;
     }
 
@@ -610,35 +652,55 @@ nav.app-navbar {
       display: block;
       pointer-events: none;
     }
-
-    // Anel com avatar do pet ativo (cliente logado)
-    .ps-fab__pet-ring {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: var(--ps-cosmos);
-      padding: 2px;
-      box-shadow: 0 4px 12px rgba(6, 4, 24, 0.55), 0 0 0 1.5px var(--ps-aurora);
-
-      img {
-        width: 100%; height: 100%;
-        border-radius: 50%;
-        object-fit: cover;
-        display: block;
-      }
-    }
   }
-  .ps-fab--open {
-    transform: translateX(-50%) rotate(90deg) scale(1.06);
+
+  .ps-fab-host .ps-fab.ps-fab--open {
+    transform: rotate(90deg) scale(1.06);
+  }
+
+  // Avatar no canto — hit area própria (abre área da conta)
+  .ps-fab-host .ps-fab__pet-ring {
+    pointer-events: auto;
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    z-index: 2;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 0;
+    margin: 0;
+    padding: 2px;
+    cursor: pointer;
+    touch-action: manipulation;
+    background: var(--ps-cosmos);
+    box-shadow: 0 4px 12px rgba(6, 4, 24, 0.55), 0 0 0 1.5px var(--ps-aurora);
+
+    &:focus-visible {
+      outline: 3px solid var(--ps-aurora);
+      outline-offset: 2px;
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
   }
 
   // Compact (encolhe ao rolar) — coordenado pela classe is-compact no <nav>
-  &.is-compact .ps-fab {
-    transform: translateX(-50%) scale(0.92);
+  &.is-compact .ps-fab-host {
     bottom: calc(12px + var(--ps-dock-height-compact) - 29px + env(safe-area-inset-bottom, 0px));
+  }
+  &.is-compact .ps-fab-host .ps-fab {
+    transform: scale(0.92);
+  }
+  // Em compact, mesma prioridade de antes: escala compacta sobrepõe rotação do sheet aberto
+  &.is-compact .ps-fab-host .ps-fab.ps-fab--open {
+    transform: scale(0.92);
   }
   &.is-compact .ps-ribbon {
     bottom: calc(12px + var(--ps-dock-height-compact) + 14px + env(safe-area-inset-bottom, 0px));
@@ -879,7 +941,24 @@ nav.app-navbar {
       position: relative;
       z-index: 1;
 
-      li { list-style: none; }
+      li {
+        list-style: none;
+      }
+    }
+
+    &__section-label {
+      padding: 4px 4px 0;
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: rgba(255, 255, 255, 0.48);
+      line-height: 1.25;
+
+      &:first-child {
+        padding-top: 0;
+      }
     }
 
     &__list li .ps-sheet__action {
@@ -1261,6 +1340,7 @@ nav.app-navbar.is-night .ps-dock::after {
   nav.app-navbar .ps-dock__icon,
   nav.app-navbar .ps-dock__label,
   nav.app-navbar .ps-dock__pill,
+  nav.app-navbar .ps-fab-host,
   nav.app-navbar .ps-fab,
   nav.app-navbar .ps-fab__halo,
   nav.app-navbar .ps-ribbon,
@@ -1356,6 +1436,10 @@ nav.app-navbar.is-night .ps-dock::after {
   max-height: inherit;
   min-height: 320px;
   min-width: 320px;
+  /* Reserva espaço para .cliente-close fixo evitando overlap com o sino/bade; topo suave contra clip do pai */
+  padding-top: 6px;
+  padding-right: 48px;
+  box-sizing: border-box;
 }
 
 @media (max-width: 560px) {
@@ -1363,6 +1447,11 @@ nav.app-navbar.is-night .ps-dock::after {
     top: max(56px, calc(env(safe-area-inset-top, 0px) + 48px));
     width: calc(100vw - 16px);
     max-height: calc(100dvh - max(56px, calc(env(safe-area-inset-top, 0px) + 48px)) - env(safe-area-inset-bottom, 0px) - 20px);
+  }
+
+  .cliente-modal-inner {
+    padding-right: 48px;
+    padding-top: 6px;
   }
 }
 

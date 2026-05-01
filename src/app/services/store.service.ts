@@ -280,6 +280,7 @@ export class StoreService {
   // Home highlights
   async loadHomeHighlights(): Promise<ShopProduct[]> {
     try {
+      await this.tenantLoja.ensureHostResolved();
       const token = this.getStoredJwt();
       const slug = this.tenantLoja.lojaSlug();
       const res = await this.api.getHomeHighlights(token, slug ? { parceiro_slug: slug } : undefined).toPromise();
@@ -309,6 +310,7 @@ export class StoreService {
   async loadProducts(params?: { page?: number; pageSize?: number; q?: string; tipo?: 'manipulado'|'pronto'; category?: string; categoryId?: string|number; categories?: string[]; tag?: string; tags?: (string|number)[]; minPrice?: number; maxPrice?: number; myFavorites?: boolean; promoOnly?: boolean; sort?: 'relevance'|'newest'|'price_asc'|'price_desc'|'popularity'|'rating'|'my_favorites' }): Promise<{ total: number; totalPages: number; page: number; pageSize: number; meta?: StoreMeta }> {
     // Try server endpoint if available
     try {
+      await this.tenantLoja.ensureHostResolved();
       const token = this.getStoredJwt();
       const slug = this.tenantLoja.lojaSlug();
       const merged = { ...(params || {}), ...(slug ? { parceiro_slug: slug } : {}) };
@@ -577,6 +579,7 @@ export class StoreService {
    */
   async refreshFavorites(): Promise<void> {
     try {
+      await this.tenantLoja.ensureHostResolved();
       const token = this.getStoredJwt();
       if (!token) return;
       const slug = this.tenantLoja.lojaSlug();
@@ -661,6 +664,7 @@ export class StoreService {
   // Load full product details by ID
   async loadProductDetails(id: number | string): Promise<LoadProductDetailsResult> {
     try {
+      await this.tenantLoja.ensureHostResolved();
       const token = this.getStoredJwt();
       const slug = this.tenantLoja.lojaSlug();
       const it = await this.api.getProductById(id, token, slug ? { parceiro_slug: slug } : undefined).toPromise();

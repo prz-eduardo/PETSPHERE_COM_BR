@@ -39,10 +39,10 @@
 
       <!-- Time window presets (apenas no modo Dia) -->
       <div *ngIf="viewMode() === 'DAY'" class="window-toggle" role="group" aria-label="Janela de horário">
-        <button class="window-btn" [class.active]="windowPreset() === 'default'" (click)="setWindow('default')">Padrão</button>
-        <button class="window-btn" [class.active]="windowPreset() === '12-24'" (click)="setWindow('12-24')">Meio-dia–Meia-noite</button>
-        <button class="window-btn" [class.active]="windowPreset() === '9-18'" (click)="setWindow('9-18')">09–18</button>
-        <button class="window-btn" [class.active]="windowPreset() === '0-24'" (click)="setWindow('0-24')">Todos</button>
+        <button type="button" class="window-btn" [class.active]="windowPreset() === 'default'" (click)="setWindow('default')">Padrão</button>
+        <button type="button" class="window-btn" [class.active]="windowPreset() === '12-24'" (click)="setWindow('12-24')">Meio-dia–Meia-noite</button>
+        <button type="button" class="window-btn" [class.active]="windowPreset() === '9-18'" (click)="setWindow('9-18')">09–18</button>
+        <button type="button" class="window-btn" [class.active]="windowPreset() === '0-24'" (click)="setWindow('0-24')">Todos</button>
       </div>
 
       <!-- New appointment -->
@@ -64,28 +64,57 @@
   <div class="view-area">
     @switch (viewMode()) {
       @case ('DAY') {
-        <app-agenda-grid
-          [agendamentos]="agendamentosForView()"
-          [profissionais]="profissionais()"
-          [config]="viewConfig()!"
-          [workStart]="viewConfig()?.workStart"
-          [workEnd]="viewConfig()?.workEnd"
-          [selectedDate]="selectedDate()"
-          (slotClick)="openSidebar($event)"
-          (quickAction)="onQuickAction($event)"
-          (openModal)="openModal($event)"
-        ></app-agenda-grid>
+        @if (profissionais().length === 0) {
+          <section class="agenda-empty" aria-labelledby="empty-recursos-title">
+            <span class="agenda-empty-icon" aria-hidden="true">&#128197;</span>
+            <h3 id="empty-recursos-title">Nenhum recurso de agenda</h3>
+            <p>
+              As vistas <strong>Dia</strong> e <strong>Timeline</strong> precisam de pelo menos uma sala ou cadeira ativa.
+              Quando a API estiver disponível, os recursos aparecem aqui automaticamente.
+            </p>
+            <div class="agenda-empty-actions">
+              <a routerLink="/parceiros/configuracoes" class="btn-outline">Configurações</a>
+              <button type="button" class="btn-new" (click)="openSidebar()"><span>+</span> Novo</button>
+            </div>
+          </section>
+        } @else {
+          <app-agenda-grid
+            [agendamentos]="agendamentosForView()"
+            [profissionais]="profissionais()"
+            [config]="viewConfig()!"
+            [workStart]="viewConfig()?.workStart"
+            [workEnd]="viewConfig()?.workEnd"
+            [selectedDate]="selectedDate()"
+            (slotClick)="openSidebar($event)"
+            (quickAction)="onQuickAction($event)"
+            (openModal)="openModal($event)"
+          ></app-agenda-grid>
+        }
       }
       @case ('TIMELINE') {
-        <app-agenda-timeline
-          [agendamentos]="agendamentosForView()"
-          [profissionais]="profissionais()"
-          [config]="viewConfig()!"
-          [selectedDate]="selectedDate()"
-          (slotClick)="openSidebar($event)"
-          (quickAction)="onQuickAction($event)"
-          (openModal)="openModal($event)"
-        ></app-agenda-timeline>
+        @if (profissionais().length === 0) {
+          <section class="agenda-empty" aria-labelledby="empty-recursos-tl-title">
+            <span class="agenda-empty-icon" aria-hidden="true">&#128197;</span>
+            <h3 id="empty-recursos-tl-title">Nenhum recurso de agenda</h3>
+            <p>
+              A timeline organiza compromissos por profissional ou recurso. Cadastre recursos no estabelecimento para usar esta vista.
+            </p>
+            <div class="agenda-empty-actions">
+              <a routerLink="/parceiros/configuracoes" class="btn-outline">Configurações</a>
+              <button type="button" class="btn-new" (click)="openSidebar()"><span>+</span> Novo</button>
+            </div>
+          </section>
+        } @else {
+          <app-agenda-timeline
+            [agendamentos]="agendamentosForView()"
+            [profissionais]="profissionais()"
+            [config]="viewConfig()!"
+            [selectedDate]="selectedDate()"
+            (slotClick)="openSidebar($event)"
+            (quickAction)="onQuickAction($event)"
+            (openModal)="openModal($event)"
+          ></app-agenda-timeline>
+        }
       }
       @case ('WEEK') {
         <app-agenda-week

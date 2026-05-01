@@ -112,7 +112,7 @@
                   <td>{{ row.escopo || '-' }}</td>
                   <td>
                     @if (row.status === 'concedido') {
-                      <a class="chat-link" [routerLink]="['/parceiros/chat', row.cliente_id]">Abrir chat</a>
+                      <a class="chat-link" [routerLink]="['/parceiros/mensagens', row.cliente_id]">Abrir chat</a>
                     } @else {
                       <span class="muted">—</span>
                     }

@@ -1,21 +1,22 @@
+<div class="grid-scroll">
 <div class="grid-wrap">
 
   <!-- Header row: profissional columns -->
   <div class="grid-header">
     <div class="time-gutter"></div>
-    <div class="prof-header" *ngFor="let prof of profCols">
+    <div class="prof-header" *ngFor="let prof of profCols()">
       <span class="prof-name">{{ prof.nome }}</span>
       <span class="prof-role" *ngIf="prof.especialidade">{{ prof.especialidade }}</span>
     </div>
   </div>
 
   <!-- Body -->
-  <div class="grid-body" [style.height.px]="gridHeight">
+  <div class="grid-body" [style.height.px]="gridHeight()">
 
     <!-- Time slots (background grid) -->
     <div class="time-col">
       <div
-        *ngFor="let slot of timeSlots"
+        *ngFor="let slot of timeSlots()"
         class="time-label"
         [class.half]="slot.minute === 30"
         [style.height.px]="SLOT_HEIGHT_PX"
@@ -25,11 +26,11 @@
     </div>
 
     <!-- Per-profissional column -->
-    <div class="prof-col" *ngFor="let prof of profCols">
+    <div class="prof-col" *ngFor="let prof of profCols()">
 
       <!-- Clickable slots (background) -->
       <div
-        *ngFor="let slot of timeSlots"
+        *ngFor="let slot of timeSlots()"
         class="slot-bg"
         [class.half]="slot.minute === 30"
         [style.height.px]="SLOT_HEIGHT_PX"
@@ -55,9 +56,10 @@
     </div>
 
     <!-- Now line -->
-    <div class="now-line" *ngIf="nowLineTop" [style.top]="nowLineTop">
+    <div class="now-line" *ngIf="nowLineTop()" [style.top]="nowLineTop()">
       <span class="now-dot"></span>
     </div>
 
   </div>
+</div>
 </div>

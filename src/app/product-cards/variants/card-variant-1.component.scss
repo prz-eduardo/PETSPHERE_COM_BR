@@ -19,3 +19,56 @@
 .info p { margin: 0; font-size: 12px; line-height: 1.4; min-height: 36px; }
 .price { position: absolute; top: 0; right: 0; background: var(--fp-store-primary, #111); color: #fff; font-weight: 800; line-height: 32px; padding: 0 10px; }
 .buy { position: absolute; right: 0; bottom: 0; background: var(--fp-store-accent, #f5a700); border: 0; color: #111; font-weight: 700; line-height: 34px; padding: 0 10px; }
+
+.v1--saas .info { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.v1--saas .info p { min-height: 0; -webkit-line-clamp: 3; line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+
+.saas-pill {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb 55%, #4f46e5);
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 12px 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+  pointer-events: none;
+}
+.saas-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+
+.saas-cta {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--fp-store-primary, #1d4ed8) 0%, var(--fp-store-accent, #4f46e5) 100%);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.saas-cta:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.saas-cta__arrow { font-size: 16px; line-height: 1; transition: transform 0.15s ease; }
+.saas-cta:hover .saas-cta__arrow { transform: translateX(2px); }

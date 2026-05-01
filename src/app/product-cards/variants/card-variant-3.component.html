@@ -1,21 +1,29 @@
 <ng-template #content>
-  <div class="badge" *ngIf="product.discount && product.discount > 0">-{{ product.discount | number:'1.0-0' }}%</div>
+  <div class="badge" *ngIf="product.permiteCheckout !== false && product.discount && product.discount > 0">-{{ product.discount | number:'1.0-0' }}%</div>
   <div class="tumb" [style.aspectRatio]="imageAspect">
     <img [src]="displayImage" [alt]="product.name" loading="lazy" decoding="async" />
+    <span class="saas-pill" *ngIf="product.permiteCheckout === false">
+      <span class="saas-pill__dot" aria-hidden="true"></span>
+      Solução PetSphere
+    </span>
   </div>
   <div class="details">
     <span class="cat">{{ product.category || 'Categoria' }}</span>
     <h4>{{ product.name }}</h4>
     <p>{{ product.description || 'Produto' }}</p>
-    <div class="bottom">
+    <div class="bottom" *ngIf="product.permiteCheckout !== false">
       <div class="price"><small *ngIf="oldPriceDisplay != null">{{ oldPriceDisplay | currency:'BRL' }}</small>{{ priceNow | currency:'BRL' }}</div>
       <div class="links">
         <button type="button" class="icon" *ngIf="supportsFavorites" (click)="onFavClick($event)">❤</button>
         <button type="button" class="icon" (click)="onAddClick($event)">🛒</button>
       </div>
     </div>
+    <button type="button" class="saas-cta" *ngIf="product.permiteCheckout === false" (click)="onAddClick($event)" aria-label="Conhecer solução PetSphere">
+      <span class="saas-cta__label">Conhecer solução</span>
+      <span class="saas-cta__arrow" aria-hidden="true">→</span>
+    </button>
   </div>
 </ng-template>
 
-<div *ngIf="disableLink" class="v3" [style.max-width]="cardWidth"><ng-container *ngTemplateOutlet="content"></ng-container></div>
-<a *ngIf="!disableLink" class="v3" [routerLink]="['/produto', product.id]" [queryParams]="{ src: 'loja' }" [style.max-width]="cardWidth"><ng-container *ngTemplateOutlet="content"></ng-container></a>
+<div *ngIf="disableLink" class="v3" [class.v3--saas]="product.permiteCheckout === false" [style.max-width]="cardWidth"><ng-container *ngTemplateOutlet="content"></ng-container></div>
+<a *ngIf="!disableLink" class="v3" [class.v3--saas]="product.permiteCheckout === false" [routerLink]="['/produto', product.id]" [queryParams]="{ src: 'loja' }" [style.max-width]="cardWidth"><ng-container *ngTemplateOutlet="content"></ng-container></a>

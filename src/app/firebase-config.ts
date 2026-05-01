@@ -5,6 +5,7 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDpRqVdMO966X-e34c1KQJXRKlwzvzgV04",
@@ -29,3 +30,5 @@ const supportApp = getApps().find((a) => a.name === "supportChat")
   : initializeApp(firebaseConfig, "supportChat");
 export const supportAuth = getAuth(supportApp);
 export const supportRtdb = getDatabase(supportApp);
+/** Storage no mesmo app secundário (custom token) — anexos/áudio do chat parceiro. */
+export const supportStorage = getStorage(supportApp);

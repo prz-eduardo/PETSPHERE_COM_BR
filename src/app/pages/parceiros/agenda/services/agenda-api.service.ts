@@ -530,6 +530,16 @@ export class AgendaApiService {
     return response.permissoes || [];
   }
 
+  /** Tutor + endereço + pets com permissão LGPD concedida ao parceiro. */
+  async getClientePanoramaDados(clienteId: number): Promise<PanoramaClientePermitidoResponse> {
+    return await lastValueFrom(
+      this.http.get<PanoramaClientePermitidoResponse>(
+        `${API_BASE}/parceiro/clientes/${encodeURIComponent(String(clienteId))}/panorama-dados`,
+        { headers: this.getHeaders() }
+      )
+    );
+  }
+
   async discoverClientes(q: string): Promise<DiscoveryCandidateRow[]> {
     const response = await lastValueFrom(
       this.http.get<{ candidates: DiscoveryCandidateRow[] }>(
@@ -682,14 +692,24 @@ export class AgendaApiService {
     return response.leitos || [];
   }
 
-  async getHotelOfertaCatalog(): Promise<HotelOfertaCatalogEntry[]> {
+  /** Catálogo de serviços, infraestrutura e tipos de acomodação (hospedagem). */
+  async getHotelHospedagemCatalog(): Promise<HotelHospedagemCatalogBundle> {
     const response = await lastValueFrom(
-      this.http.get<{ catalog: HotelOfertaCatalogEntry[] }>(
-        `${PARCEIRO_HOSPEDAGEM}/catalogo-ofertas`,
-        { headers: this.getHeaders() }
-      )
+      this.http.get<HotelHospedagemCatalogBundle>(`${PARCEIRO_HOSPEDAGEM}/catalogo-ofertas`, {
+        headers: this.getHeaders(),
+      })
     );
-    return response.catalog || [];
+    return {
+      catalog: Array.isArray(response.catalog) ? response.catalog : [],
+      infra: Array.isArray(response.infra) ? response.infra : [],
+      acomodacao_tipos: Array.isArray(response.acomodacao_tipos) ? response.acomodacao_tipos : [],
+    };
+  }
+
+  /** @deprecated use getHotelHospedagemCatalog */
+  async getHotelOfertaCatalog(): Promise<HotelOfertaCatalogEntry[]> {
+    const b = await this.getHotelHospedagemCatalog();
+    return b.catalog;
   }
 
   async createHotelLeito(
@@ -762,6 +782,27 @@ export interface PermissaoDadosRow {
   cliente_email?: string | null;
 }
 
+export interface PanoramaClientePermitidoPet {
+  id: number;
+  nome: string;
+  especie?: string | null;
+  raca?: string | null;
+}
+
+export interface PanoramaClientePermitidoResponse {
+  tutor: {
+    cliente_id: number;
+    nome: string;
+    email?: string | null;
+    cpf?: string | null;
+    telefone?: string | null;
+  };
+  endereco: Record<string, unknown> | null;
+  endereco_texto: string | null;
+  pets: PanoramaClientePermitidoPet[];
+  escopo_pets: boolean;
+}
+
 export interface ConviteClienteRow {
   id: number;
   parceiro_id: number;
@@ -817,7 +858,52 @@ export interface HotelOfertaCatalogEntry {
   slug: string;
   label_pt: string;
   scope: 'leito' | 'parceiro' | 'both';
+  categoria?: string;
 }
+
+export interface HotelEspacoSlugLabel {
+  slug: string;
+  label_pt: string;
+}
+
+export interface HotelHospedagemCatalogBundle {
+  catalog: HotelOfertaCatalogEntry[];
+  infra: HotelEspacoSlugLabel[];
+  acomodacao_tipos: HotelEspacoSlugLabel[];
+}
+
+export interface HotelConvivencia {
+  pode_misturar: boolean | null;
+  apenas_mesma_familia: boolean | null;
+  isolamento_obrigatorio: boolean | null;
+}
+
+export interface HotelSaudePerfil {
+  exige_polivalente_v8_v10?: boolean | null;
+  exige_antirrabica?: boolean | null;
+  exige_vermifugacao?: boolean | null;
+  aceita_nao_castrado?: boolean | null;
+  aceita_femea_no_cio?: boolean | null;
+  aceita_agressivos?: boolean | null;
+  aceita_idosos_ou_especiais?: boolean | null;
+  aceita_medicacao_continua?: boolean | null;
+}
+
+export interface HotelRegrasOperacionais {
+  check_in_hora?: string | null;
+  check_out_hora?: string | null;
+  politica_adaptacao?: string | null;
+  limite_estadia_dias?: number | null;
+  politica_cancelamento?: string | null;
+  taxa_comportamento_agressivo?: string | null;
+}
+
+export interface HotelMidiaPorAmbiente {
+  ambiente_slug: string;
+  urls: string[];
+}
+
+export type HotelVitrineNivel = 'basico' | 'destaque' | 'top';
 
 export interface HotelLeitoRow {
   id: number;
@@ -830,6 +916,22 @@ export interface HotelLeitoRow {
   servico_id?: number | null;
   /** Slugs canônicos validados no backend */
   servicos_oferta?: string[];
+  acomodacao_tipos?: string[];
+  nivel_conforto?: string | null;
+  ambiente?: string | null;
+  capacidade_pequeno?: number | null;
+  capacidade_medio?: number | null;
+  capacidade_grande?: number | null;
+  convivencia?: HotelConvivencia | null;
+  saude_perfil?: HotelSaudePerfil | null;
+  infra_slugs?: string[];
+  galeria_urls?: string[];
+  video_url?: string | null;
+  midia_por_ambiente?: HotelMidiaPorAmbiente[] | null;
+  regras_operacionais?: HotelRegrasOperacionais | null;
+  vitrine_nivel?: HotelVitrineNivel | string | null;
+  vitrine_selos_snapshot?: string[] | null;
+  boost_ate?: string | null;
   ativo: number | boolean;
   ocupado: number | boolean;
   proxima_reserva?: string | null;

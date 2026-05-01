@@ -3,21 +3,31 @@
 :host {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 0%;
+  align-self: stretch;
+  width: 100%;
   min-width: 0;
   min-height: 0;
-  /* Scroll happens here so horizontal + vertical bars work on desktop without
-     leaking to the parent page. */
+  height: 100%;
+  overflow: hidden;
+}
+
+.grid-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
   overflow: auto;
+  overflow-x: auto;
+  overscroll-behavior: contain;
   scroll-behavior: smooth;
+  border-radius: var(--admin-radius-lg);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
 }
 
 .grid-wrap {
   display: flex;
   flex-direction: column;
   min-width: 600px;
-  /* Use the content's natural height (header + grid-body's explicit height)
-     so the host can scroll vertically when content exceeds available space. */
   flex: 1 0 auto;
 }
 

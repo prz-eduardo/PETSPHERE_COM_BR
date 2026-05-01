@@ -17,7 +17,7 @@
   <div class="nav-menu">
     <div class="navbar-inner">
       <div class="menubar navbar-mainbg" [class.hidden]="!isVisible">
-        <a routerLink="/" class="navbar-brand-link" title="Petsphere" aria-label="Petsphere — ir para a loja">
+        <a [routerLink]="brandHomeLink" class="navbar-brand-link" title="Petsphere" [attr.aria-label]="brandHomeAriaLabel">
           <div class="logo-container">
             <div id="wrapper" class="goo-wrapper">
               <div id="ball" class="ball-core"></div>
@@ -53,6 +53,16 @@
                 </a>
               </li>
             </ul>
+          </div>
+          <!-- Links secundários (varejo / institucional / negócios) — só tutor logado ou visitante -->
+          <div class="navbar-secondary" *ngIf="showDesktopSecondaryLinks">
+            <nav class="navbar-secondary-inner" aria-label="Loja e parceiros">
+              <a [routerLink]="lojaHref" class="navbar-secondary-link">Loja</a>
+              <span class="navbar-secondary-dot" aria-hidden="true">·</span>
+              <a routerLink="/sobre-nos" class="navbar-secondary-link">Sobre</a>
+              <span class="navbar-secondary-dot" aria-hidden="true">·</span>
+              <a routerLink="/parceiro/planos" class="navbar-secondary-link">Para negócios</a>
+            </nav>
           </div>
         </div>
 
@@ -151,11 +161,18 @@
           <li class="ps-dock__spacer" *ngIf="i === 2" aria-hidden="true"></li>
 
           <li
+            *ngIf="isDockFillItem(item)"
+            class="ps-dock__item ps-dock__item--fill"
+            aria-hidden="true"
+          ></li>
+
+          <li
+            *ngIf="!isDockFillItem(item)"
             class="ps-dock__item"
             [class.is-active]="isMobileTabHighlighted(item)"
             [attr.data-nav-id]="item.id"
           >
-            <ng-container *ngIf="item.id === 'esfera' || item.id === 'login'; else linkTpl">
+            <ng-container *ngIf="item.id === 'login'; else linkTpl">
               <button
                 type="button"
                 class="ps-dock__link"
@@ -191,7 +208,7 @@
                   ></ps-icon>
                   <span
                     class="ps-dock__cart-dot"
-                    *ngIf="item.id === 'loja' && cartCount > 0 && !showMiniBag"
+                    *ngIf="item.id === 'galeria' && cartCount > 0 && !showMiniBag"
                     aria-hidden="true"
                   ></span>
                 </span>
@@ -202,38 +219,46 @@
         </ng-container>
       </ul>
 
-      <!-- FAB Petsphere — núcleo de marca + central de ações -->
-      <button
-        #fabBtn
-        type="button"
-        class="ps-fab"
-        [class.ps-fab--open]="isSheetOpen || isRadialOpen"
-        (click)="onFabClick($event)"
-        (keydown.enter)="onFabKeyboardActivate($event)"
-        (keydown.space)="onFabKeyboardActivate($event)"
-        (pointerdown)="onFabPointerDown($event)"
-        (pointerup)="onFabPointerUp($event)"
-        (pointercancel)="onFabPointerCancel()"
-        (touchend)="onFabTouchEnd($event)"
-        (contextmenu)="$event.preventDefault()"
-        aria-label="Petsphere — ações rápidas"
-      >
-        <span class="ps-fab__halo" aria-hidden="true"></span>
-        <span class="ps-fab__core">
-          <img
-            src="/imagens/logo-marca.svg"
-            alt=""
-            class="ps-fab__logo"
-            width="128"
-            height="127"
-            aria-hidden="true"
-            decoding="async"
-          />
-        </span>
-        <span class="ps-fab__pet-ring" *ngIf="userFoto && dockMode === 'cliente'" aria-hidden="true">
+      <!-- FAB Petsphere — núcleo de marca + central de ações; fotinha = conta (botão separado sobre o FAB). -->
+      <div class="ps-fab-host">
+        <button
+          #fabBtn
+          type="button"
+          class="ps-fab"
+          [class.ps-fab--open]="isSheetOpen || isRadialOpen"
+          (click)="onFabClick($event)"
+          (keydown.enter)="onFabKeyboardActivate($event)"
+          (keydown.space)="onFabKeyboardActivate($event)"
+          (pointerdown)="onFabPointerDown($event)"
+          (pointerup)="onFabPointerUp($event)"
+          (pointercancel)="onFabPointerCancel()"
+          (touchend)="onFabTouchEnd($event)"
+          (contextmenu)="$event.preventDefault()"
+          aria-label="Petsphere — ações rápidas"
+        >
+          <span class="ps-fab__halo" aria-hidden="true"></span>
+          <span class="ps-fab__core">
+            <img
+              src="/imagens/logo-marca.svg"
+              alt=""
+              class="ps-fab__logo"
+              width="128"
+              height="127"
+              aria-hidden="true"
+              decoding="async"
+            />
+          </span>
+        </button>
+        <button
+          *ngIf="userFoto && dockMode === 'cliente'"
+          type="button"
+          class="ps-fab__pet-ring"
+          (click)="onFabAvatarClick($event)"
+          aria-label="Minha conta"
+        >
           <img [src]="userFoto" alt="" />
-        </span>
-      </button>
+        </button>
+      </div>
     </div>
   </ng-container>
 
@@ -249,11 +274,13 @@
         <p class="ps-sheet__subtitle">Atalhos rápidos do seu ecossistema pet</p>
       </header>
       <ul class="ps-sheet__list">
-        <li *ngFor="let action of sheetActions; trackBy: trackByQuickActionId; let first = first">
+        <ng-container *ngFor="let row of sheetPanelRows; let rp = index">
+          <li *ngIf="row.sectionLabel" class="ps-sheet__section-label">{{ row.sectionLabel }}</li>
+          <li *ngFor="let action of row.actions; let ai = index; trackBy: trackByQuickActionId">
           <button
             type="button"
             class="ps-sheet__action"
-            [class.ps-sheet__action--primary]="first"
+            [class.ps-sheet__action--primary]="rp === 0 && ai === 0"
             [attr.data-tone]="action.tone || 'aurora'"
             (click)="triggerQuickAction(action, 'sheet')"
           >
@@ -269,6 +296,7 @@
             </svg>
           </button>
         </li>
+        </ng-container>
       </ul>
       <button type="button" class="ps-sheet__cancel" (click)="closeSheet()">Fechar</button>
     </div>

@@ -1,0 +1,148 @@
+<div class="cx">
+  <header class="cx-head">
+    <h1>Caixa (turno)</h1>
+    <p class="lead">Abra o turno antes de vender no POS. No fechamento, informe o valor contado para conferir com o esperado.</p>
+    <nav class="cx-nav" aria-label="Atalhos relacionados">
+      <a routerLink="/parceiros/inventario-pos">POS / Balcão</a>
+      <a routerLink="/parceiros/petshop-online">Petshop online</a>
+    </nav>
+  </header>
+
+  <div *ngIf="loading()" class="muted cx-loading">Carregando…</div>
+
+  <ng-container *ngIf="!loading()">
+    <section *ngIf="!sessao()" class="cx-card">
+      <div class="cx-card-head">
+        <h2 class="cx-card-title">Nenhum caixa aberto</h2>
+        <p class="muted cx-card-intro">Informe o fundo de troco (pode ser zero) e abra o turno.</p>
+      </div>
+      <div class="cx-card-body">
+        <label class="cx-field">
+          <span class="cx-field-label">Valor de abertura (R$)</span>
+          <input type="number" min="0" step="0.01" [(ngModel)]="valorAbertura" class="cx-input" />
+        </label>
+        <label class="cx-field">
+          <span class="cx-field-label">Observação (opcional)</span>
+          <input type="text" [(ngModel)]="obsAbertura" maxlength="500" class="cx-input" />
+        </label>
+      </div>
+      <div class="cx-actions">
+        <button type="button" class="btn-primary" (click)="abrir()">Abrir caixa</button>
+      </div>
+    </section>
+
+    <section *ngIf="sessao() as s" class="cx-open">
+      <div class="cx-card">
+        <div class="cx-card-head">
+          <h2 class="cx-card-title">Turno aberto</h2>
+          <p class="cx-card-meta">
+            Aberto em <strong>{{ s.aberto_em | date : 'short' }}</strong> · Fundo declarado:
+            <strong>{{ s.valor_abertura | currency : 'BRL' }}</strong>
+          </p>
+        </div>
+        <div *ngIf="resumo() as r" class="cx-resumo">
+          <div class="cx-kpi">
+            <span class="lbl">Esperado no caixa</span>
+            <span class="val">{{ r.esperado_caixa | currency : 'BRL' }}</span>
+          </div>
+          <div class="cx-kpi">
+            <span class="lbl">Vendas (turno)</span>
+            <span class="val">{{ r.total_vendas | currency : 'BRL' }}</span>
+          </div>
+          <div class="cx-kpi" *ngFor="let vf of r.vendas_por_forma">
+            <span class="lbl">{{ vf.forma_pagamento || '—' }}</span>
+            <span class="val">{{ vf.total | currency : 'BRL' }}</span>
+          </div>
+          <div class="cx-kpi">
+            <span class="lbl">Sangrias</span>
+            <span class="val">{{ r.total_sangrias | currency : 'BRL' }}</span>
+          </div>
+          <div class="cx-kpi">
+            <span class="lbl">Suprimentos</span>
+            <span class="val">{{ r.total_suprimentos | currency : 'BRL' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cx-card" *ngIf="auth.isMaster()">
+        <div class="cx-card-head">
+          <h3 class="cx-card-title cx-card-title--sm">Sangria / suprimento / ajuste</h3>
+          <p class="muted small cx-card-intro">Apenas o usuário master registra estes movimentos.</p>
+        </div>
+        <div class="cx-card-body">
+          <div class="cx-row">
+            <select [(ngModel)]="movTipo" class="cx-input cx-input--grow">
+              <option value="sangria">Sangria (retirada)</option>
+              <option value="suprimento">Suprimento (entrada)</option>
+              <option value="ajuste">Ajuste</option>
+            </select>
+            <input type="number" step="0.01" [(ngModel)]="movValor" class="cx-input cx-input--narrow" placeholder="Valor (R$)" />
+          </div>
+          <label class="cx-field">
+            <span class="cx-field-label">Descrição</span>
+            <input type="text" [(ngModel)]="movDescricao" maxlength="500" class="cx-input cx-input--full" />
+          </label>
+        </div>
+        <div class="cx-actions">
+          <button type="button" class="btn-secondary" (click)="registrarMovimento()">Registrar</button>
+        </div>
+      </div>
+
+      <div class="cx-card">
+        <div class="cx-card-head">
+          <h3 class="cx-card-title cx-card-title--sm">Fechamento e conciliação</h3>
+          <p *ngIf="resumo() as r2" class="muted cx-card-intro">
+            Valor esperado (fundo + movimentos): <strong>{{ r2.esperado_caixa | currency : 'BRL' }}</strong>
+          </p>
+        </div>
+        <div class="cx-card-body">
+          <label class="cx-field">
+            <span class="cx-field-label">Valor contado (R$)</span>
+            <input
+              type="number"
+              step="0.01"
+              [(ngModel)]="valorContado"
+              class="cx-input cx-input--full"
+              placeholder="Opcional — preencha para gravar diferença"
+            />
+          </label>
+          <label class="cx-field">
+            <span class="cx-field-label">Observação do fechamento</span>
+            <input type="text" [(ngModel)]="obsFechamento" maxlength="500" class="cx-input cx-input--full" />
+          </label>
+        </div>
+        <div class="cx-actions">
+          <button type="button" class="btn-primary" (click)="fechar()">Fechar caixa</button>
+        </div>
+      </div>
+
+      <div class="cx-card" *ngIf="movimentos().length">
+        <div class="cx-card-head">
+          <h3 class="cx-card-title cx-card-title--sm">Extrato do turno</h3>
+        </div>
+        <ul class="cx-movs">
+          <li *ngFor="let m of movimentos()">
+            <span class="tag">{{ m.tipo }}</span>
+            <span>{{ m.descricao || '—' }}</span>
+            <span class="amt">{{ m.valor | currency : 'BRL' }}</span>
+            <span class="dt">{{ m.created_at | date : 'shortTime' }}</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="cx-card" *ngIf="historico().length">
+      <div class="cx-card-head">
+        <h3 class="cx-card-title cx-card-title--sm">Turnos recentes</h3>
+      </div>
+      <ul class="cx-hist">
+        <li *ngFor="let h of historico()">
+          <span>#{{ h.id }}</span>
+          <span>{{ h.status }}</span>
+          <span>{{ h.aberto_em | date : 'short' }}</span>
+          <span *ngIf="h.fechado_em">{{ h.fechado_em | date : 'short' }}</span>
+        </li>
+      </ul>
+    </section>
+  </ng-container>
+</div>

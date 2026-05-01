@@ -46,7 +46,7 @@
   &.is-modal {
     flex: 1 1 auto;
     min-height: 0;
-    padding: 22px 22px 26px;
+    padding: 26px 22px 26px;
     background: transparent;
     position: relative;
     overflow: auto;
@@ -155,6 +155,11 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .hero-actions {
+    flex-shrink: 0;
+    margin-inline-end: 4px;
   }
 }
 
@@ -511,7 +516,7 @@
    RESPONSIVO
    ============================================================ */
 @media (max-width: 520px) {
-  .area-cliente-wrapper { padding: 20px 14px 36px; &.is-modal { padding: 18px 14px 22px; } }
+  .area-cliente-wrapper { padding: 20px 14px 36px; &.is-modal { padding: 22px 14px 22px; } }
   .cliente-hero { padding: 14px; gap: 12px; }
   .cliente-hero .hero-avatar { width: 54px; height: 54px; font-size: 18px; }
   .cliente-hero .hero-nome { font-size: 17px; }

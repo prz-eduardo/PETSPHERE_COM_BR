@@ -74,10 +74,12 @@ export class PartnerChatApiService {
     text: string;
     senderRole: 'cliente';
     ts: number;
+    extras?: Record<string, unknown> | null;
   }): Promise<void> {
     try {
+      const body = p.extras ? { ...p, extras: p.extras } : { ...p };
       await firstValueFrom(
-        this.http.post(`${this.baseCliente()}/mensagens`, p, { headers: this.headersCliente() })
+        this.http.post(`${this.baseCliente()}/mensagens`, body, { headers: this.headersCliente() })
       );
     } catch (e) {
       console.warn('[partner-chat] log mensagem (cliente) falhou', e);
@@ -90,10 +92,12 @@ export class PartnerChatApiService {
     text: string;
     senderRole: 'parceiro_staff';
     ts: number;
+    extras?: Record<string, unknown> | null;
   }): Promise<void> {
     try {
+      const body = p.extras ? { ...p, extras: p.extras } : { ...p };
       await firstValueFrom(
-        this.http.post(`${this.baseParceiro()}/mensagens`, p, { headers: this.headersParceiro() })
+        this.http.post(`${this.baseParceiro()}/mensagens`, body, { headers: this.headersParceiro() })
       );
     } catch (e) {
       console.warn('[partner-chat] log mensagem (parceiro) falhou', e);

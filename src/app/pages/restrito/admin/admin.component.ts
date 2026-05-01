@@ -11,6 +11,8 @@ import { AdminNotificationComponent } from '../../../admin-notification/admin-no
 import { AdminHeaderComponent } from '../../../shared/admin-header/admin-header.component';
 import { AdminHomeOverviewComponent } from './home-overview/home-overview.component';
 import { MARCA_NOME } from '../../../constants/loja-public';
+import { AdminMonetizacaoService, CreditosResumo } from '../../../services/admin-monetizacao.service';
+import { AdminCreditsSummaryComponent } from '../../../shared/admin-credits-summary/admin-credits-summary.component';
 
 type SectionKey = 'inteligencia' | 'catalogo' | 'petshop' | 'pessoas' | 'operacao' | 'monetizacao';
 
@@ -26,6 +28,7 @@ type SectionKey = 'inteligencia' | 'catalogo' | 'petshop' | 'pessoas' | 'operaca
     AdminNotificationComponent,
     AdminHeaderComponent,
     AdminHomeOverviewComponent,
+    AdminCreditsSummaryComponent,
   ],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.scss'],
@@ -44,6 +47,12 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   private routerSub?: Subscription;
   private collapsed: Record<string, boolean> = {};
+  private creditosPoll?: ReturnType<typeof setInterval>;
+
+  /** Resumo agregado de créditos (widget header + banner hero) */
+  creditosResumo: CreditosResumo | null = null;
+  creditosResumoLoading = false;
+  creditosResumoError: string | null = null;
 
   /** Map of section key -> list of searchable keyword groups (one per item). */
   private sectionItems: Record<SectionKey, string[]> = {
@@ -81,7 +90,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     ],
   };
 
-  constructor(private router: Router, private session: SessionService) {}
+  constructor(
+    private router: Router,
+    private session: SessionService,
+    private monetizacao: AdminMonetizacaoService,
+  ) {}
 
   async ngOnInit() {
     if (!this.session.hasValidSession(true)) {
@@ -110,10 +123,29 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.updateHeaderTitle();
         });
     } catch {}
+
+    this.loadCreditosResumo();
+    this.creditosPoll = setInterval(() => this.loadCreditosResumo(), 120_000);
   }
 
   ngOnDestroy() {
     try { this.routerSub?.unsubscribe(); } catch {}
+    if (this.creditosPoll) clearInterval(this.creditosPoll);
+  }
+
+  loadCreditosResumo() {
+    this.creditosResumoLoading = true;
+    this.monetizacao.getCreditosResumo().subscribe({
+      next: (r) => {
+        this.creditosResumo = r;
+        this.creditosResumoLoading = false;
+        this.creditosResumoError = null;
+      },
+      error: () => {
+        this.creditosResumoLoading = false;
+        this.creditosResumoError = 'Falha ao carregar';
+      },
+    });
   }
 
   private computeGreeting(): string {

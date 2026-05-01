@@ -104,6 +104,7 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
+    await this.tenantLoja.ensureHostResolved();
     await this.loadReceitasDisponiveis();
     await this.loadHighlights();
     await this.validarCarrinhoComBackend();

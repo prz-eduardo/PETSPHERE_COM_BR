@@ -22,14 +22,31 @@ export interface TenantLojaHospedagemOfertaItem {
   label_pt: string;
 }
 
+/** Contrato estável GET /anunciantes/por-slug/:slug/hospedagem — campos extras para filtros e vitrine no mapa. */
 export interface TenantLojaHospedagemLeitoPublic {
   id: number;
   nome: string;
   tipo: string;
   capacidade: number;
   foto_url: string | null;
+  /** Primeira foto da galeria usada pela UI quando há ordem preservada pela API */
+  galeria_urls?: string[];
+  video_url?: string | null;
   preco_diaria: number | null;
   servicos_oferta: TenantLojaHospedagemOfertaItem[];
+  /** Slugs infra com labels já resolvidas */
+  infra?: TenantLojaHospedagemOfertaItem[];
+  acomodacao_tipos?: TenantLojaHospedagemOfertaItem[];
+  capacidade_pequeno?: number | null;
+  capacidade_medio?: number | null;
+  capacidade_grande?: number | null;
+  nivel_conforto?: string | null;
+  ambiente?: string | null;
+  convivencia?: Record<string, unknown> | null;
+  saude_perfil?: Record<string, unknown> | null;
+  regras_operacionais?: Record<string, unknown> | null;
+  vitrine_nivel?: string | null;
+  midia_por_ambiente?: unknown[] | null;
 }
 
 export interface TenantLojaHospedagemPublic {
@@ -47,7 +64,8 @@ export class TenantLojaService {
   /** Acomodações na vitrine + ofertas globais do hotel (só preenchido em contexto de loja tenant). */
   readonly hospedagemPublic = signal<TenantLojaHospedagemPublic | null>(null);
   readonly resolvedFromCustomDomain = signal(false);
-  private initDone = false;
+  /** Uma única Promise compartilhada: listagens da loja devem aguardar antes de chamar a API com `parceiro_slug`. */
+  private hostInitPromise: Promise<void> | null = null;
 
   readonly isTenantLoja = computed(() => !!this.lojaSlug() && !!this.profile());
 
@@ -62,12 +80,28 @@ export class TenantLojaService {
   ) {}
 
   /**
+   * Aguarda a resolução do host (subdomínio / ?loja=) e do perfil público.
+   * Chamado por `StoreService` antes de listar produtos/categorias para não perder o `parceiro_slug`.
+   */
+  ensureHostResolved(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) {
+      return Promise.resolve();
+    }
+    if (!this.hostInitPromise) {
+      this.hostInitPromise = this.runHostInit();
+    }
+    return this.hostInitPromise;
+  }
+
+  /**
    * Resolve host/subdomínio e carrega perfil público (aprovado).
-   * Chamado uma vez no bootstrap (AppComponent).
+   * Chamado no bootstrap (AppComponent); equivalente a `ensureHostResolved()`.
    */
   async initFromLocation(): Promise<void> {
-    if (!isPlatformBrowser(this.platformId) || this.initDone) return;
-    this.initDone = true;
+    return this.ensureHostResolved();
+  }
+
+  private async runHostInit(): Promise<void> {
     let host = '';
     try {
       host = (window.location.hostname || '').toLowerCase();
