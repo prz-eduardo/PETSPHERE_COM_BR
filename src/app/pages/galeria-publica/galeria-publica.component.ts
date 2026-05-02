@@ -655,9 +655,9 @@ export class GaleriaPublicaComponent implements OnInit, AfterViewInit, OnDestroy
       // use ApiService so baseUrl and headers are handled consistently
       // pass JWT when available so the gallery can return auth-aware data
       const token = this.auth.getToken() ?? undefined;
-      const slug = this.tenantLoja.lojaSlug();
+      // Feed sempre da comunidade inteira — não enviar parceiro_slug (filtrava por permissoes_dados e esvaziava em vitrines).
       const data = await this.api
-        .getGaleriaPublica({ page: pageNum, pageSize: this.pageSize, ...(slug ? { parceiro_slug: slug } : {}) }, token)
+        .getGaleriaPublica({ page: pageNum, pageSize: this.pageSize }, token)
         .toPromise();
       // support API returning { data: [], page, totalPages } or plain array
       const items = Array.isArray(data) ? data : (data?.data || []);

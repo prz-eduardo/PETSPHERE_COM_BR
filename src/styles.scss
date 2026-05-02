@@ -20,6 +20,19 @@ html, body{
 }
 
 /* Navbar safe-area variable and main wrapper to avoid content being hidden under fixed header */
+/* Shell da app: rodapé colado ao fim da viewport em páginas curtas (main cresce, footer embaixo). */
+app-root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+}
+
+app-footer {
+    flex-shrink: 0;
+}
+
 :root{
     color-scheme: light;
     --nav-height: 64px;
@@ -30,6 +43,7 @@ html, body{
 }
 
 .app-main{
+    flex: 1 1 auto;
     /* fallback first, then constant (old Safari), then env for modern browsers */
     padding-top: var(--nav-height);
     padding-top: calc(var(--nav-height) + constant(safe-area-inset-top));

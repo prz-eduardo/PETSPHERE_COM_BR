@@ -117,7 +117,7 @@
     <button
       class="btn-advance"
       *ngIf="nextStatus"
-      (click)="advanceStatus()"
+      (click)="requestAdvanceStatus()"
     >
       → {{ nextStatusLabel }}
     </button>
@@ -140,3 +140,26 @@
   </div>
 
 </div>
+
+<ng-container *ngIf="showTutorEmailAwaitingModal">
+  <div class="submodal-overlay" (click)="fecharAvisoTutorEmail()" aria-hidden="true"></div>
+  <div
+    class="submodal-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tutor-email-aviso-title"
+    (click)="$event.stopPropagation()"
+  >
+    <h3 id="tutor-email-aviso-title" class="submodal-title">E-mail já enviado ao tutor</h3>
+    <p class="submodal-text">
+      Um e-mail foi enviado para o tutor confirmar este horário (link ou área do cliente). Estamos aguardando a resposta dele.
+    </p>
+    <p class="submodal-text submodal-muted">
+      Você pode esperar a confirmação automática ou confirmar manualmente aqui na loja, se já tiver combinado por outro canal.
+    </p>
+    <div class="submodal-actions">
+      <button type="button" class="btn-submodal-ghost" (click)="fecharAvisoTutorEmail()">Voltar</button>
+      <button type="button" class="btn-submodal-primary" (click)="confirmarNaLojaMesmoAssim()">Confirmar na loja</button>
+    </div>
+  </div>
+</ng-container>

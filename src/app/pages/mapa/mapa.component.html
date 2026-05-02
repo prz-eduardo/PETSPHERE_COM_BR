@@ -159,6 +159,18 @@
             <ng-container *ngIf="!mapSearchUiOpen">
               <button
                 type="button"
+                class="mapa-services-fab"
+                (click)="toggleMobileServiceMenu()"
+                [attr.aria-expanded]="mobileServiceMenuOpen"
+                aria-label="Abrir menu rápido de serviços"
+                title="Serviços">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M4 7.5h16M4 12h16M4 16.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>Serviços</span>
+              </button>
+              <button
+                type="button"
                 class="mapa-user-fab"
                 aria-label="Centralizar mapa na minha posição"
                 title="Minha posição"
@@ -229,6 +241,17 @@
                 {{ quickSearchCountLabel }}
               </button>
             </div>
+          </div>
+          <div *ngIf="mobileServiceMenuOpen && !mapSearchUiOpen" class="map-mobile-services-panel" role="dialog" aria-label="Menu rápido de serviços">
+            <button
+              *ngFor="let t of mobileServiceTabs()"
+              type="button"
+              class="map-mobile-service-chip"
+              [class.map-mobile-service-chip--active]="active===t.id"
+              (click)="onMobileServiceSelect(t.id)">
+              <img [src]="getTabIcon(t)" alt="" aria-hidden="true" />
+              <span>{{ t.label }}</span>
+            </button>
           </div>
         </div>
 
@@ -565,6 +588,12 @@
               <p class="transporte-pet-map-panel__quote-label">Estimativa para esta rota</p>
               <p class="transporte-pet-map-panel__quote-value">{{ transportePetFmtReais(transportePetQuote.preco_centavos) }}</p>
               <p class="transporte-pet-map-panel__quote-meta muted">Distância aproximada · {{ transportePetQuote.distancia_km }} km</p>
+              <p class="transporte-pet-map-panel__quote-meta muted" *ngIf="transportePetQuote.pickup_eta_min != null">
+                Coleta estimada · {{ transportePetQuote.pickup_eta_min }} min
+              </p>
+              <p class="transporte-pet-map-panel__quote-meta muted" *ngIf="transportePetQuote.online_driver_count != null">
+                Motoristas online próximos · {{ transportePetQuote.online_driver_count }}
+              </p>
             </div>
             <p *ngIf="transportePetLastCorridaId" class="transporte-pet-map-panel__hint">Última corrida criada neste aparelho: <strong>#{{ transportePetLastCorridaId }}</strong></p>
             <button

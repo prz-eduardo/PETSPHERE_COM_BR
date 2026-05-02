@@ -423,6 +423,8 @@ export interface BannerDto {
   desktop_image_url?: string | null;
   mobile_image_url?: string | null;
   target_blank?: 0 | 1;
+  /** NULL ou ausente = banner global (admin); preenchido = vitrine do parceiro */
+  parceiro_id?: number | null;
   created_at?: string;
   updated_at?: string;
 }

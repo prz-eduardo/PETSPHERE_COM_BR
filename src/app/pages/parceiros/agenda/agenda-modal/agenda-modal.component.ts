@@ -4,6 +4,7 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   AfterViewInit,
   OnDestroy,
   ViewChild,
@@ -35,8 +36,14 @@ export class AgendaModalComponent {
   @ViewChild('remoteVideo') remoteVideo!: ElementRef<HTMLVideoElement>;
   private subs: any[] = [];
   telemedicinaActive = false;
+  /** Aviso antes de confirmar na loja quando já houve e-mail ao tutor. */
+  showTutorEmailAwaitingModal = false;
 
-  constructor(private agendaApi: AgendaApiService, private webrtc: WebrtcService) {}
+  constructor(
+    private agendaApi: AgendaApiService,
+    private webrtc: WebrtcService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   @Input() agendamento!: Agendamento;
   @Output() close = new EventEmitter<void>();
@@ -86,6 +93,35 @@ export class AgendaModalComponent {
   get nextStatusLabel(): string | null {
     const ns = this.nextStatus;
     return ns ? this.STATUS_LABELS[ns] : null;
+  }
+
+  get isAwaitingTutorEmailConfirmation(): boolean {
+    return (
+      this.agendamento.status === 'AGENDADO' &&
+      !!this.agendamento.tutorNotificacaoEmailEnviadoEm
+    );
+  }
+
+  requestAdvanceStatus(): void {
+    const ns = this.nextStatus;
+    if (!ns) return;
+    if (ns === 'CONFIRMADO' && this.isAwaitingTutorEmailConfirmation) {
+      this.showTutorEmailAwaitingModal = true;
+      this.cdr.markForCheck();
+      return;
+    }
+    this.advanceStatus();
+  }
+
+  fecharAvisoTutorEmail(): void {
+    this.showTutorEmailAwaitingModal = false;
+    this.cdr.markForCheck();
+  }
+
+  confirmarNaLojaMesmoAssim(): void {
+    this.showTutorEmailAwaitingModal = false;
+    this.advanceStatus();
+    this.cdr.markForCheck();
   }
 
   advanceStatus(): void {

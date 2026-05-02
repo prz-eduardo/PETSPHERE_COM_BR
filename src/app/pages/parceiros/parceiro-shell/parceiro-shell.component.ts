@@ -165,6 +165,7 @@ export class ParceiroShellComponent implements OnInit {
   isComercialActive(): boolean {
     return (
       this.currentUrl.includes('/parceiros/petshop-online') ||
+      this.currentUrl.includes('/parceiros/banners') ||
       this.currentUrl.includes('/parceiros/catalogo-produto') ||
       this.currentUrl.includes('/parceiros/inventario-pos') ||
       this.currentUrl.includes('/parceiros/caixa')

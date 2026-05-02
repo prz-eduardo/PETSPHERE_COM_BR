@@ -1,65 +1,63 @@
-<main class="adest-page" id="topo">
-  <!-- HERO -->
-  <section class="adest-hero" aria-labelledby="adest-hero-title">
-    <div class="hero-blob hero-blob--a" aria-hidden="true"></div>
-    <div class="hero-blob hero-blob--b" aria-hidden="true"></div>
+<main class="adest-shell" id="topo">
+  <header class="adest-hero" aria-labelledby="adest-hero-title">
+    <div class="hero-orbs" aria-hidden="true">
+      <span class="orb orb-aurora"></span>
+      <span class="orb orb-violet"></span>
+    </div>
     <div class="hero-inner">
-      <div class="hero-copy">
-        <span class="hero-kicker">
-          <i class="fa-solid fa-flask" aria-hidden="true"></i>
-          Protótipo de produto — experiência em construção
-        </span>
-        <h1 id="adest-hero-title" class="hero-title">
-          Adestramento que <span class="hero-accent">melhora o dia a dia</span> com o seu pet
-        </h1>
-        <p class="hero-lead">
-          Para tutores: encontre profissionais na região. Para adestradores: apareça no mapa e organize
-          sua operação junto com a {{ marca }}.
+      <span class="hero-kicker">
+        <i class="fa-solid fa-flask" aria-hidden="true"></i>
+        Protótipo de produto — experiência em construção
+      </span>
+      <h1 id="adest-hero-title" class="hero-title">
+        Adestramento que <span class="hero-accent">melhora o dia a dia</span> com o seu pet
+      </h1>
+      <p class="hero-lead">
+        Para tutores: encontre profissionais na região. Para adestradores: apareça no mapa e organize
+        sua operação junto com a {{ marca }}.
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/mapa" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+          Buscar na região
+        </a>
+        <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+          Sou adestrador
+        </a>
+      </div>
+      <ul class="hero-trust" aria-label="Benefícios destacados">
+        <li>
+          <span class="trust-ic"><i class="fa-solid fa-heart" aria-hidden="true"></i></span>
+          <span><strong>Abordagem humana</strong> — foco em bem-estar e clareza para o tutor</span>
+        </li>
+        <li>
+          <span class="trust-ic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i></span>
+          <span><strong>Perfil no mapa</strong> — descoberta local integrada à plataforma</span>
+        </li>
+        <li>
+          <span class="trust-ic"><i class="fa-solid fa-paw" aria-hidden="true"></i></span>
+          <span><strong>Histórico do pet</strong> — mais contexto quando tutor e profissional usam a {{ marca }}</span>
+        </li>
+      </ul>
+      <div class="adest-hero-summary">
+        <p class="adest-hero-summary__head">
+          <i class="fa-solid fa-dog" aria-hidden="true"></i>
+          Mockup visual
         </p>
-        <div class="hero-actions">
-          <a routerLink="/mapa" class="btn btn-primary btn-lg">
-            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
-            Buscar na região
-          </a>
-          <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
-            <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
-            Sou adestrador
-          </a>
-        </div>
-        <ul class="hero-trust" aria-label="Benefícios destacados">
-          <li>
-            <span class="trust-ic"><i class="fa-solid fa-heart" aria-hidden="true"></i></span>
-            <span><strong>Abordagem humana</strong> — foco em bem-estar e clareza para o tutor</span>
-          </li>
-          <li>
-            <span class="trust-ic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i></span>
-            <span><strong>Perfil no mapa</strong> — descoberta local integrada à plataforma</span>
-          </li>
-          <li>
-            <span class="trust-ic"><i class="fa-solid fa-paw" aria-hidden="true"></i></span>
-            <span><strong>Histórico do pet</strong> — mais contexto quando tutor e profissional usam a {{ marca }}</span>
-          </li>
+        <p class="adest-hero-summary__lead">
+          Esta página ilustra a narrativa e os fluxos planejados. Nenhum agendamento real é feito aqui.
+        </p>
+        <ul class="adest-hero-summary__list">
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Jornada do tutor</li>
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Espaço para profissionais</li>
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> FAQ e próximos passos</li>
         </ul>
       </div>
-      <div class="hero-panel" aria-hidden="false">
-        <div class="hero-card">
-          <div class="hero-card__head">
-            <i class="fa-solid fa-dog" aria-hidden="true"></i>
-            <span>Mockup visual</span>
-          </div>
-          <p class="hero-card__text">
-            Esta página ilustra a narrativa e os fluxos planejados. Nenhum agendamento real é feito aqui.
-          </p>
-          <ul class="hero-card__list">
-            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Jornada do tutor</li>
-            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Espaço para profissionais</li>
-            <li><i class="fa-solid fa-check" aria-hidden="true"></i> FAQ e próximos passos</li>
-          </ul>
-        </div>
-      </div>
     </div>
-  </section>
+  </header>
 
+  <div class="adest-page">
   <hr class="adest-divider" aria-hidden="true" />
 
   <!-- DORES -->
@@ -209,5 +207,6 @@
       <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
       Cadastrar
     </a>
+  </div>
   </div>
 </main>

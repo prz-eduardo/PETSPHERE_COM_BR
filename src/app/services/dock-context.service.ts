@@ -24,9 +24,12 @@ export type DockActionId =
   | 'comprar'
   | 'hospedagem'
   | 'meus-pets'
+  | 'meus-agendamentos'
   | 'galeria'
   | 'sobre-nos'
   | 'planos-parceiro'
+  /** Sino de notificações dentro do FAB sheet (substitui o slot antigo no dock). */
+  | 'notificacoes'
   /** Landings B2B (domínio principal) */
   | 'lp-veterinarios'
   | 'lp-hotel-creche'
@@ -159,11 +162,12 @@ export class DockContextService implements OnDestroy {
      * inclui cliente tutor logado em `/`, `/sobre-nos`, `/loja`, carrinho, etc.
      * Isto deve vir antes de `isCliente`, senão tutor logado regressava sempre à vista cliente.
      *
-     * Na vitrine tenant (subdomínio/hospedagem do parceiro) essa persistência não aplica —
+     * Na vitrine tenant (subdomínio dedicado ou perfil carregado) essa persistência não aplica —
      * evita dock "Prestador" com links de marketing Petsphere sobre a página inicial da loja.
      */
     if (
       !this.tenantLoja.isTenantLoja() &&
+      !this.tenantLoja.isTenantDedicatedHost() &&
       this.prefersParceiroNavLens() &&
       this.isParceiroLensNeutralPath(r)
     ) {

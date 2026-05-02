@@ -33,6 +33,10 @@
     <button type="button" class="btn btn-sec" (click)="goBack()" aria-label="Voltar">Voltar</button>
   </div>
 
+  <div *ngIf="!modal && internalView === 'meus-agendamentos'" class="internal-back">
+    <button type="button" class="btn btn-sec" (click)="goBack()" aria-label="Voltar">Voltar</button>
+  </div>
+
   <!-- Título interno quando estamos navegando em subviews (mantém contexto) -->
   <h1 class="titulo" *ngIf="internalView">{{ titulo }}</h1>
 
@@ -180,6 +184,23 @@
         <span class="action-body">
           <span class="action-title">Telemedicina</span>
           <span class="action-desc">Entrar na consulta por vídeo</span>
+        </span>
+        <svg class="action-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <button class="action-card" (click)="open('meus-agendamentos')" type="button">
+        <span class="action-icon action-icon--sky">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="15" r="1.5" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="action-body">
+          <span class="action-title">Meus agendamentos</span>
+          <span class="action-desc">Loja, telemedicina e hospedagem</span>
         </span>
         <svg class="action-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

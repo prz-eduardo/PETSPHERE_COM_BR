@@ -9,6 +9,7 @@ export type ClienteAreaModalView =
   | 'meus-enderecos'
   | 'meus-cartoes'
   | 'telemedicina'
+  | 'meus-agendamentos'
   | 'suporte'
   | 'postar-foto'
   | null;

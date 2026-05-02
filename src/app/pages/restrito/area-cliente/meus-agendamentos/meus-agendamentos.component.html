@@ -1,0 +1,116 @@
+<app-navmenu *ngIf="!modal"></app-navmenu>
+
+<div class="ma-page area-like-wrapper" [class.is-modal]="modal">
+  <main class="container">
+    <div class="top-actions" *ngIf="!modal">
+      <button type="button" class="btn-back" (click)="voltar()">← Voltar</button>
+    </div>
+    <h1 class="page-title" *ngIf="!modal">Meus agendamentos</h1>
+    <p class="page-lead" *ngIf="!modal">
+      Compromissos na agenda dos profissionais, telemedicina e hospedagem — num só lugar.
+    </p>
+
+    <section class="ma-filters" aria-label="Filtros">
+      <div class="ma-kind-row" role="group" aria-label="Tipo">
+        <button
+          type="button"
+          class="ma-chip"
+          [class.ma-chip--active]="filterKind === ''"
+          (click)="setKind('')">
+          Todos
+        </button>
+        <button
+          type="button"
+          class="ma-chip"
+          [class.ma-chip--active]="filterKind === 'agenda'"
+          (click)="setKind('agenda')">
+          Loja / serviço
+        </button>
+        <button
+          type="button"
+          class="ma-chip"
+          [class.ma-chip--active]="filterKind === 'telemedicina'"
+          (click)="setKind('telemedicina')">
+          Telemedicina
+        </button>
+        <button
+          type="button"
+          class="ma-chip"
+          [class.ma-chip--active]="filterKind === 'hotel'"
+          (click)="setKind('hotel')">
+          Hospedagem
+        </button>
+      </div>
+
+      <div class="ma-grid-fields">
+        <label class="ma-field">
+          <span>Pet</span>
+          <select [(ngModel)]="filterPetId" name="pet">
+            <option value="">Todos</option>
+            <option *ngFor="let p of petsCatalogo" [value]="p.id">{{ p.nome }}</option>
+          </select>
+        </label>
+        <label class="ma-field" *ngIf="especieOptions.length">
+          <span>Espécie</span>
+          <select [(ngModel)]="filterEspecieId" name="esp">
+            <option value="">Todas</option>
+            <option *ngFor="let e of especieOptions" [value]="e.id">{{ e.label }}</option>
+          </select>
+        </label>
+        <label class="ma-field">
+          <span>Profissional / loja</span>
+          <select [(ngModel)]="filterParceiroId" name="par">
+            <option value="">Todos</option>
+            <option *ngFor="let o of parceiroOptions" [value]="o.id">{{ o.nome }}</option>
+          </select>
+        </label>
+        <label class="ma-field">
+          <span>De</span>
+          <input type="date" [(ngModel)]="filterDataInicio" name="di" />
+        </label>
+        <label class="ma-field">
+          <span>Até</span>
+          <input type="date" [(ngModel)]="filterDataFim" name="df" />
+        </label>
+      </div>
+
+      <p class="ma-hint" *ngIf="hasPetOrEspecieFilter">
+        Filtros por pet ou espécie aplicam-se a compromissos na loja e hospedagem. Consultas de telemedicina
+        aparecem sem vínculo de pet no sistema.
+      </p>
+
+      <div class="ma-actions-row">
+        <button type="button" class="btn-primary" (click)="applyFilters()">Aplicar</button>
+        <button type="button" class="btn-ghost" (click)="clearFilters()">Limpar</button>
+        <button type="button" class="btn-ghost ma-link-tele" (click)="goTelemedicina()">Ir à telemedicina</button>
+      </div>
+    </section>
+
+    <p class="ma-error" *ngIf="loadError">{{ loadError }}</p>
+
+    <div class="ma-loading" *ngIf="loading">Carregando…</div>
+
+    <ul class="ma-list" *ngIf="!loading && !loadError && itens.length">
+      <li *ngFor="let it of itens" class="ma-card">
+        <div class="ma-card__head">
+          <span class="ma-card__badge" [ngClass]="kindBadgeClass(it.kind)">{{ kindLabels[it.kind] }}</span>
+          <span class="ma-card__status">{{ it.status_label }}</span>
+        </div>
+        <h2 class="ma-card__title">{{ it.titulo }}</h2>
+        <p class="ma-card__partner" *ngIf="it.parceiro_nome">{{ it.parceiro_nome }}</p>
+        <p class="ma-card__dates">{{ formatRange(it) }}</p>
+        <p class="ma-card__pet" *ngIf="it.pet_nome || it.pet_especie">
+          <span *ngIf="it.pet_nome"><strong>Pet:</strong> {{ it.pet_nome }}</span>
+          <span *ngIf="it.pet_especie" class="ma-card__pet-meta"> · {{ it.pet_especie }}</span>
+        </p>
+        <p class="ma-card__obs" *ngIf="it.observacoes">{{ it.observacoes }}</p>
+      </li>
+    </ul>
+
+    <p class="ma-empty" *ngIf="!loading && !loadError && !itens.length">Nenhum agendamento encontrado com estes filtros.</p>
+
+    <div class="ma-modal-foot" *ngIf="modal">
+      <button type="button" class="btn-ghost" (click)="voltar()">Fechar</button>
+    </div>
+  </main>
+</div>

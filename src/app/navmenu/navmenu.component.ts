@@ -104,12 +104,14 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   };
 
   /**
-   * Mobile dock tutor — Galeria, Mapa, Loja, Sobre, FAB central, Notificações, Entrar|Sair.
+   * Mobile dock tutor — exatamente 4 itens + slot do FAB central:
+   *   Galeria · Mapa · (FAB) · Loja · Entrar|Sair.
+   * `Sobre` e `Notificações` saem do dock (Sobre vai para o FAB sheet — seção institucional;
+   * Notificações vira ação no FAB sheet via `dockBell.toggle()`).
    */
   get mobileDockItems(): NavMainItem[] {
     const tenantSf = this.tenantLoja.isTenantLoja();
     const galeriaLink = tenantSf ? '/' : '/galeria';
-    const sobreDockHref = tenantSf ? '/institucional-loja' : '/sobre-nos';
     const left: NavMainItem[] = [
       {
         id: 'galeria',
@@ -135,23 +137,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         icon: 'fas fa-fw fa-store',
         psIcon: 'shop',
       },
-      {
-        id: 'sobre',
-        label: 'Sobre',
-        shortLabel: 'Sobre',
-        link: sobreDockHref,
-        icon: 'fas fa-fw fa-circle-info',
-        psIcon: 'sparkle',
-      },
     ];
-    const notif: NavMainItem = {
-      id: 'dock-notificacoes',
-      label: 'Notificações',
-      shortLabel: 'Notificações',
-      link: '#',
-      icon: 'fas fa-fw fa-bell',
-      psIcon: 'bell',
-    };
     const authItem: NavMainItem =
       this.dockMode === 'guest'
         ? {
@@ -170,7 +156,23 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
           icon: 'fas fa-fw fa-right-from-bracket',
           psIcon: 'logout',
         };
-    return [...left, notif, authItem];
+    return [...left, authItem];
+  }
+
+  /**
+   * Profissional logado “dentro do painel”: rotas `/parceiros/*` exceto login,
+   * recuperação de senha e fluxo de convite. Define qual conjunto de 4 itens
+   * o dock móvel mostra (institucional vs operacional).
+   */
+  private get isPartnerPainelRoute(): boolean {
+    const r = this.currentRoute || '';
+    if (!r.startsWith('/parceiros')) return false;
+    if (
+      r === '/parceiros/login' ||
+      r.startsWith('/parceiros/recuperar-senha') ||
+      r.startsWith('/parceiros/convite/')
+    ) return false;
+    return true;
   }
 
   /** Rotas UI clínica já servidas dentro de `/parceiros/…`. */
@@ -269,8 +271,38 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       ];
     }
     if (this.dockMode === 'parceiro') {
+      const logoutItem: NavMainItem = {
+        id: 'logout',
+        label: 'Sair',
+        shortLabel: 'Sair',
+        link: '#',
+        icon: 'fas fa-fw fa-right-from-bracket',
+        psIcon: 'logout',
+      };
+      const entrarPrestadorItem: NavMainItem = {
+        id: 'prestador-shell',
+        label: 'Entrar',
+        shortLabel: 'Entrar',
+        link: '/parceiros/login',
+        icon: 'fas fa-fw fa-right-to-bracket',
+        psIcon: 'login',
+      };
+      const painelItem: NavMainItem = {
+        id: 'painel', label: 'Painel', shortLabel: 'Painel',
+        link: '/parceiros/painel', icon: 'fas fa-fw fa-gauge', psIcon: 'home',
+      };
+      const agendaItem: NavMainItem = {
+        id: 'agenda', label: 'Agenda', shortLabel: 'Agenda',
+        link: '/parceiros/agenda', icon: 'fas fa-fw fa-calendar', psIcon: 'calendar',
+      };
+      const planosItem: NavMainItem = {
+        id: 'planos-dock', label: 'Planos', shortLabel: 'Planos',
+        link: '/parceiro/planos', icon: 'fas fa-fw fa-layer-group', psIcon: 'sparkle',
+      };
+
       if (!this.parceiroAuth.isLoggedIn()) {
         const loja = this.lojaHref;
+        // Vitrine tenant: variante enxuta (Loja + Entrar) — sem marketing institucional Petsphere.
         if (tenantSf) {
           return [
             {
@@ -281,16 +313,10 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
               icon: 'fas fa-fw fa-desktop',
               psIcon: 'sparkle',
             },
-            {
-              id: 'prestador-shell',
-              label: 'Área do prestador',
-              shortLabel: 'Prestador',
-              link: '/parceiros/login',
-              icon: 'fas fa-fw fa-right-to-bracket',
-              psIcon: 'person',
-            },
+            entrarPrestadorItem,
           ];
         }
+        // Prestador deslogado (4 itens): Sobre · Planos · (FAB) · Cadastro · Entrar
         return [
           {
             id: 'sobre',
@@ -300,14 +326,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
             icon: 'fas fa-fw fa-circle-info',
             psIcon: 'sparkle',
           },
-          {
-            id: 'planos-dock',
-            label: 'Planos',
-            shortLabel: 'Planos',
-            link: '/parceiro/planos',
-            icon: 'fas fa-fw fa-layer-group',
-            psIcon: 'sparkle',
-          },
+          planosItem,
           {
             id: 'cadastro-parc',
             label: 'Seja parceiro',
@@ -316,22 +335,28 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
             icon: 'fas fa-fw fa-handshake',
             psIcon: 'person',
           },
-          {
-            id: 'loja',
-            label: 'Vitrine (demonstração)',
-            shortLabel: 'Vitrine',
-            link: loja,
-            icon: 'fas fa-fw fa-desktop',
-            psIcon: 'sparkle',
-          },
+          entrarPrestadorItem,
         ];
       }
-      const sobrePainelHref = tenantSf ? '/institucional-loja' : '/sobre-nos';
+
+      // Logado — painel (dentro de /parceiros/*): Painel · Agenda · (FAB) · Equipe · Sair
+      if (this.isPartnerPainelRoute) {
+        return [
+          painelItem,
+          agendaItem,
+          {
+            id: 'colab', label: 'Equipe', shortLabel: 'Equipe',
+            link: '/parceiros/colaboradores', icon: 'fas fa-fw fa-users', psIcon: 'person',
+          },
+          logoutItem,
+        ];
+      }
+      // Logado — institucional (fora de /parceiros/*): Painel · Planos · (FAB) · Agenda · Sair
       return [
-        { id: 'painel', label: 'Painel', shortLabel: 'Painel', link: '/parceiros/painel', icon: 'fas fa-fw fa-gauge', psIcon: 'home' },
-        { id: 'agenda', label: 'Agenda', shortLabel: 'Agenda', link: '/parceiros/agenda', icon: 'fas fa-fw fa-calendar', psIcon: 'calendar' },
-        { id: 'colab', label: 'Equipe', shortLabel: 'Equipe', link: '/parceiros/colaboradores', icon: 'fas fa-fw fa-users', psIcon: 'person' },
-        { id: 'sobre', label: 'Quem somos', shortLabel: 'Quem somos', link: sobrePainelHref, icon: 'fas fa-fw fa-circle-info', psIcon: 'sparkle' },
+        painelItem,
+        planosItem,
+        agendaItem,
+        logoutItem,
       ];
     }
     return null;
@@ -373,9 +398,18 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly quickActionCatalog: Record<DockActionId, QuickAction> = {
     'agendar':      { id: 'agendar',      label: 'Agendar',         caption: 'Consulta com vet',          link: '/mapa?service=consulta', icon: 'calendar', tone: 'aqua' },
     'telemedicina': { id: 'telemedicina', label: 'Telemedicina',    caption: 'Consulta online agora',     link: '/area-cliente?view=telemedicina', icon: 'video', tone: 'aqua' },
+    'meus-agendamentos': {
+      id: 'meus-agendamentos',
+      label: 'Meus agendamentos',
+      caption: 'Loja, telemedicina e hospedagem',
+      link: '/meus-agendamentos',
+      icon: 'calendar',
+      tone: 'aqua',
+    },
     'buscar-vet':   { id: 'buscar-vet',   label: 'Buscar vet',      caption: 'Veterinários próximos',     link: '/mapa', icon: 'stethoscope', tone: 'aqua' },
     'transporte-pet': { id: 'transporte-pet', label: 'Transporte pet', caption: 'Pedir corrida no mapa', link: '/mapa?service=transporte', icon: 'map', tone: 'aqua' },
     'comprar':      { id: 'comprar',      label: 'Comprar',         caption: 'Loja Petsphere',            link: '/loja', icon: 'shop', tone: 'aurora' },
+    'notificacoes': { id: 'notificacoes', label: 'Notificações',    caption: 'Avisos e atualizações',     link: '#',     icon: 'bell', tone: 'aurora' },
     'hospedagem':   { id: 'hospedagem',   label: 'Hospedagem',      caption: 'Hotéis pet near you',       link: '/mapa?service=hospedagem', icon: 'bed', tone: 'aurora' },
     'meus-pets':    { id: 'meus-pets',    label: 'Meus pets',       caption: 'Cadastros e carteirinhas',  link: '/meus-pets', icon: 'paw', tone: 'aurora' },
     'galeria':      { id: 'galeria',      label: 'Galeria pet',     caption: 'Comunidade Petsphere',      link: '/galeria', icon: 'sparkle', tone: 'aurora' },
@@ -555,9 +589,12 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       lojaPanel = [];
     }
 
-    const rows: SheetPanelRow[] = [
-      { sectionLabel: 'Mapa e cuidados com o pet', actions: coreIds.map((id) => cat[id]) },
-    ];
+    const rows: SheetPanelRow[] = [];
+    /** Cliente logado: notificações sai do dock e ganha linha dedicada no topo do sheet. */
+    if (this.isCliente && !this.isAreaVetRoute) {
+      rows.push({ sectionLabel: null, actions: [cat['notificacoes']] });
+    }
+    rows.push({ sectionLabel: 'Mapa e cuidados com o pet', actions: coreIds.map((id) => cat[id]) });
     if (lojaPanel.length > 0) {
       const lojaActions = lojaPanel.map((id) => {
         const base = cat[id];
@@ -574,6 +611,13 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       rows.push({
         sectionLabel: tenantSf ? 'Loja' : 'Loja oficial Petsphere',
         actions: lojaActions,
+      });
+    }
+    if (this.isCliente) {
+      const contaIds: DockActionId[] = ['meus-agendamentos', 'meus-pets'];
+      rows.push({
+        sectionLabel: 'Compromissos e pets',
+        actions: contaIds.map((id) => this.mapTenantConsumerQuickActionIfNeeded(id, { ...cat[id] })),
       });
     }
     /** Parceiro: toggle na navbar superior (ver `Cliente | Parceiro`) — não no sheet central. */
@@ -615,7 +659,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   get showClienteParceiroToggle(): boolean {
     if (!this.showFullMenu || this.isAreaVetRoute) return false;
-    if (this.tenantLoja.isTenantLoja()) return false;
+    if (this.tenantLoja.isTenantLoja() || this.tenantLoja.isTenantDedicatedHost()) return false;
     return this.dockMode !== 'vet';
   }
 
@@ -688,6 +732,8 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('userBtn', { read: ElementRef }) userBtn?: ElementRef<HTMLButtonElement>;
   @ViewChild('desktopTabsTrack', { read: ElementRef }) desktopTabsTrack?: ElementRef<HTMLElement>;
   @ViewChild('fabBtn', { read: ElementRef }) fabBtn?: ElementRef<HTMLButtonElement>;
+  /** Sino mantido fora do dock (oculto via CSS) — disparado pela ação Notificações do FAB sheet. */
+  @ViewChild('dockBell') dockBell?: NotificationsBellComponent;
 
   private idleTimer: any = null;
   private readonly idleTimeoutMs = 5000;
@@ -1040,10 +1086,19 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     if (item.id === 'logout') {
       ev?.preventDefault();
       this.haptics.medium();
-      this.dockLogoutCliente();
+      this.dockLogoutForCurrentMode();
       return;
     }
     this.onMainTabClick(item.id);
+  }
+
+  /** Logout sensível ao modo do dock (parceiro encerra sessão do prestador). */
+  private dockLogoutForCurrentMode(): void {
+    if (this.dockMode === 'parceiro') {
+      this.dockLogoutParceiro();
+      return;
+    }
+    this.dockLogoutCliente();
   }
 
   private dockLogoutCliente(): void {
@@ -1053,6 +1108,16 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       this.router.navigateByUrl('/');
     } catch {
       if (typeof window !== 'undefined') window.location.href = '/';
+    }
+  }
+
+  private dockLogoutParceiro(): void {
+    try { this.parceiroAuth.logout(); } catch {}
+    /** Mantém a lente “Profissionais” — usuário permanece no contexto após sair. */
+    try {
+      this.router.navigateByUrl('/parceiros/login');
+    } catch {
+      if (typeof window !== 'undefined') window.location.href = '/parceiros/login';
     }
   }
 
@@ -1281,6 +1346,16 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dockCtx.registerAction(action.id);
     if (source === 'sheet') this.closeSheet();
     if (source === 'radial') this.closeRadial();
+    /**
+     * Notificações: não navega — abre o painel fullscreen do sino hospedado fora do dock.
+     * Aguarda o sheet/radial fechar antes do toggle para o overlay nascer com o body destravado.
+     */
+    if (action.id === 'notificacoes') {
+      setTimeout(() => {
+        try { this.dockBell?.toggle(); } catch {}
+      }, 60);
+      return;
+    }
     setTimeout(() => this.router.navigateByUrl(action.link), 60);
   }
 

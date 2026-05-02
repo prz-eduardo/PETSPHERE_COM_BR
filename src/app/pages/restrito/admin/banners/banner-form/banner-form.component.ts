@@ -23,6 +23,7 @@ import { BannerImageEditorComponent } from '../../../../../shared/banner-image-e
 import {
   BANNER_POSITIONS,
   BannerPosition,
+  BannerPositionOption,
   getBannerPosition,
 } from '../../../../../shared/banner/banner-positions';
 
@@ -52,6 +53,12 @@ export interface BannerFormSubmitPayload {
 export class BannerFormComponent implements OnInit, OnChanges {
   @Input() banner: BannerDto | null = null;
   @Input() submitting = false;
+  /** Subconjunto de posições (ex.: painel parceiro). Vazio/null = catálogo completo. */
+  @Input() positionOptions: BannerPositionOption[] | null = null;
+  /** Valor inicial da posição ao criar novo banner. */
+  @Input() defaultPosicao: BannerPosition = 'home_hero';
+  /** Se false, não permite gravar/remover (ex.: colaborador não-master). */
+  @Input() allowMutations = true;
 
   @Output() submitted = new EventEmitter<BannerFormSubmitPayload>();
   @Output() cancelled = new EventEmitter<void>();
@@ -61,6 +68,10 @@ export class BannerFormComponent implements OnInit, OnChanges {
   @ViewChild('mobileEditor') mobileEditor?: BannerImageEditorComponent;
 
   readonly positions = BANNER_POSITIONS;
+
+  get positionsForSelect(): BannerPositionOption[] {
+    return this.positionOptions?.length ? this.positionOptions : BANNER_POSITIONS;
+  }
 
   form!: FormGroup;
   activeTab = signal<'desktop' | 'mobile'>('desktop');
@@ -80,11 +91,19 @@ export class BannerFormComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     this.buildForm();
     this.applyBanner();
+    this.syncFormDisabled();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.form) this.buildForm();
     if (changes['banner']) this.applyBanner();
+    if (changes['allowMutations'] || changes['banner']) this.syncFormDisabled();
+  }
+
+  private syncFormDisabled(): void {
+    if (!this.form) return;
+    if (this.allowMutations) this.form.enable();
+    else this.form.disable();
   }
 
   get isEdit(): boolean {
@@ -100,6 +119,7 @@ export class BannerFormComponent implements OnInit, OnChanges {
   }
 
   get canSubmit(): boolean {
+    if (!this.allowMutations) return false;
     if (!this.form || this.form.invalid) return false;
     if (!this.hasDesktopImage || !this.hasMobileImage) return false;
     return !this.submitting;
@@ -110,7 +130,7 @@ export class BannerFormComponent implements OnInit, OnChanges {
       nome: ['', [Validators.required, Validators.minLength(2)]],
       link: [''],
       alt: [''],
-      posicao: ['home_hero', [Validators.required]],
+      posicao: [this.defaultPosicao, [Validators.required]],
       ordem: [1],
       inicio: [''],
       fim: [''],
@@ -139,11 +159,12 @@ export class BannerFormComponent implements OnInit, OnChanges {
     this.activeTab.set('desktop');
 
     if (!b) {
+      const def = this.defaultPosicao;
       this.form?.reset({
         nome: '',
         link: '',
         alt: '',
-        posicao: 'home_hero',
+        posicao: def,
         ordem: 1,
         inicio: '',
         fim: '',
@@ -152,7 +173,7 @@ export class BannerFormComponent implements OnInit, OnChanges {
       });
       this.desktopPreview = null;
       this.mobilePreview = null;
-      this.updateRatios('home_hero');
+      this.updateRatios(def);
       return;
     }
 
@@ -160,7 +181,7 @@ export class BannerFormComponent implements OnInit, OnChanges {
       nome: b.nome || '',
       link: b.link || '',
       alt: b.alt || '',
-      posicao: (b.posicao as BannerPosition) || 'home_hero',
+      posicao: (b.posicao as BannerPosition) || this.defaultPosicao,
       ordem: b.ordem ?? 1,
       inicio: b.inicio ? this.toDateTimeLocal(b.inicio) : '',
       fim: b.fim ? this.toDateTimeLocal(b.fim) : '',
@@ -173,7 +194,7 @@ export class BannerFormComponent implements OnInit, OnChanges {
   }
 
   private updateRatios(pos: BannerPosition | string | null | undefined) {
-    const meta = getBannerPosition(pos as string) ?? getBannerPosition('home_hero');
+    const meta = getBannerPosition(pos as string) ?? getBannerPosition(this.defaultPosicao);
     if (!meta) return;
     this.desktopRatio = meta.desktopRatio;
     this.mobileRatio = meta.mobileRatio;
@@ -185,7 +206,7 @@ export class BannerFormComponent implements OnInit, OnChanges {
 
   positionDescription(): string {
     const v = this.form?.get('posicao')?.value;
-    const meta = getBannerPosition(v);
+    const meta = getBannerPosition(v) ?? this.positionsForSelect.find((p) => p.value === v) ?? null;
     return meta ? meta.description : '';
   }
 

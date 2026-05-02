@@ -232,7 +232,7 @@ nav.app-navbar {
 
   .nav-tab-item { position: relative; z-index: 2; flex-shrink: 0; list-style: none; }
 
-  /* Lente tutores (desktop): quatro rotas padronizadas + pastilhas nos ícones (carrinho fica só o ícone) */
+  /* Lente tutores (desktop): rotas padronizadas + pastilhas nos ícones (inclui carrinho) */
   .navbar-nav-tabs--cliente-strip {
     gap: 4px;
 
@@ -240,7 +240,7 @@ nav.app-navbar {
       gap: 8px;
       padding-inline: 11px;
 
-      > i[class*='fa-']:not(.fa-cart-shopping) {
+      > i[class*='fa-'] {
         box-sizing: border-box;
         display: inline-flex;
         align-items: center;
@@ -261,26 +261,14 @@ nav.app-navbar {
           color 0.24s ease;
       }
 
-      &:hover > i[class*='fa-']:not(.fa-cart-shopping) {
+      &:hover > i[class*='fa-'] {
         transform: translateY(-1px) scale(1.05);
         border-color: rgba(197, 255, 61, 0.4);
         background: linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(197, 255, 61, 0.1));
       }
-
-      /* Carrinho mantém glyfo simples ao lado da label */
-      > i.fa-cart-shopping {
-        font-size: 0.76rem !important;
-        opacity: 0.95 !important;
-        width: auto !important;
-        height: auto !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: inherit;
-      }
     }
 
-    .nav-tab-item.active .nav-tab-link > i[class*='fa-']:not(.fa-cart-shopping) {
+    .nav-tab-item.active .nav-tab-link > i[class*='fa-'] {
       color: var(--ps-cosmos);
       border-color: rgba(197, 255, 61, 0.55);
       background: linear-gradient(145deg, var(--ps-aurora), var(--ps-aurora-soft));
@@ -288,10 +276,6 @@ nav.app-navbar {
         0 0 0 1px rgba(15, 11, 46, 0.12),
         0 10px 24px rgba(159, 224, 0, 0.22);
       transform: translateY(0) scale(1);
-    }
-
-    .nav-tab-item.active .nav-tab-link > i.fa-cart-shopping {
-      color: var(--ps-snow) !important;
     }
   }
 
@@ -317,10 +301,6 @@ nav.app-navbar {
 
   .navbar-nav-tabs--cliente-strip .nav-tab-link:hover {
     transform: translateY(-1px);
-  }
-
-  .navbar-nav-tabs--cliente-strip .nav-tab-link:hover i.fa-cart-shopping {
-    transform: scale(1.1);
   }
 
   .nav-tab-item.active .nav-tab-link {
@@ -669,26 +649,6 @@ nav.app-navbar {
       list-style: none;
     }
 
-    .ps-dock__item--notif {
-      min-width: 0;
-    }
-
-    .ps-dock__notif-host {
-      display: flex;
-      width: 100%;
-      min-width: 0;
-      justify-content: center;
-      align-items: stretch;
-      height: 100%;
-
-      ::ng-deep app-notifications-bell {
-        flex: 1 1 auto;
-        display: flex !important;
-        min-width: 0;
-        align-items: stretch;
-      }
-    }
-
     .ps-dock__item--fill {
       pointer-events: none;
     }
@@ -810,12 +770,22 @@ nav.app-navbar {
       .ps-dock__pill { opacity: 1; transform: translateX(-50%) scaleX(1); }
     }
 
-    @media (hover: hover) and (pointer: fine) {
+      @media (hover: hover) and (pointer: fine) {
       .ps-dock__item:not(.is-active) .ps-dock__link:hover {
         color: rgba(255, 255, 255, 0.92);
         .ps-dock__icon { transform: translateY(-1px); }
       }
     }
+  }
+
+  /*
+   * Sino de notificações launcher: instância única hospedada fora do dock para servir
+   * o painel fullscreen disparado pela ação “Notificações” no FAB sheet.
+   * Esconde só o botão trigger interno do componente — o sheet é o ponto de entrada.
+   * O painel e o backdrop usam `position: fixed`, então aparecem normalmente ao abrir.
+   */
+  .ps-dock-bell-launcher {
+    ::ng-deep > .bell > .bell-btn { display: none !important; }
   }
 
   // Dock claro (cream glass) — tokens `--ps-cream` / `--ps-glass-light`; só com SO claro e sem night cósmico

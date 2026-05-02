@@ -75,7 +75,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
   permissoesParceiros: PermissaoParceiro[] = [];
 
   // Internal navigation state when in modal
-  internalView: 'meus-pedidos' | 'meus-pets' | 'novo-pet' | 'perfil' | 'meus-enderecos' | 'meus-cartoes' | 'telemedicina' | 'suporte' | 'postar-foto' | 'minha-galeria' | null = null;
+  internalView: 'meus-pedidos' | 'meus-pets' | 'novo-pet' | 'perfil' | 'meus-enderecos' | 'meus-cartoes' | 'telemedicina' | 'meus-agendamentos' | 'suporte' | 'postar-foto' | 'minha-galeria' | null = null;
   // track which internal view originated the last navigation (used to return)
   private lastInternalOrigin: string | null = null;
   private pendingInitialView: ClienteAreaModalView = null;
@@ -242,6 +242,9 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
         if (viewParam === 'telemedicina') {
           this.tryMountTelemedicinaFromRoute();
         }
+        if (viewParam === 'meus-agendamentos') {
+          this.tryMountMeusAgendamentosFromRoute();
+        }
       });
     }
   }
@@ -312,6 +315,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
                 this.profileLoading = false;
                 this.profilePromise = undefined;
                 this.tryMountTelemedicinaFromRoute();
+                this.tryMountMeusAgendamentosFromRoute();
               },
               error: (err) => {
                 const msg = (err && err.error && (err.error.message || err.error.error)) || err.message || 'Erro ao buscar pets';
@@ -321,6 +325,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
                 this.profileLoading = false;
                 this.profilePromise = undefined;
                 this.tryMountTelemedicinaFromRoute();
+                this.tryMountMeusAgendamentosFromRoute();
               }
             });
           } else {
@@ -328,6 +333,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
             this.profileLoading = false;
             this.profilePromise = undefined;
             this.tryMountTelemedicinaFromRoute();
+            this.tryMountMeusAgendamentosFromRoute();
           }
         } else {
           // resposta inesperada
@@ -477,7 +483,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
   }
 
   // ---- Internal modal navigation helpers ----
-  async open(view: 'meus-pedidos' | 'meus-pets' | 'novo-pet' | 'consultar-pedidos' | 'loja' | 'perfil' | 'favoritos' | 'carrinho' | 'meus-enderecos' | 'meus-cartoes' | 'telemedicina' | 'suporte' | 'postar-foto' | 'minha-galeria') {
+  async open(view: 'meus-pedidos' | 'meus-pets' | 'novo-pet' | 'consultar-pedidos' | 'loja' | 'perfil' | 'favoritos' | 'carrinho' | 'meus-enderecos' | 'meus-cartoes' | 'telemedicina' | 'meus-agendamentos' | 'suporte' | 'postar-foto' | 'minha-galeria') {
     if (view === 'suporte') {
       if (!this.hasAuth) {
         this.toast.error('Faça login para usar o atendimento por chat.', 'Atendimento');
@@ -506,6 +512,10 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
       if (view === 'meus-cartoes') return this.router.navigateByUrl('/meus-cartoes');
       if (view === 'telemedicina') {
         void this.router.navigateByUrl('/area-cliente?view=telemedicina');
+        return;
+      }
+      if (view === 'meus-agendamentos') {
+        void this.router.navigateByUrl('/meus-agendamentos');
         return;
       }
       if (view === 'loja') return this.router.navigateByUrl('/loja');
@@ -555,6 +565,10 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
     }
     if (view === 'telemedicina') {
       await this.mountTelemedicinaEmbedded(true);
+      return;
+    }
+    if (view === 'meus-agendamentos') {
+      await this.mountMeusAgendamentosEmbedded(true);
       return;
     }
     if (view === 'minha-galeria') {
@@ -638,6 +652,7 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
       'novo-pet': 'Cadastrar Pet',
       'perfil': 'Perfil',
       'telemedicina': 'Telemedicina',
+      'meus-agendamentos': 'Meus agendamentos',
       'postar-foto': 'Postar foto',
       'minha-galeria': 'Minha Galeria',
     };
@@ -844,9 +859,10 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
       try { this.internalHost.clear(); } catch {}
     }
     const wasTelemedicina = this.internalView === 'telemedicina';
+    const wasMeusAgendamentos = this.internalView === 'meus-agendamentos';
     this.internalView = null;
     this.titulo = 'Bem-vindo!';
-    if (wasTelemedicina && !this.modal && this.isBrowser) {
+    if ((wasTelemedicina || wasMeusAgendamentos) && !this.modal && this.isBrowser) {
       void this.router.navigate(['/area-cliente'], { queryParams: { view: null }, queryParamsHandling: 'merge' });
     }
   }
@@ -897,6 +913,49 @@ export class AreaClienteComponent implements OnInit, OnDestroy {
     } catch (e) {
       console.error('Falha ao abrir Telemedicina', e);
       this.toast.error('Não foi possível abrir Telemedicina agora');
+    }
+  }
+
+  private tryMountMeusAgendamentosFromRoute(): void {
+    if (this.modal || !this.hasAuth) return;
+    if (this.route.snapshot.queryParamMap.get('view') !== 'meus-agendamentos') return;
+    if (this.internalView === 'meus-agendamentos') return;
+    setTimeout(() => void this.mountMeusAgendamentosEmbedded(false), 0);
+  }
+
+  private async mountMeusAgendamentosEmbedded(isModalShell: boolean): Promise<void> {
+    if (!this.hasAuth) {
+      this.toast.error('Faça login para ver seus agendamentos.', 'Agendamentos');
+      return;
+    }
+    this.internalView = 'meus-agendamentos';
+    this.titulo = 'Meus agendamentos';
+    if (!this.internalHost) return;
+    this.internalHost.clear();
+    try {
+      const mod = await import('./meus-agendamentos/meus-agendamentos.component');
+      const Cmp = (mod as any).MeusAgendamentosComponent;
+      const ref = this.internalHost.createComponent(Cmp);
+      if (ref?.instance) {
+        (ref.instance as any).modal = isModalShell;
+        try {
+          (ref.instance as any).petsCatalogo = (this.pets || []).map((p: any) => ({
+            id: p.id,
+            nome: p.nome,
+            tipo: p.tipo,
+            especie: p.especie,
+            especie_id: p.especie_id != null ? Number(p.especie_id) : undefined,
+          }));
+        } catch {
+          /* ignore */
+        }
+        if ((ref.instance as any).close) {
+          (ref.instance as any).close.subscribe(() => this.goBack());
+        }
+      }
+    } catch (e) {
+      console.error('Falha ao abrir Meus agendamentos', e);
+      this.toast.error('Não foi possível abrir Meus agendamentos agora');
     }
   }
 

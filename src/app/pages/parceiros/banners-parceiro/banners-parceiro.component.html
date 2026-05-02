@@ -1,0 +1,69 @@
+<div class="banners-wrap">
+  <p class="banners-intro" *ngIf="!parceiroAuth.isMaster()">
+    Apenas o usuário <strong>master</strong> pode criar, editar ou remover banners. Você pode consultar a lista abaixo.
+  </p>
+  <div class="banners-toolbar">
+    <div class="bt-filters">
+      <input
+        class="bt-input"
+        type="search"
+        placeholder="Buscar por nome, alt ou link"
+        [value]="q()"
+        (input)="onQ($event)"
+      />
+      <select class="bt-input" [value]="positionFilter()" (change)="onPosition($event)">
+        <option value="all">Todas as posições</option>
+        <option *ngFor="let p of positions" [value]="p.value">{{ p.label }}</option>
+      </select>
+      <select class="bt-input" [value]="active()" (change)="onActive($event)">
+        <option value="all">Todos</option>
+        <option value="1">Ativos</option>
+        <option value="0">Inativos</option>
+      </select>
+      <button *ngIf="parceiroAuth.isMaster()" class="bt-btn primary" type="button" (click)="openCreate()">
+        <span aria-hidden="true">＋</span> Novo banner
+      </button>
+    </div>
+  </div>
+
+  <app-admin-crud
+    [items]="items()"
+    [loading]="loading()"
+    [total]="total()"
+    [page]="page()"
+    [pageSize]="pageSize()"
+    [columns]="columns"
+    [drawerOpen]="drawerOpen()"
+    [drawerWidth]="'640px'"
+    [drawerTitle]="selected() ? 'Editar banner' : 'Novo banner'"
+    [drawerShowFooter]="true"
+    [drawerPrimaryLabel]="selected() ? 'Salvar alterações' : 'Criar banner'"
+    [drawerPrimaryDisabled]="!bannerForm?.canSubmit || !parceiroAuth.isMaster()"
+    [drawerPrimaryLoading]="submitting()"
+    (drawerOpenChange)="onDrawerOpenChange($event)"
+    (drawerPrimaryAction)="bannerForm?.submitFromHost()"
+    (drawerSecondaryAction)="closeDrawer()"
+    (pageChange)="page.set($event); load()"
+    (edit)="openEdit($event)"
+    (create)="openCreate()"
+    (remove)="remove($event)"
+  >
+    <div slot="drawer" *ngIf="drawerOpen()">
+      <app-banner-form
+        [banner]="selected()"
+        [submitting]="submitting()"
+        [positionOptions]="partnerPositionOptions"
+        [defaultPosicao]="'loja_hero'"
+        [allowMutations]="parceiroAuth.isMaster()"
+        (submitted)="onFormSubmitted($event)"
+        (cancelled)="closeDrawer()"
+        (removed)="remove($event)"
+      ></app-banner-form>
+    </div>
+  </app-admin-crud>
+
+  <div class="banners-toast" *ngIf="toast() as t" [class.ok]="t.kind === 'ok'" [class.error]="t.kind === 'error'">
+    <span>{{ t.message }}</span>
+    <button type="button" (click)="toast.set(null)" aria-label="Fechar">×</button>
+  </div>
+</div>

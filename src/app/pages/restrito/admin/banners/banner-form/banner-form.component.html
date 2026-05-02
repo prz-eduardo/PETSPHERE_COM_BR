@@ -9,12 +9,13 @@
       <div class="fx-section__actions">
         <label class="fx-switch" title="Ativar ou desativar exibição pública">
           <input type="checkbox"
+                 [disabled]="submitting || !allowMutations"
                  [checked]="!!form.get('ativo')?.value"
                  (change)="form.get('ativo')?.setValue($any($event.target).checked ? 1 : 0)" />
           <span class="fx-switch__track"></span>
           <span>{{ form.get('ativo')?.value ? 'Ativo' : 'Inativo' }}</span>
         </label>
-        <button *ngIf="isEdit" type="button" class="fx-btn danger small" (click)="onRemove()" [disabled]="submitting">
+        <button *ngIf="isEdit && allowMutations" type="button" class="fx-btn danger small" (click)="onRemove()" [disabled]="submitting">
           Remover
         </button>
       </div>
@@ -31,7 +32,7 @@
       <div class="fx-field fx-col-2">
         <label for="banner-posicao">Posição <span class="req">*</span></label>
         <select id="banner-posicao" formControlName="posicao">
-          <option *ngFor="let p of positions" [value]="p.value">{{ p.label }}</option>
+          <option *ngFor="let p of positionsForSelect" [value]="p.value">{{ p.label }}</option>
         </select>
         <small class="fx-hint">{{ positionDescription() }}</small>
       </div>

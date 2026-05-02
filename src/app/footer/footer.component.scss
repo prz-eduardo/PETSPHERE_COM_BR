@@ -31,7 +31,8 @@
   position: relative;
   top: -1px;
 
-  path { fill: #fffdf4; }
+  /* Mesma superfície do site (styles.scss --fp-site-surface); evita faixa “branca” acima do rodapé */
+  path { fill: var(--fp-site-surface, #efeae0); }
 }
 
 /* Layout ----------------------------------------------------------------- */

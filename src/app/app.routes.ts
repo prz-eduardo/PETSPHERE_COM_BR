@@ -207,6 +207,13 @@ export const routes: Routes = [
     canActivate: [vetGuard],
   },
   { path: 'meus-pets', loadComponent: () => import('./pages/meus-pets/meus-pets.component').then(m => m.MeusPetsComponent)},
+  {
+    path: 'meus-agendamentos',
+    loadComponent: () =>
+      import('./pages/restrito/area-cliente/meus-agendamentos/meus-agendamentos.component').then(
+        (m) => m.MeusAgendamentosComponent,
+      ),
+  },
   { path: 'galeria', component: GaleriaPublicaComponent },
   {
     path: 'institucional-loja',
@@ -359,6 +366,12 @@ export const routes: Routes = [
             (m) => m.ParceiroPetshopOnlineComponent
           ),
         data: { title: 'Petshop online' },
+      },
+      {
+        path: 'banners',
+        loadComponent: () =>
+          import('./pages/parceiros/banners-parceiro/banners-parceiro.component').then((m) => m.BannersParceiroComponent),
+        data: { title: 'Banners da loja' },
       },
       {
         path: 'catalogo-produto',

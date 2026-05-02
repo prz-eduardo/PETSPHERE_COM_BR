@@ -103,6 +103,7 @@ export class MapaComponent implements OnInit, OnDestroy {
   mapSearchUiOpen = false;
   mapTextQuery = '';
   @ViewChild('mapSearchInput') mapSearchInput?: ElementRef<HTMLInputElement>;
+  mobileServiceMenuOpen = false;
 
   /** PetSphere = ecossistema completo; Parceiros = foco na loja atual (subdomínio), quando houver tenant. */
   mapSphereView: 'petsphere' | 'parceiros' = 'petsphere';
@@ -131,7 +132,13 @@ export class MapaComponent implements OnInit, OnDestroy {
   transportePetOrigemLng: number | null = null;
   transportePetDestLat: number | null = null;
   transportePetDestLng: number | null = null;
-  transportePetQuote: { preco_centavos?: number; distancia_km?: number } | null = null;
+  transportePetQuote: {
+    preco_centavos?: number;
+    distancia_km?: number;
+    pickup_eta_min?: number | null;
+    online_driver_count?: number;
+    nearest_driver_distance_km?: number | null;
+  } | null = null;
   transportePetBusy = false;
   transportePetLocLoading = false;
   transportePetLastCorridaId: number | null = null;
@@ -258,6 +265,43 @@ export class MapaComponent implements OnInit, OnDestroy {
   private requestedPartnerId: number | null = null;
   private readonly destroyRoute$ = new Subject<void>();
 
+  private readonly partnerQuickServiceCatalog: Record<string, {
+    label: string;
+    query: string;
+    matchers: RegExp[];
+  }> = {
+    clinica: {
+      label: 'Clínica veterinária',
+      query: 'clinica',
+      matchers: [/clinica|cl[ií]nica|veterin|vet/i],
+    },
+    creche: {
+      label: 'Creche / Day care',
+      query: 'daycare',
+      matchers: [/creche|day\s*care|daycare/i],
+    },
+    dogwalker: {
+      label: 'Dog walker',
+      query: 'dogwalker',
+      matchers: [/dog\s*walker|passea|walker/i],
+    },
+    hotel: {
+      label: 'Hotel para pets',
+      query: 'hospedagem',
+      matchers: [/hotel|hosped|hospedagem/i],
+    },
+    petshop: {
+      label: 'Petshop',
+      query: 'petshop',
+      matchers: [/pet\s*shop|petshop|loja/i],
+    },
+    transporte: {
+      label: 'Transporte pet',
+      query: 'transporte',
+      matchers: [/transporte|corrida|motorista/i],
+    },
+  };
+
   constructor(
     private api: ApiService,
     private toast: ToastService,
@@ -321,6 +365,7 @@ export class MapaComponent implements OnInit, OnDestroy {
 
   openMapSearchUi(): void {
     this.mapSearchUiOpen = true;
+    this.mobileServiceMenuOpen = false;
     this.resultsAccordionOpen = false;
     this.zone.runOutsideAngular(() => {
       setTimeout(() => {
@@ -335,6 +380,28 @@ export class MapaComponent implements OnInit, OnDestroy {
     this.mapSearchUiOpen = false;
     this.mapTextQuery = '';
     try { this.applyFilters(); } catch (e) { console.warn('applyFilters on close search failed', e); }
+  }
+
+  toggleMobileServiceMenu(): void {
+    this.mobileServiceMenuOpen = !this.mobileServiceMenuOpen;
+    if (this.mobileServiceMenuOpen) {
+      this.mapConfigOpen = false;
+      this.mapSearchUiOpen = false;
+    }
+  }
+
+  closeMobileServiceMenu(): void {
+    this.mobileServiceMenuOpen = false;
+  }
+
+  mobileServiceTabs(): Array<{ id: string; label: string; typeId?: number; icon?: string }> {
+    return this.tabs || [];
+  }
+
+  onMobileServiceSelect(tabId: string): void {
+    this.select(tabId);
+    this.mobileServiceMenuOpen = false;
+    this.resultsAccordionOpen = true;
   }
 
   onMapTextInput(ev: Event): void {
@@ -392,6 +459,7 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   toggleMapConfig(): void {
+    this.mobileServiceMenuOpen = false;
     this.mapConfigOpen = !this.mapConfigOpen;
   }
 
@@ -663,6 +731,85 @@ export class MapaComponent implements OnInit, OnDestroy {
     if (!this.partnerMatchesTextQuery(p)) return false;
     if (!this.matchesPriceIfConfigured(p)) return false;
     return true;
+  }
+
+  private normalizeText(value: unknown): string {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+  }
+
+  private tabLooksLikeService(tab: { id?: string; label?: string }, matchers: RegExp[]): boolean {
+    const src = `${this.normalizeText(tab.id)} ${this.normalizeText(tab.label)}`;
+    return matchers.some((rx) => rx.test(src));
+  }
+
+  private detectPartnerServiceIds(partner: any): string[] {
+    const srcParts: string[] = [];
+    const tipo = partner?.tipo;
+    const tipos = Array.isArray(partner?.tipos) ? partner.tipos : [];
+    const filtros = partner?.filtros_selecionados && typeof partner.filtros_selecionados === 'object'
+      ? Object.keys(partner.filtros_selecionados)
+      : [];
+
+    srcParts.push(
+      partner?.titulo,
+      partner?.nome,
+      partner?.descricao,
+      tipo?.slug,
+      tipo?.nome,
+      partner?._raw?.partner_type,
+      ...tipos.map((t: any) => t?.slug),
+      ...tipos.map((t: any) => t?.nome),
+      ...filtros
+    );
+
+    const blob = this.normalizeText(srcParts.filter(Boolean).join(' '));
+    const found: string[] = [];
+    for (const [id, cfg] of Object.entries(this.partnerQuickServiceCatalog)) {
+      if (cfg.matchers.some((rx) => rx.test(blob))) found.push(id);
+    }
+
+    if (found.length) return found.slice(0, 5);
+
+    const fallback = ['clinica', 'dogwalker', 'petshop', 'hotel', 'creche'];
+    return fallback.slice(0, 4);
+  }
+
+  private resolveTabByQuickService(serviceId: string): string | null {
+    const cfg = this.partnerQuickServiceCatalog[serviceId];
+    if (!cfg) return null;
+    const hit = this.tabs.find((t) => t.id !== 'todos' && this.tabLooksLikeService(t, cfg.matchers));
+    return hit?.id ?? null;
+  }
+
+  private applyPartnerQuickService(partner: any, serviceId: string): void {
+    const cfg = this.partnerQuickServiceCatalog[serviceId];
+    if (!cfg) return;
+
+    const tabId = this.resolveTabByQuickService(serviceId);
+    if (tabId) {
+      this.select(tabId);
+    } else {
+      this.select('todos');
+    }
+
+    this.resultsAccordionOpen = true;
+    void this.centerOnPartner(partner, { scrollPage: false });
+
+    const parceiroId = Number(partner?.id ?? partner?._raw?.id ?? 0);
+    const queryParams: Record<string, string | number | null> = { service: cfg.query };
+    if (Number.isFinite(parceiroId) && parceiroId > 0) {
+      queryParams['parceiro'] = parceiroId;
+    }
+
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   private buildPartnerGeocodeAddress(p: any): string {
@@ -1544,12 +1691,27 @@ export class MapaComponent implements OnInit, OnDestroy {
     const logoCandidate = String(partner.logo_url ?? partner._raw?.logo_url ?? '').trim();
     const logoSrc = logoCandidate || this.defaultPartnerLogoPath;
     const logoFallback = this.defaultPartnerLogoPath;
+    const quickServices = this.detectPartnerServiceIds(partner);
 
     const routeBtnId = `map-route-btn-${uid}`;
     const msgBtnId = `map-msg-btn-${uid}`;
     const closeBtnId = `map-close-btn-${uid}`;
+    const servicesWrapId = `map-services-wrap-${uid}`;
     const storeLinkHtml = storeUrl
       ? `<a href="${storeUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;font-size:12px;font-weight:600;color:#0369a1">Ver loja online →</a>`
+      : '';
+    const servicesHtml = quickServices.length
+      ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e7eb">
+          <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Menu rápido de serviços</div>
+          <div id="${servicesWrapId}" style="display:flex;flex-wrap:wrap;gap:6px">
+            ${quickServices.map((svcId) => {
+              const svc = this.partnerQuickServiceCatalog[svcId];
+              if (!svc) return '';
+              return `<button type="button" data-service-id="${svcId}" style="border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer">${svc.label}</button>`;
+            }).join('')}
+          </div>
+          <div style="margin-top:7px;font-size:11px;color:#64748b">Toque em um serviço para filtrar no mapa e abrir o contexto.</div>
+        </div>`
       : '';
 
     const content = `
@@ -1573,6 +1735,7 @@ export class MapaComponent implements OnInit, OnDestroy {
         <button id="${routeBtnId}" type="button" style="flex:1;min-width:120px;border:0;background:#0f172a;color:#fff;padding:8px 10px;border-radius:8px;font-weight:600;cursor:pointer">Traçar rota</button>
         <button id="${msgBtnId}" type="button" style="flex:1;min-width:120px;border:1px solid #0ea5e9;background:#e0f2fe;color:#0c4a6e;padding:8px 10px;border-radius:8px;font-weight:600;cursor:pointer">Enviar mensagem</button>
       </div>
+      ${servicesHtml}
       ${storeLinkHtml}
       </div>
     `;
@@ -1606,11 +1769,11 @@ export class MapaComponent implements OnInit, OnDestroy {
             const routeBtn = document.getElementById(routeBtnId);
             const msgBtn = document.getElementById(msgBtnId);
             const closeBtn = document.getElementById(closeBtnId);
+            const servicesWrap = document.getElementById(servicesWrapId);
             if (routeBtn) {
               routeBtn.addEventListener('click', (ev) => {
                 ev.preventDefault();
                 const destObj = { lat: Number(lat), lng: Number(lng) };
-                try { localStorage.setItem('fp_last_dest', JSON.stringify(destObj)); } catch (e) {}
                 this.zone.run(() => {
                   void this.drawRoute(destObj);
                 });
@@ -1629,6 +1792,20 @@ export class MapaComponent implements OnInit, OnDestroy {
             if (closeBtn) {
               try { (closeBtn as HTMLElement).style.zIndex = '99999'; } catch (e) {}
               closeBtn.addEventListener('click', (ev) => { ev.preventDefault(); try { iw.close(); } catch {} });
+            }
+            if (servicesWrap) {
+              const serviceButtons = Array.from(servicesWrap.querySelectorAll('button[data-service-id]'));
+              for (const node of serviceButtons) {
+                node.addEventListener('click', (ev) => {
+                  ev.preventDefault();
+                  const svcId = String((node as HTMLElement).getAttribute('data-service-id') || '').trim();
+                  if (!svcId) return;
+                  this.zone.run(() => {
+                    this.applyPartnerQuickService(partner, svcId);
+                    try { iw.close(); } catch {}
+                  });
+                });
+              }
             }
           } catch (e) { console.warn('partner info domready handler failed', e); }
         });
@@ -1995,34 +2172,6 @@ export class MapaComponent implements OnInit, OnDestroy {
       this.maybeCenterFromUserConsent();
       this.maybeCenterTenantFoco();
       this.maybeCenterRequestedPartner();
-
-      // If there is a saved destination from a previous session, do NOT auto-draw the route
-      // (auto-drawing has caused navigation/lock issues on some environments). Instead,
-      // show a small "Restaurar rota" button over the map so the user can restore manually.
-      try {
-        const raw = localStorage.getItem('fp_last_dest');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && parsed.lat != null && parsed.lng != null) {
-            try {
-              const wrap = document.getElementById('gmap');
-              if (wrap) {
-                const btnHtml = `<button id="fp-restore-route" title="Restaurar última rota" style="position:absolute;z-index:99999;right:18px;bottom:18px;padding:10px 12px;border-radius:8px;border:0;background:#0f172a;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.18);cursor:pointer">Traçar rota</button>`;
-                // ensure container is positioned for absolute child
-                if (wrap.style.position === '' || wrap.style.position === 'static') wrap.style.position = 'relative';
-                wrap.insertAdjacentHTML('beforeend', btnHtml);
-                const btn = document.getElementById('fp-restore-route');
-                if (btn) {
-                  btn.addEventListener('click', () => {
-                    try { this.drawRoute({ lat: Number(parsed.lat), lng: Number(parsed.lng) }); } catch (e) { console.warn('manual restore drawRoute failed', e); }
-                    try { btn.remove(); } catch (e) {}
-                  });
-                }
-              }
-            } catch (e) { console.warn('prepare restore button failed', e); }
-          }
-        }
-      } catch (e) {}
 
     } catch (initErr) {
       console.error('initInteractiveMap unexpected error', initErr);
@@ -2544,7 +2693,6 @@ export class MapaComponent implements OnInit, OnDestroy {
               routeBtn.addEventListener('click', (ev) => {
                 ev.preventDefault();
                 const destObj = { lat: Number(lat), lng: Number(lng) };
-                try { localStorage.setItem('fp_last_dest', JSON.stringify(destObj)); } catch (e) {}
                 this.drawRoute(destObj);
                 try { iw.close(); } catch {}
               });
@@ -2646,36 +2794,11 @@ export class MapaComponent implements OnInit, OnDestroy {
             console.warn('failed to create origin marker', e);
           }
 
-          // when a route is drawn, show a 'Limpar rota' button overlay so the user can clear it
-          try { this.addClearRouteButton(); } catch (e) { /* ignore */ }
-
         } else {
           console.warn('Directions request failed:', status);
         }
       });
     } catch (e) { console.warn('route request failed', e); }
-  }
-
-  /**
-   * Add a 'Limpar rota' button overlayed on the map. Idempotent: does nothing if button exists.
-   */
-  private addClearRouteButton() {
-    if (!isPlatformBrowser(this.platformId)) return;
-    try {
-      const wrap = document.getElementById('gmap');
-      if (!wrap) return;
-      if (document.getElementById('fp-clear-route')) return; // already present
-      const btnHtml = `<button id="fp-clear-route" title="Limpar rota" style="position:absolute;z-index:99999;left:18px;bottom:18px;padding:10px 12px;border-radius:8px;border:0;background:#ffffff;color:#0f172a;box-shadow:0 8px 20px rgba(0,0,0,.12);cursor:pointer">Limpar rota</button>`;
-      if (wrap.style.position === '' || wrap.style.position === 'static') wrap.style.position = 'relative';
-      wrap.insertAdjacentHTML('beforeend', btnHtml);
-      const btn = document.getElementById('fp-clear-route');
-      if (btn) btn.addEventListener('click', (ev) => { ev.preventDefault(); try { this.clearRoute(); } catch (e) {} });
-    } catch (e) { console.warn('addClearRouteButton failed', e); }
-  }
-
-  /** Remove the clear-route button if present. */
-  private removeClearRouteButton() {
-    try { const b = document.getElementById('fp-clear-route'); if (b) b.remove(); } catch (e) {}
   }
 
   /**
@@ -2688,8 +2811,6 @@ export class MapaComponent implements OnInit, OnDestroy {
       }
     } catch (e) { console.warn('clearRoute: clearing directions failed', e); }
     try { if (this.originMarker) { try { this.originMarker.setMap(null); } catch (e) {} this.originMarker = null; } } catch (e) {}
-    try { localStorage.removeItem('fp_last_dest'); } catch (e) {}
-    try { this.removeClearRouteButton(); } catch (e) {}
   }
 
   private async openMapsWithRoute(dest: { lat: number; lng: number }) {

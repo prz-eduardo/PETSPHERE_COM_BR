@@ -28,20 +28,85 @@
       </div>
 
       <div *ngIf="!guestWalkInMode()" class="tutor-search">
-        <input
-          type="search"
-          class="wide"
-          autocomplete="off"
-          placeholder="Busque por nome, e-mail ou telefone (mín. 3 letras ou números)…"
-          [ngModel]="tutorQuery()"
-          (ngModelChange)="onTutorQueryChange($event)"
-          [readonly]="selectedCliente()"
-        />
-
-        <div class="muted-hint">
-          Perfis vindos da busca aparecem com parte dos dados mascarados por segurança. Escolhendo uma pessoa já vinculada
-          aos seus consentimentos, carregamos os pets quando permitido pela LGPD.
+        <div class="mode-toggle" role="tablist" aria-label="Tipo de busca">
+          <button
+            type="button"
+            class="mode-btn"
+            [class.active]="searchMode() === 'tutor'"
+            [attr.aria-selected]="searchMode() === 'tutor'"
+            (click)="setSearchMode('tutor')"
+          >
+            Por tutor
+          </button>
+          <button
+            type="button"
+            class="mode-btn"
+            [class.active]="searchMode() === 'pet'"
+            [attr.aria-selected]="searchMode() === 'pet'"
+            (click)="setSearchMode('pet')"
+          >
+            Por pet
+          </button>
         </div>
+
+        <ng-container *ngIf="searchMode() === 'tutor'">
+          <input
+            type="search"
+            class="wide"
+            autocomplete="off"
+            placeholder="Nome, e-mail ou telefone do tutor (mín. 3 caracteres)…"
+            [ngModel]="tutorQuery()"
+            (ngModelChange)="onTutorQueryChange($event)"
+            [readonly]="!!selectedCliente()"
+          />
+          <div class="muted-hint">
+            Quem <strong>ainda não cedeu dados</strong> ao seu estabelecimento aparece com nome, e-mail e telefone parcialmente mascarados.
+            <strong>Clientes que já cederam consentimento</strong> aparecem com dados completos na lista e no cartão após selecionar.
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="searchMode() === 'pet'">
+          <input
+            type="search"
+            class="wide"
+            autocomplete="off"
+            placeholder="Nome do pet ou raça (mín. 2 letras no histórico; 3 na base PetSphere)…"
+            [ngModel]="petSearchQuery()"
+            (ngModelChange)="onPetSearchQueryChange($event)"
+          />
+          <div class="muted-hint">
+            Filtra <strong>pets já vistos na agenda</strong> deste parceiro e busca <strong>tutores na base</strong> cujo pet bate com o texto (mesma busca da API).
+            Ao escolher um tutor, use a lista de pets dele (panorama) quando houver consentimento.
+          </div>
+
+          <div class="pet-inline-block" *ngIf="catalogPetsForPetMode().length">
+            <div class="subheading">Pets do histórico da agenda</div>
+            <div class="pet-inline-list">
+              <button
+                type="button"
+                class="pet-chip"
+                *ngFor="let pet of catalogPetsForPetMode(); trackBy: trackPetCatalog"
+                (click)="selectPet(pet)"
+              >
+                {{ pet.nome }} <span class="pet-chip-tutor">· {{ pet.tutor.nome }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="pet-inline-block" *ngIf="selectedCliente() && panoramaPetsForPetMode().length">
+            <div class="subheading">Pets deste tutor (consentimento)</div>
+            <div class="pet-inline-list">
+              <button
+                type="button"
+                class="pet-chip primary"
+                *ngFor="let p of panoramaPetsForPetMode()"
+                (click)="pickPanoramaPet(p)"
+              >
+                {{ p.nome }}<span *ngIf="p.raca" class="pet-chip-tutor"> · {{ p.raca }}</span>
+              </button>
+            </div>
+          </div>
+        </ng-container>
 
         <button
           type="button"
@@ -59,8 +124,10 @@
 
         <div class="tutor-chip" *ngIf="selectedCliente() as sc">
           <div class="tutor-chip-main">
-            <strong>{{ sc.nome_masked || 'Cliente' }}</strong>
-            <span class="muted" *ngIf="sc.telefone_masked">{{ sc.telefone_masked }}</span>
+            <strong>{{ displayClienteNome(sc) }}</strong>
+            <span class="muted" *ngIf="displayClienteTelefone(sc)">{{ displayClienteTelefone(sc) }}</span>
+            <span class="muted" *ngIf="displayClienteEmail(sc)">{{ displayClienteEmail(sc) }}</span>
+            <span class="muted" *ngIf="displayClienteCpf(sc)">CPF {{ displayClienteCpf(sc) }}</span>
           </div>
           <span class="status-pill" *ngIf="permissaoBadge()">{{ permissaoBadge() }}</span>
         </div>
@@ -72,10 +139,10 @@
             *ngFor="let c of tutorCandidates(); trackBy: trackCandidate"
             (click)="selectClienteDiscovered(c)"
           >
-            <div class="candidate-name">{{ c.nome_masked || 'Cliente' }}</div>
-            <div class="muted small">
-              <span *ngIf="c.email_masked">{{ c.email_masked }}</span>
-              <span *ngIf="c.telefone_masked">{{ c.telefone_masked }}</span>
+            <div class="candidate-name">{{ displayClienteNome(c) }}</div>
+            <div class="muted small row-meta">
+              <span *ngIf="displayClienteEmail(c)">{{ displayClienteEmail(c) }}</span>
+              <span *ngIf="displayClienteTelefone(c)">{{ displayClienteTelefone(c) }}</span>
             </div>
           </button>
         </div>
@@ -94,14 +161,14 @@
       </div>
     </div>
 
-    <!-- ── Pet ─────────────────────────────────────────────────────────── -->
-    <div class="field section-block">
+    <!-- ── Pet (modo tutor: busca livre; modo pet: use a seção acima) ─────── -->
+    <div class="field section-block" *ngIf="searchMode() === 'tutor'">
       <label class="section-label">Pet *</label>
 
       <div class="autocomplete-wrap">
         <input
           type="text"
-          placeholder="Nome do pet ou busque pela lista quando carregar pets…"
+          placeholder="Nome do pet ou busque na lista (histórico / panorama)…"
           [ngModel]="searchPet()"
           (ngModelChange)="searchPet.set($event); showPetDropdown.set(true)"
           (blur)="showPetDropdown.set(false)"
@@ -127,6 +194,10 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="field section-block muted-hint" *ngIf="searchMode() === 'pet' && !selectedPet()">
+      <span class="section-label">Pet *</span> — escolha um pet na lista <strong>Por pet</strong> acima ou selecione um tutor e depois um pet do panorama.
     </div>
 
     <!-- Pet info (legacy + panorama) -->

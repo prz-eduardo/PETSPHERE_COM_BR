@@ -132,6 +132,35 @@ export interface TelemedicinaCatalogoResponse {
   source: string;
 }
 
+/** GET /clientes/me/agendamentos-timeline — agenda parceiro, telemedicina, hotel (unificado). */
+export type ClienteAgendamentoTimelineKind = 'agenda' | 'telemedicina' | 'hotel';
+
+export interface ClienteAgendamentoTimelineItem {
+  kind: ClienteAgendamentoTimelineKind;
+  id: number;
+  inicio: string | null;
+  fim: string | null;
+  status: string;
+  status_label: string;
+  titulo: string;
+  parceiro_id: number;
+  parceiro_nome: string | null;
+  pet_id: number | null;
+  pet_nome: string | null;
+  pet_especie: string | null;
+  especie_id: number | null;
+  observacoes?: string | null;
+}
+
+export interface ClienteAgendamentoTimelineQuery {
+  data_inicio?: string;
+  data_fim?: string;
+  pet_id?: number;
+  parceiro_id?: number;
+  especie_id?: number;
+  kind?: ClienteAgendamentoTimelineKind;
+}
+
 export type PlaceSource = 'google' | 'petsphere';
 
 export interface MapLayerType {
@@ -801,6 +830,24 @@ export class ApiService {
     );
   }
 
+  /** Tutor: timeline unificada (agenda profissional, telemedicina, hospedagem). */
+  listClienteAgendamentosTimeline(token: string, query?: ClienteAgendamentoTimelineQuery) {
+    const params: Record<string, string> = {};
+    if (query?.data_inicio) params['data_inicio'] = query.data_inicio;
+    if (query?.data_fim) params['data_fim'] = query.data_fim;
+    if (query?.pet_id != null) params['pet_id'] = String(query.pet_id);
+    if (query?.parceiro_id != null) params['parceiro_id'] = String(query.parceiro_id);
+    if (query?.especie_id != null) params['especie_id'] = String(query.especie_id);
+    if (query?.kind) params['kind'] = query.kind;
+    return this.http.get<{ itens: ClienteAgendamentoTimelineItem[] }>(
+      `${this.baseUrl}/clientes/me/agendamentos-timeline`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        params: Object.keys(params).length ? params : undefined,
+      },
+    );
+  }
+
   joinMyTelemedicina(token: string, consultaId: number | string) {
     return this.http.post<{
       consulta_id: number;
@@ -858,6 +905,9 @@ export class ApiService {
     return this.http.get<{
       distancia_km: number;
       duracao_min: number;
+      pickup_eta_min: number | null;
+      online_driver_count: number;
+      nearest_driver_distance_km: number | null;
       preco_centavos: number;
       surge_multiplier: number;
       pct_plataforma: number;

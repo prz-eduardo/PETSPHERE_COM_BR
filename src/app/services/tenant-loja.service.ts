@@ -64,6 +64,12 @@ export class TenantLojaService {
   /** Acomodações na vitrine + ofertas globais do hotel (só preenchido em contexto de loja tenant). */
   readonly hospedagemPublic = signal<TenantLojaHospedagemPublic | null>(null);
   readonly resolvedFromCustomDomain = signal(false);
+  /**
+   * Host é vitrine dedicada (ex.: `loja.petsphere.com.br`, `loja.localhost`) — só tutor + loja,
+   * antes do perfil carregar ou se o slug for inválido. Usado para esconder o toggle Tutores|Profissionais
+   * e ignorar sessionStorage da lente prestador neste host.
+   */
+  readonly isTenantDedicatedHost = signal(false);
   /** Uma única Promise compartilhada: listagens da loja devem aguardar antes de chamar a API com `parceiro_slug`. */
   private hostInitPromise: Promise<void> | null = null;
 
@@ -77,7 +83,16 @@ export class TenantLojaService {
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: object
-  ) {}
+  ) {
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        const host = (window.location.hostname || '').toLowerCase();
+        this.isTenantDedicatedHost.set(this.computeDedicatedTenantHostFromHostname(host));
+      } catch {
+        /* ignore */
+      }
+    }
+  }
 
   /**
    * Aguarda a resolução do host (subdomínio / ?loja=) e do perfil público.
@@ -101,6 +116,20 @@ export class TenantLojaService {
     return this.ensureHostResolved();
   }
 
+  /** Subdomínio de vitrine Petsphere / dev `.localhost` (exclui `www`). */
+  private computeDedicatedTenantHostFromHostname(host: string): boolean {
+    const h = (host || '').toLowerCase();
+    if (h.endsWith('.petsphere.com.br')) {
+      const sub = h.replace(/\.petsphere\.com\.br$/i, '');
+      return !!(sub && sub !== 'www');
+    }
+    if (h.endsWith('.localhost')) {
+      const sub = h.replace(/\.localhost$/i, '');
+      return !!(sub && sub !== 'www');
+    }
+    return false;
+  }
+
   private async runHostInit(): Promise<void> {
     let host = '';
     try {
@@ -108,6 +137,8 @@ export class TenantLojaService {
     } catch {
       return;
     }
+
+    this.isTenantDedicatedHost.set(this.computeDedicatedTenantHostFromHostname(host));
 
     let prof: TenantLojaPublicProfile | null = null;
     let slug: string | null = null;

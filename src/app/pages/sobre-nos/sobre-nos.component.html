@@ -1,87 +1,88 @@
-<div class="sobre-page">
-  <!-- HERO -->
-  <section class="sobre-hero" aria-labelledby="sobre-hero-title">
-    <div class="hero-shell">
-      <div class="hero-copy">
-        <span class="hero-kicker">
-          <i class="fa-solid fa-sparkles" aria-hidden="true"></i>
-          Valor prático para o mercado pet
-        </span>
-        <h1 id="sobre-hero-title" class="hero-title">
-          {{ marcaNome }}<br />
-          <span class="hero-accent">Plataforma completa para o mercado pet</span>
-        </h1>
-        <h2 class="hero-lead">
-          Gerencie clientes, pets, agenda e vendas em um so lugar, enquanto atrai novos
-          clientes atraves do mapa e da presenca digital integrada.
-        </h2>
-        <p class="hero-subtitle">
-          Nao e apenas um sistema de gestao. Nao e apenas uma loja.
-        </p>
-        <p class="hero-subtitle hero-subtitle-tight">
-          A {{ marcaNome }} e a infraestrutura digital que conecta operacao, descoberta e
-          relacionamento em todo o ecossistema pet.
-        </p>
-        <p class="hero-subtitle hero-subtitle-tight">
-          Para petshops, clinicas e prestadores, isso significa menos bagunca interna e
-          mais chance de crescer com visibilidade real.
-        </p>
+<div class="sobre-shell">
+  <header class="sobre-hero" aria-labelledby="sobre-hero-title">
+    <div class="hero-orbs" aria-hidden="true">
+      <span class="orb orb-aurora"></span>
+      <span class="orb orb-violet"></span>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-kicker">
+        <i class="fa-solid fa-sparkles" aria-hidden="true"></i>
+        Valor prático para o mercado pet
+      </span>
+      <h1 id="sobre-hero-title" class="hero-title">
+        {{ marcaNome }}<br />
+        <span class="hero-accent">Plataforma completa para o mercado pet</span>
+      </h1>
+      <p class="hero-lead">
+        Gerencie clientes, pets, agenda e vendas em um so lugar, enquanto atrai novos
+        clientes atraves do mapa e da presenca digital integrada.
+      </p>
+      <p class="hero-subtitle">
+        Nao e apenas um sistema de gestao. Nao e apenas uma loja.
+      </p>
+      <p class="hero-subtitle hero-subtitle-tight">
+        A {{ marcaNome }} e a infraestrutura digital que conecta operacao, descoberta e
+        relacionamento em todo o ecossistema pet.
+      </p>
+      <p class="hero-subtitle hero-subtitle-tight">
+        Para petshops, clinicas e prestadores, isso significa menos bagunca interna e
+        mais chance de crescer com visibilidade real.
+      </p>
 
-        <div class="hero-actions">
-          <a routerLink="/parceiro/cadastrar" class="btn btn-primary">
-            <i class="fa-solid fa-store" aria-hidden="true"></i>
-            Criar minha loja gratis
-          </a>
-          <a href="#como-funciona" class="btn btn-secondary" (click)="scrollToSection('como-funciona', $event)">
-            <i class="fa-solid fa-compass" aria-hidden="true"></i>
-            Ver como funciona
-          </a>
-        </div>
-
-        <ul class="hero-trust" aria-label="Principais beneficios da plataforma">
-          <li>
-            <span class="trust-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
-            <span class="trust-value">Agenda + CRM</span>
-            <span class="trust-label">Rotina operacional organizada em um unico fluxo</span>
-          </li>
-          <li>
-            <span class="trust-icon"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i></span>
-            <span class="trust-value">Mapa e vitrine</span>
-            <span class="trust-label">Clientes encontram seu negocio pela regiao e pelo servico</span>
-          </li>
-          <li>
-            <span class="trust-icon"><i class="fa-solid fa-notes-medical" aria-hidden="true"></i></span>
-            <span class="trust-value">Historico do pet</span>
-            <span class="trust-label">Mais contexto para tutor, clinica e estabelecimento</span>
-          </li>
-        </ul>
+      <div class="hero-actions">
+        <a routerLink="/parceiro/cadastrar" class="btn btn-primary">
+          <i class="fa-solid fa-store" aria-hidden="true"></i>
+          Criar minha loja gratis
+        </a>
+        <a href="#como-funciona" class="btn btn-secondary" (click)="scrollToSection('como-funciona', $event)">
+          <i class="fa-solid fa-compass" aria-hidden="true"></i>
+          Ver como funciona
+        </a>
       </div>
 
-      <div class="hero-visual">
-        <div class="hero-blob blob-a" aria-hidden="true"></div>
-        <div class="hero-blob blob-b" aria-hidden="true"></div>
-        <div class="hero-card hero-card-main hero-card-ecossistema">
-          <img
-            [src]="ecossistemaImgPath"
-            width="640"
-            height="640"
-            alt="Infográfico do ecossistema pet integrado: serviços conectados em rede ao redor de um cão e um gato no centro."
-            loading="eager"
-            decoding="async"
-          />
-        </div>
-        <div class="hero-chip chip-a" aria-hidden="true">
-          <i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i>
-          Gestao integrada
-        </div>
-        <div class="hero-chip chip-b" aria-hidden="true">
-          <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
-          Visibilidade local
-        </div>
+      <ul class="hero-trust" aria-label="Principais beneficios da plataforma">
+        <li>
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+          <span><strong>Agenda + CRM</strong> — Rotina operacional organizada em um unico fluxo</span>
+        </li>
+        <li>
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+          <span><strong>Mapa e vitrine</strong> — Clientes encontram seu negocio pela regiao e pelo servico</span>
+        </li>
+        <li>
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+          <span><strong>Historico do pet</strong> — Mais contexto para tutor, clinica e estabelecimento</span>
+        </li>
+      </ul>
+    </div>
+  </header>
+
+  <section class="sobre-hero-media" aria-label="Ilustracao do ecossistema">
+    <div class="sobre-hero-media__inner">
+      <div class="hero-blob blob-a" aria-hidden="true"></div>
+      <div class="hero-blob blob-b" aria-hidden="true"></div>
+      <div class="hero-card hero-card-main hero-card-ecossistema">
+        <img
+          [src]="ecossistemaImgPath"
+          width="640"
+          height="640"
+          alt="Infográfico do ecossistema pet integrado: serviços conectados em rede ao redor de um cão e um gato no centro."
+          loading="eager"
+          decoding="async"
+        />
+      </div>
+      <div class="hero-chip chip-a" aria-hidden="true">
+        <i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i>
+        Gestao integrada
+      </div>
+      <div class="hero-chip chip-b" aria-hidden="true">
+        <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
+        Visibilidade local
       </div>
     </div>
   </section>
 
+  <div class="sobre-page">
   <hr class="sobre-divider" aria-hidden="true" />
 
   <!-- O QUE FAZEMOS -->
@@ -208,4 +209,5 @@
       </div>
     </div>
   </section>
+  </div>
 </div>

@@ -47,6 +47,11 @@
           </div>
           <p class="ride-list__price">{{ fmtMoney(c.preco_centavos) }}</p>
           <p class="ride-list__route muted small">{{ c.origem_texto || 'Origem' }} → {{ c.destino_texto || 'Destino' }}</p>
+          <p class="ride-list__route muted small" *ngIf="c.dist_to_pickup_km != null || c.eta_pickup_min != null">
+            <ng-container *ngIf="c.dist_to_pickup_km != null">Até você: {{ c.dist_to_pickup_km }} km</ng-container>
+            <ng-container *ngIf="c.dist_to_pickup_km != null && c.eta_pickup_min != null"> · </ng-container>
+            <ng-container *ngIf="c.eta_pickup_min != null">ETA coleta: {{ c.eta_pickup_min }} min</ng-container>
+          </p>
         </div>
         <button type="button" class="btn btn--primary ride-list__cta" (click)="aceitar(c)">Aceitar corrida</button>
       </li>

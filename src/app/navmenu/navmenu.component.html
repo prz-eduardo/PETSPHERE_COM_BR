@@ -125,7 +125,7 @@
           >
             Painel
           </a>
-          <button *ngIf="!isAreaVetRoute"
+            <button *ngIf="!isAreaVetRoute && !isParceirosLensToggleActive"
                   #userBtn
                   class="user-trigger navbar-user-trigger"
                   type="button"
@@ -227,20 +227,10 @@
           <li
             *ngIf="cell.kind === 'nav' && !isDockFillItem(cell.item)"
             class="ps-dock__item"
-            [class.ps-dock__item--notif]="cell.item.id === 'dock-notificacoes'"
             [class.is-active]="isMobileTabHighlighted(cell.item)"
             [attr.data-nav-id]="cell.item.id"
           >
             <ng-container [ngSwitch]="cell.item.id">
-              <div class="ps-dock__notif-host" *ngSwitchCase="'dock-notificacoes'">
-                <app-notifications-bell
-                  audience="cliente"
-                  [dockEmbed]="true"
-                  [fullscreenPanel]="true"
-                  (openChange)="dockNotifFullscreenOpen = $event"
-                ></app-notifications-bell>
-              </div>
-
               <button
                 *ngSwitchCase="'login'"
                 type="button"
@@ -351,6 +341,17 @@
         </button>
       </div>
     </div>
+
+    <!-- Sino de notificações fora do dock (oculto via CSS). Mantém painel fullscreen funcional;
+         disparado pela ação “Notificações” no FAB sheet via dockBell.toggle(). -->
+    <app-notifications-bell
+      #dockBell
+      *ngIf="isCliente && !isAreaVetRoute"
+      class="ps-dock-bell-launcher"
+      audience="cliente"
+      [fullscreenPanel]="true"
+      (openChange)="dockNotifFullscreenOpen = $event"
+    ></app-notifications-bell>
   </ng-container>
 
   <!-- ═════════════════════════════════════════════════════════════════════

@@ -159,6 +159,8 @@ export interface Agendamento {
   status: AgendaStatus;
   escopoPermissao?: EscopoPermissaoDados | null;
   observacoes?: string | null;
+  /** Preenchido pela API v2 quando e-mail de confirmação ao tutor foi enviado (ISO); ainda AGENDADO = aguardando resposta. */
+  tutorNotificacaoEmailEnviadoEm?: string | null;
   criado_em?: string;
   updated_at?: string;
   // Campos enriquecidos no front a partir da API (pet / profissional / serviço)

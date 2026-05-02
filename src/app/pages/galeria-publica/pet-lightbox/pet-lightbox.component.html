@@ -63,13 +63,19 @@
     <aside class="lightbox-side">
       <header class="pet-header">
         <div class="pet-title-row">
-          <h2 class="pet-name">{{ pet.nome || pet.name || 'Sem nome' }}</h2>
           <a
-            *ngIf="pet.pet_id"
+            *ngIf="pet.pet_id; else petTitleSemLink"
             [routerLink]="getPetPerfilPath()"
-            class="lb-perfil-link lb-perfil-link--title"
+            class="pet-title-cta"
             (click)="$event.stopPropagation()"
-          >Perfil do pet</a>
+            [attr.aria-label]="'Perfil do pet — ' + (pet.nome || pet.name || 'Sem nome')"
+          >
+            <h2 class="pet-name">{{ pet.nome || pet.name || 'Sem nome' }}</h2>
+            <span class="pet-title-cta__hint">Perfil do pet</span>
+          </a>
+          <ng-template #petTitleSemLink>
+            <h2 class="pet-name">{{ pet.nome || pet.name || 'Sem nome' }}</h2>
+          </ng-template>
           <span class="pet-species-emoji" [attr.title]="pet.especie || pet.tipo || 'Pet'" aria-hidden="true">{{ typeEmoji(pet.especie || pet.tipo) }}</span>
         </div>
         <div class="pet-multi-names" *ngIf="pet.pets_na_foto?.length > 1" role="list" aria-label="Pets na foto">

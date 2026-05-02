@@ -24,6 +24,7 @@ export type ParceiroAgendamentoApiRow = Record<string, unknown> & {
   cliente_telefone_snapshot?: string | null;
   pet_nome?: string | null;
   pet_nome_snapshot?: string | null;
+  tutor_notificacao_email_enviado_em?: string | null;
 };
 
 function pickClienteNome(row: ParceiroAgendamentoApiRow): string {
@@ -134,6 +135,11 @@ export function mapParceiroAgendamentoRow(
     duracaoMin: durMin,
   };
 
+  const tutorEmailEm =
+    row.tutor_notificacao_email_enviado_em != null && String(row.tutor_notificacao_email_enviado_em).trim() !== ''
+      ? String(row.tutor_notificacao_email_enviado_em)
+      : null;
+
   return {
     id: Number(row.id),
     recursoId,
@@ -141,6 +147,7 @@ export function mapParceiroAgendamentoRow(
     fim,
     status: (row.status as AgendaStatus) || 'AGENDADO',
     observacoes: row.observacoes != null ? String(row.observacoes) : null,
+    tutorNotificacaoEmailEnviadoEm: tutorEmailEm,
     pet,
     profissional,
     servico,

@@ -69,6 +69,9 @@
           <a routerLink="/parceiros/petshop-online" routerLinkActive="active" (click)="toggleComercialMenu(false)">
             <i class="fa fa-store"></i> Petshop online
           </a>
+          <a routerLink="/parceiros/banners" routerLinkActive="active" (click)="toggleComercialMenu(false)">
+            <i class="fa fa-picture-o"></i> Banners da loja
+          </a>
           <a routerLink="/parceiros/catalogo-produto" routerLinkActive="active" (click)="toggleComercialMenu(false)">
             <i class="fa fa-cube"></i> Cadastro de produto
           </a>
@@ -235,6 +238,9 @@
           <div class="mobile-group-list" *ngIf="showComercialMenu()">
             <a routerLink="/parceiros/petshop-online" (click)="toggleMobileNav(false); toggleComercialMenu(false)">
               <i class="fa fa-store"></i> Petshop online
+            </a>
+            <a routerLink="/parceiros/banners" (click)="toggleMobileNav(false); toggleComercialMenu(false)">
+              <i class="fa fa-picture-o"></i> Banners da loja
             </a>
             <a routerLink="/parceiros/catalogo-produto" (click)="toggleMobileNav(false); toggleComercialMenu(false)">
               <i class="fa fa-cube"></i> Cadastro de produto

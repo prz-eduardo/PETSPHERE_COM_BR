@@ -1,61 +1,60 @@
-<main class="plp-page" id="topo">
-  <section class="plp-hero" aria-labelledby="vet-hero-title">
-    <div class="hero-blob hero-blob--a" aria-hidden="true"></div>
-    <div class="hero-blob hero-blob--b" aria-hidden="true"></div>
+<main class="plp-shell" id="topo">
+  <header class="plp-hero" aria-labelledby="vet-hero-title">
+    <div class="hero-orbs" aria-hidden="true">
+      <span class="orb orb-aurora"></span>
+      <span class="orb orb-violet"></span>
+    </div>
     <div class="hero-inner">
-      <div class="hero-copy">
-        <span class="hero-kicker">
-          <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
-          Para clínicas e veterinários
-        </span>
-        <h1 id="vet-hero-title" class="hero-title">
-          Sua clínica no <span class="hero-accent">mapa digital</span> que tutores já usam
-        </h1>
-        <p class="hero-lead">
-          Combine visibilidade no marketplace, ferramentas de agenda e automações com a área do veterinário — receitas,
-          pacientes e histórico integrados ao ecossistema {{ marca }}.
+      <span class="hero-kicker">
+        <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
+        Para clínicas e veterinários
+      </span>
+      <h1 id="vet-hero-title" class="hero-title">
+        Sua clínica no <span class="hero-accent">mapa digital</span> que tutores já usam
+      </h1>
+      <p class="hero-lead">
+        Combine visibilidade no marketplace, ferramentas de agenda e automações com a área do veterinário — receitas,
+        pacientes e histórico integrados ao ecossistema {{ marca }}.
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+          Ver planos e créditos
+        </a>
+        <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+          Cadastrar parceiro
+        </a>
+        <a routerLink="/mapa" class="btn btn-ghost btn-lg">
+          <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+          Explorar mapa
+        </a>
+      </div>
+      <ul class="hero-trust" aria-label="Benefícios destacados">
+        <li *ngFor="let t of heroTrust">
+          <span class="trust-ic"><i [class]="t.icon" aria-hidden="true"></i></span>
+          <span><strong>{{ t.strong }}</strong> — {{ t.text }}</span>
+        </li>
+      </ul>
+      <div class="plp-hero-summary">
+        <p class="plp-hero-summary__head">
+          <i class="fa-solid fa-kit-medical" aria-hidden="true"></i>
+          Uma só plataforma
         </p>
-        <div class="hero-actions">
-          <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
-            <i class="fa-solid fa-rocket" aria-hidden="true"></i>
-            Ver planos e créditos
-          </a>
-          <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
-            <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
-            Cadastrar parceiro
-          </a>
-          <a routerLink="/mapa" class="btn btn-ghost btn-lg">
-            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
-            Explorar mapa
-          </a>
-        </div>
-        <ul class="hero-trust" aria-label="Benefícios destacados">
-          <li *ngFor="let t of heroTrust">
-            <span class="trust-ic"><i [class]="t.icon" aria-hidden="true"></i></span>
-            <span><strong>{{ t.strong }}</strong> — {{ t.text }}</span>
-          </li>
+        <p class="plp-hero-summary__lead">
+          Do cadastro público aos fluxos internos da clínica, a mesma base que já move petshops e hotel para pets na
+          {{ marca }}.
+        </p>
+        <ul class="plp-hero-summary__list">
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Mapa + vitrine de parceiros</li>
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Automações e IA (planos pagos)</li>
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Área veterinária: receitas e pacientes</li>
         </ul>
       </div>
-      <div class="hero-panel">
-        <div class="hero-card">
-          <div class="hero-card__head">
-            <i class="fa-solid fa-kit-medical" aria-hidden="true"></i>
-            <span>Uma só plataforma</span>
-          </div>
-          <p class="hero-card__text">
-            Do cadastro público aos fluxos internos da clínica, a mesma base que já move petshops e hotel para pets na
-            {{ marca }}.
-          </p>
-          <ul class="hero-card__list">
-            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Mapa + vitrine de parceiros</li>
-            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Automações e IA (planos pagos)</li>
-            <li><i class="fa-solid fa-check" aria-hidden="true"></i> Área veterinária: receitas e pacientes</li>
-          </ul>
-        </div>
-      </div>
     </div>
-  </section>
+  </header>
 
+  <div class="plp-page">
   <hr class="plp-divider" aria-hidden="true" />
 
   <section class="plp-bloco plp-bloco--surface" aria-labelledby="valores-title">
@@ -196,5 +195,6 @@
       <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
       Cadastrar
     </a>
+  </div>
   </div>
 </main>

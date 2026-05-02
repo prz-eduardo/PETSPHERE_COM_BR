@@ -303,3 +303,74 @@
 
   &:hover { opacity: 0.88; }
 }
+
+.submodal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 310;
+  backdrop-filter: blur(3px);
+}
+
+.submodal-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 28px));
+  padding: 22px 24px 20px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--admin-radius-xl);
+  box-shadow: var(--admin-shadow-xl);
+  z-index: 311;
+}
+
+.submodal-title {
+  margin: 0 0 12px;
+  font-size: var(--admin-font-size-lg);
+  font-weight: var(--admin-font-weight-bold);
+  color: var(--admin-text-strong);
+}
+
+.submodal-text {
+  margin: 0 0 10px;
+  font-size: var(--admin-font-size-sm);
+  line-height: 1.5;
+  color: var(--admin-text);
+}
+
+.submodal-muted {
+  color: var(--admin-muted);
+  font-size: var(--admin-font-size-xs);
+}
+
+.submodal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn-submodal-ghost {
+  background: transparent;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-muted);
+  cursor: pointer;
+  font-size: var(--admin-font-size-sm);
+  padding: 9px 16px;
+  &:hover { background: var(--admin-surface-2); color: var(--admin-text); }
+}
+
+.btn-submodal-primary {
+  background: var(--admin-primary);
+  border: none;
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-primary-ink);
+  cursor: pointer;
+  font-size: var(--admin-font-size-sm);
+  font-weight: var(--admin-font-weight-semibold);
+  padding: 9px 16px;
+  &:hover { opacity: 0.9; }
+}
