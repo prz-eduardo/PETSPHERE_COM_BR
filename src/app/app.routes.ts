@@ -7,6 +7,7 @@ import { ProdutoComponent } from './pages/restrito/admin/produto/produto.compone
 import { ListaProdutosComponent } from './pages/restrito/admin/lista-produtos/lista-produtos.component';
 import { AdminPedidosComponent } from './pages/restrito/admin/pedidos/pedidos.component';
 import { authGuard } from './guards/auth.guard';
+import { clienteSessionGuard } from './guards/cliente-session.guard';
 import { vetGuard } from './guards/vet.guard';
 import { parceiroGuard } from './guards/parceiro.guard';
 import { parceiroVetGuard } from './guards/parceiro-vet.guard';
@@ -120,6 +121,15 @@ export const routes: Routes = [
     { path: 'hotel-creche', redirectTo: 'parceiro/hotel-e-creche', pathMatch: 'full' },
   { path: 'restrito', redirectTo: 'restrito/login', pathMatch: 'full' },
   { path: 'restrito/login', component: LoginComponent },
+  {
+    path: 'restrito/kyc-motorista-global',
+    canActivate: [clienteSessionGuard],
+    loadComponent: () =>
+      import('./pages/restrito/kyc-motorista-global/kyc-motorista-global.component').then(
+        (m) => m.KycMotoristaGlobalComponent
+      ),
+    data: { title: 'KYC motorista PetSphere' },
+  },
   {
     path: 'restrito/admin',
     component: AdminComponent,

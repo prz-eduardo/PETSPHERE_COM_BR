@@ -1,0 +1,48 @@
+<main class="kyc-page">
+  <header class="kyc-page__head">
+    <a routerLink="/area-cliente" class="kyc-page__back">← Área do cliente</a>
+    <h1>Verificação KYC — motorista global</h1>
+    <p class="kyc-page__lead">
+      Envie uma selfie ao vivo e a foto da sua CNH para concluir o cadastro na rede de motoristas {{ marca }}.
+    </p>
+  </header>
+
+  <section *ngIf="motoristaErro && !busy" class="kyc-panel">
+    <p>Você ainda não está inscrito como motorista da rede PetSphere.</p>
+    <button type="button" class="btn btn-primary" [disabled]="busy" (click)="enroll()">Inscrever na rede</button>
+    <p *ngIf="envioErro" class="kyc-page__error" role="alert">{{ envioErro }}</p>
+  </section>
+
+  <section *ngIf="motorista && !motoristaErro" class="kyc-stack">
+    <div class="kyc-status muted" *ngIf="motorista['kyc_status']">
+      Situação: <strong>{{ motorista['kyc_status'] }}</strong>
+    </div>
+
+    <p *ngIf="sdkErro" class="kyc-page__error" role="alert">{{ sdkErro }}</p>
+
+    <div class="kyc-camera-wrap">
+      <div #cameraHost class="kyc-camera-host"></div>
+    </div>
+
+    <p *ngIf="selfiePronta" class="kyc-page__ok">Selfie registrada — confira o preview ou tire outra abaixo.</p>
+    <button *ngIf="selfiePronta" type="button" class="btn btn-secondary" (click)="novaSelfie()">Tirar outra selfie</button>
+
+    <label class="kyc-upload">
+      <span>Foto da CNH (nitidez legível)</span>
+      <input type="file" accept="image/*" capture="environment" [disabled]="busy" (change)="onCnhChange($event)" />
+    </label>
+    <p *ngIf="cnhFile" class="muted kyc-file-name">{{ cnhFile.name }}</p>
+
+    <button type="button" class="btn btn-primary" [disabled]="!podeEnviar()" (click)="enviarKyc()">
+      {{ busy ? 'Enviando…' : 'Enviar documentação' }}
+    </button>
+
+    <p *ngIf="envioMsg" class="kyc-page__success" role="status">{{ envioMsg }}</p>
+    <p *ngIf="envioErro" class="kyc-page__error" role="alert">{{ envioErro }}</p>
+
+    <p class="kyc-note muted">
+      Após enviar, a análise é feita pelo time interno (status <code>pending</code>). Você será notificado quando o KYC for
+      aprovado.
+    </p>
+  </section>
+</main>

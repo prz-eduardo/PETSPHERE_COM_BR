@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "kyc:models": "node ./libs/petsphere-kyc-sdk/scripts/copy-models.cjs",
+    "postinstall": "node ./libs/petsphere-kyc-sdk/scripts/copy-models.cjs",
     "start": "ng serve",
     "build": "ng build",
     "build:cap": "ng build && npx cap sync",
@@ -50,6 +52,7 @@
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "lodash-es": "^4.17.21",
+    "petsphere-kyc-sdk": "file:libs/petsphere-kyc-sdk",
     "ngx-mask": "^20.0.3",
     "ngx-quill": "^30.1.3",
     "quill": "^2.0.3",

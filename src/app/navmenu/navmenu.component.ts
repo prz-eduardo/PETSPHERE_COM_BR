@@ -823,13 +823,12 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     let target: 'cliente' | 'parceiro';
-    if (!this.lensDragMoved && ev.target instanceof HTMLElement && ev.target.closest('button')) {
-      this.resetLensToggleDrag(ev.pointerId, track);
-      this.cdr.markForCheck();
-      return;
-    }
     const g = this.lensGeom;
-    if (g && this.lensThumbLeftPx != null) {
+    if (!this.lensDragMoved) {
+      const rect = track.getBoundingClientRect();
+      const tapX = ev.clientX - rect.left;
+      target = tapX >= rect.width * 0.5 ? 'parceiro' : 'cliente';
+    } else if (g && this.lensThumbLeftPx != null) {
       const mid = (g.snapLo + g.thumbW / 2 + g.snapHi + g.thumbW / 2) / 2;
       const c = this.lensThumbLeftPx + g.thumbW / 2;
       target = c >= mid ? 'parceiro' : 'cliente';
@@ -837,16 +836,6 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       const rect = track.getBoundingClientRect();
       const tapX = ev.clientX - rect.left;
       target = tapX >= rect.width * 0.5 ? 'parceiro' : 'cliente';
-    }
-    if (this.lensDragMoved && ev.target instanceof HTMLElement) {
-      const btn = ev.target.closest('button');
-      if (btn) {
-        const killClick = (e: Event) => {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-        };
-        btn.addEventListener('click', killClick, { capture: true, once: true });
-      }
     }
     this.resetLensToggleDrag(ev.pointerId, track);
     if (target === 'parceiro') {

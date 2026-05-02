@@ -1135,6 +1135,15 @@ export class ApiService {
     );
   }
 
+  /** multipart: campos selfie e cnh */
+  submitClienteTransportePetGlobalMotoristaKyc(token: string, formData: FormData) {
+    return this.http.post<{ motorista_global: Record<string, unknown> }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/kyc-upload`,
+      formData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
   setClienteTransportePetGlobalMotoristaOnline(token: string, online: boolean) {
     return this.http.post<{ motorista_global: Record<string, unknown> }>(
       `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/me/online`,

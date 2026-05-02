@@ -1,0 +1,40 @@
+{
+  "name": "petsphere-kyc-sdk",
+  "version": "0.1.7",
+  "description": "PetSphere KYC — captura facial (face-api) para motoristas globais",
+  "main": "dist/petsphere-kyc-sdk.umd.js",
+  "module": "dist/petsphere-kyc-sdk.es.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "petsphere-kyc-sdk": "bin/petsphere-kyc-sdk.js"
+  },
+  "files": [
+    "dist",
+    "models",
+    "scripts",
+    "bin",
+    "README.md",
+    "package.json",
+    "vite.config.ts",
+    "tsconfig.json"
+  ],
+  "scripts": {
+    "build": "npx vite build && npm run types",
+    "types": "tsc -p tsconfig.json",
+    "build:all": "rm -rf dist && npm run build && npm run types",
+    "test:local": "vite preview",
+    "copy-models": "node ./scripts/copy-models.cjs",
+    "setup": "node ./bin/petsphere-kyc-sdk.js",
+    "demo:install": "cd demo && npm i",
+    "demo:dev": "cd demo && npm run dev",
+    "demo:preview": "cd demo && npm run preview"
+  },
+  "dependencies": {
+    "face-api.js": "^0.22.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.2"
+  }
+}

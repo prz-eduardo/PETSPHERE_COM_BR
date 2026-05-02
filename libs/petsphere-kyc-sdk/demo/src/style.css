@@ -1,0 +1,459 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel2: rgba(255, 255, 255, 0.08);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.7);
+  --stroke: rgba(255, 255, 255, 0.14);
+  --primary: #5b8cff;
+  --sheet: rgba(0, 0, 0, 0.55);
+  --sheetStroke: rgba(255, 255, 255, 0.12);
+  --ok: #2ee59d;
+  --warn: #ffcc66;
+  --bad: #ff5b6e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 20% 0%, #122048, var(--bg));
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+#app {
+  height: 100%;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100vw;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin-left: 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.headerStatus {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 650;
+  max-width: 34vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill.muted {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pill.ok {
+  border-color: rgba(46, 229, 157, 0.45);
+  background: rgba(46, 229, 157, 0.12);
+}
+
+.pill.warn {
+  border-color: rgba(255, 204, 102, 0.45);
+  background: rgba(255, 204, 102, 0.12);
+}
+
+.pill.bad {
+  border-color: rgba(255, 91, 110, 0.55);
+  background: rgba(255, 91, 110, 0.14);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn.primary {
+  border-color: rgba(91, 140, 255, 0.6);
+  background: rgba(91, 140, 255, 0.18);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 14px;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (min-width: 980px) {
+  .content {
+    grid-template-columns: 1.3fr 0.7fr;
+    align-items: start;
+  }
+}
+
+/* Mobile-first: câmera vira a área principal; painel vira bottom sheet */
+@media (max-width: 980px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .actions .btn {
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+}
+
+.stage {
+  min-height: 320px;
+  height: 100%;
+}
+
+.camera {
+  position: relative;
+  width: 100%;
+  height: min(70vh, 720px);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 520px) {
+  .camera {
+    height: 68vh;
+    border-radius: 0;
+  }
+}
+
+.panel {
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  padding: 0;
+  overflow: hidden;
+  max-height: min(70vh, 720px);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 600px) {
+  /* fixa a altura real do header para calcular o resto */
+  .topbar {
+    height: 62px;
+    padding: 10px 12px;
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .stage {
+    /* antes era calc(100svh - 62px) */
+    height: calc(100svh - 62px);
+    min-height: 0;
+    /* reserva espaço pro bottom-sheet em peek (84px) + safe area,
+       pra câmera nunca ficar "atrás" do menu */
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .camera {
+    height: 100%;
+    /* garante que nada fique por baixo do painel */
+    max-height: calc(100svh - 62px - 84px - env(safe-area-inset-bottom));
+  }
+
+  /* Painel como bottom sheet fixo */
+  .panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+
+    max-height: 56svh;
+    height: auto;
+    border-radius: 18px 18px 0 0;
+
+    background: var(--sheet);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--sheetStroke);
+    border-bottom: none;
+
+    transform: translateY(calc(100% - 84px));
+    transition: transform 180ms ease;
+  }
+
+  /* Novo: controla abrir/fechar por estado (sem depender de :has) */
+  .panel[data-sheet-state='peek'] {
+    transform: translateY(calc(100% - 84px));
+  }
+
+  .panel[data-sheet-state='open'] {
+    transform: translateY(0);
+  }
+
+  .panel[data-sheet-state='collapsed'] {
+    transform: translateY(calc(100% - 44px));
+  }
+
+  /* Mantém fallback da heurística antiga (caso estado não exista) */
+  .panel:not([data-sheet-state]):has(details[open]) {
+    transform: translateY(0);
+  }
+
+  .mobileSheetBar {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 8px 12px 10px;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    touch-action: none; /* permite drag sem scroll da página */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* remove o botão; mantemos só o handle */
+  .sheetToggle {
+    display: none;
+  }
+
+  .mobileSheetHandle {
+    display: block;
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    margin: 6px auto 0;
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  /* quando estiver open, torna o handle um pouco mais forte */
+  .panel[data-sheet-state='open'] .mobileSheetHandle {
+    background: rgba(255, 255, 255, 0.34);
+  }
+}
+
+.panelHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.panelBody {
+  padding: 0 14px 14px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.k {
+  color: var(--muted);
+}
+
+.v {
+  font-weight: 600;
+  text-align: right;
+}
+
+.details {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.details summary {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.86);
+  font-weight: 650;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field input {
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  outline: none;
+}
+
+.field.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.field.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.hint {
+  margin-top: 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.35;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 12px;
+}
+
+/* Glassmorphism para overlay coxinha mobile */
+.coxinha-glass-bg {
+  backdrop-filter: blur(12px) saturate(120%);
+  background: rgba(34, 34, 34, 0.55);
+  border-radius: 24px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+}
+
+.mobileSheetHandle {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .mobileSheetHandle {
+    display: block;
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    margin: 6px auto 0;
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .camera {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .topbar {
+    height: auto; /* deixa o conteúdo definir */
+    padding: 10px 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    flex: 1 1 auto;
+  }
+
+  .actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+
+  .headerStatus {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    order: 3;
+  }
+
+  .pill {
+    max-width: 45vw;
+  }
+}

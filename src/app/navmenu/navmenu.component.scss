@@ -492,6 +492,7 @@ nav.app-navbar {
     border-radius: 999px;
     position: relative;
     z-index: 1;
+    pointer-events: none;
     color: rgba(255, 255, 255, 0.55);
     background: transparent;
     transition: color 0.22s ease;
@@ -501,11 +502,17 @@ nav.app-navbar {
     }
 
     &.ps-view-toggle__btn--active {
-      color: var(--ps-cosmos);
-      text-shadow: 0 0 14px rgba(255, 255, 255, 0.25);
       background: transparent;
       box-shadow: none;
       transform: none;
+      &:not(.ps-view-toggle__btn--prof) {
+        color: var(--ps-aurora);
+        text-shadow: 0 0 14px color-mix(in srgb, var(--ps-aurora) 42%, transparent);
+      }
+      &.ps-view-toggle__btn--prof {
+        color: var(--ps-cosmos);
+        text-shadow: 0 0 14px rgba(255, 255, 255, 0.25);
+      }
     }
 
     &.ps-view-toggle__btn--prof {
@@ -1719,12 +1726,20 @@ nav.app-navbar {
         color: rgba(15, 11, 46, 0.78);
       }
       &.ps-view-toggle__btn--active {
-        color: var(--ps-aurora-deep);
         text-shadow: none;
         background: transparent;
         box-shadow: none;
-        &:hover:not(:disabled) {
+        &:not(.ps-view-toggle__btn--prof) {
+          color: var(--ps-aurora);
+          &:hover:not(:disabled) {
+            color: var(--ps-aurora-deep);
+          }
+        }
+        &.ps-view-toggle__btn--prof {
           color: var(--ps-aurora-deep);
+          &:hover:not(:disabled) {
+            color: var(--ps-aurora-deep);
+          }
         }
       }
     }
