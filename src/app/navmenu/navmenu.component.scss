@@ -713,6 +713,14 @@ nav.app-navbar {
       min-height: 44px;
       padding: 4px 4px 6px;
       border: 0;
+      margin: 0;
+      box-sizing: border-box;
+      /* <button> (Entrar/Sair) herda padding/baseline do UA; <a> não — alinha com o reset */
+      appearance: none;
+      -webkit-appearance: none;
+      line-height: 1;
+      text-align: center;
+      font: inherit;
       background: transparent;
       /* cor herdada pelos ps-icon (currentColor) — rótulo usa cor própria */
       color: rgba(255, 255, 255, 0.62);
