@@ -2,7 +2,12 @@
 <app-navmenu *ngIf="showNav"></app-navmenu>
 
 <!-- Aqui entram todas as rotas (Home, Login, Admin) -->
-<main class="app-main" [class.no-nav]="!showNav"><router-outlet></router-outlet></main>
+<main
+  class="app-main"
+  [class.no-nav]="!showNav"
+  [class.app-main--lens-from-end]="lensOutletAnim === 'from-end'"
+  [class.app-main--lens-from-start]="lensOutletAnim === 'from-start'"
+><router-outlet></router-outlet></main>
 
 <!-- Footer fixo -->
 <app-footer *ngIf="showFooter"></app-footer>

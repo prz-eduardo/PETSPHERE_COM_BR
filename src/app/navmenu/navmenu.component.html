@@ -86,29 +86,46 @@
           <div
             class="ps-view-toggle"
             *ngIf="showClienteParceiroToggle"
+            [class.ps-view-toggle--dragging]="lensToggleDragging"
+            [class.ps-view-toggle--parceiro]="isParceirosLensToggleActive"
             role="group"
             aria-label="Alternar entre experiência para tutores e área para profissionais"
           >
-            <button
-              type="button"
-              class="ps-view-toggle__btn"
-              [class.ps-view-toggle__btn--active]="isClienteLensToggleActive"
-              (click)="navigateToClienteAppHome()"
-              title="Ir para início — tutores"
-              [attr.aria-current]="isClienteLensToggleActive ? 'page' : null"
+            <div
+              class="ps-view-toggle__track"
+              role="presentation"
+              (pointerdown)="onLensToggleTrackPointerDown($event)"
+              (pointermove)="onLensToggleTrackPointerMove($event)"
+              (pointerup)="onLensToggleTrackPointerEnd($event)"
+              (pointercancel)="onLensToggleTrackPointerEnd($event)"
             >
-              Tutores
-            </button>
-            <button
-              type="button"
-              class="ps-view-toggle__btn ps-view-toggle__btn--prof"
-              [class.ps-view-toggle__btn--active]="isParceirosLensToggleActive"
-              (click)="navigateToParceiroPanel()"
-              title="Petsphere Prestador — planos, cadastro e painel para o seu negócio"
-              [attr.aria-current]="isParceirosLensToggleActive ? 'page' : null"
-            >
-              Profissionais
-            </button>
+              <span
+                class="ps-view-toggle__thumb"
+                aria-hidden="true"
+                [class.ps-view-toggle__thumb--spring]="lensThumbUseSpringCurve"
+                [style.left.px]="lensThumbLeftPx ?? undefined"
+              ></span>
+              <button
+                type="button"
+                class="ps-view-toggle__btn"
+                [class.ps-view-toggle__btn--active]="isClienteLensToggleActive"
+                (click)="navigateToClienteAppHome()"
+                title="Ir para início — tutores"
+                [attr.aria-current]="isClienteLensToggleActive ? 'page' : null"
+              >
+                Tutores
+              </button>
+              <button
+                type="button"
+                class="ps-view-toggle__btn ps-view-toggle__btn--prof"
+                [class.ps-view-toggle__btn--active]="isParceirosLensToggleActive"
+                (click)="navigateToParceiroPanel()"
+                title="Petsphere Prestador — planos, cadastro e painel para o seu negócio"
+                [attr.aria-current]="isParceirosLensToggleActive ? 'page' : null"
+              >
+                Profissionais
+              </button>
+            </div>
           </div>
           <a
             *ngIf="showDesktopParceiroEntrarBtn"
@@ -297,7 +314,7 @@
       </ul>
 
       <!-- FAB Petsphere — núcleo de marca + central de ações; fotinha = conta (botão separado sobre o FAB). -->
-      <div class="ps-fab-host">
+      <div class="ps-fab-host" [class.ps-fab-host--lift]="isRadialOpen">
         <button
           #fabBtn
           type="button"

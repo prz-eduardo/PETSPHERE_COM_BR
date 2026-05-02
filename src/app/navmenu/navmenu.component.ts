@@ -18,6 +18,7 @@ import { ParceirosMobileShellService } from '../services/parceiros-mobile-shell.
 import { ParceiroAuthService } from '../services/parceiro-auth.service';
 import { ParceiroNavPrefsService, ParceiroNavCatalogItem } from '../services/parceiro-nav-prefs.service';
 import { NotificationsBellComponent } from '../shared/notifications-bell/notifications-bell.component';
+import { LensToggleTransitionService } from '../services/lens-toggle-transition.service';
 
 export interface NavMainItem {
   id: string;
@@ -738,19 +739,170 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
    * Navega para o hub do app cliente (vitrine tenant usa `/`; caso contrário `/galeria`).
    */
   navigateToClienteAppHome(): void {
+    if (this.isClienteLensToggleActive) {
+      return;
+    }
     this.haptics.light();
+    this.lensToggleTransition.armToCliente();
     this.dockCtx.setNavLensPreference('cliente');
     this.router.navigateByUrl(this.tenantLoja.isTenantLoja() ? '/' : '/galeria');
   }
 
   navigateToParceiroPanel(): void {
+    if (this.isParceirosLensToggleActive) {
+      return;
+    }
     this.haptics.light();
+    this.lensToggleTransition.armToParceiro();
     this.dockCtx.setNavLensPreference('parceiro');
     if (this.parceiroAuth.isLoggedIn()) {
       this.router.navigateByUrl('/parceiros/painel');
       return;
     }
     this.router.navigateByUrl('/parceiro/planos');
+  }
+
+  onLensToggleTrackPointerDown(ev: PointerEvent): void {
+    if (!this.showClienteParceiroToggle || !isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    const track = ev.currentTarget as HTMLElement | null;
+    if (!track) {
+      return;
+    }
+    this.lensRefreshThumbGeom(track);
+    if (!this.lensGeom) {
+      return;
+    }
+    this.lensToggleDragging = true;
+    this.lensDragMoved = false;
+    this.lensPointerStartX = ev.clientX;
+    this.lensThumbUseSpringCurve = false;
+    this.lensCapturePointerId = ev.pointerId;
+    try {
+      track.setPointerCapture(ev.pointerId);
+    } catch {
+      /* ignore */
+    }
+    try {
+      ev.preventDefault();
+    } catch {
+      /* ignore */
+    }
+    this.updateLensThumbFromClientX(ev.clientX, track);
+    this.cdr.markForCheck();
+  }
+
+  onLensToggleTrackPointerMove(ev: PointerEvent): void {
+    if (!this.lensToggleDragging || this.lensCapturePointerId !== ev.pointerId || !this.lensGeom) {
+      return;
+    }
+    if (Math.abs(ev.clientX - this.lensPointerStartX) > NavmenuComponent.LENS_DRAG_TAP_PX) {
+      this.lensDragMoved = true;
+    }
+    const trackMove = ev.currentTarget;
+    if (!(trackMove instanceof HTMLElement)) {
+      return;
+    }
+    this.updateLensThumbFromClientX(ev.clientX, trackMove);
+    try {
+      ev.preventDefault();
+    } catch {
+      /* ignore */
+    }
+    this.cdr.markForCheck();
+  }
+
+  onLensToggleTrackPointerEnd(ev: PointerEvent): void {
+    if (!this.lensToggleDragging || this.lensCapturePointerId !== ev.pointerId) {
+      return;
+    }
+    const track = ev.currentTarget as HTMLElement | null;
+    if (!track) {
+      this.resetLensToggleDrag();
+      return;
+    }
+    let target: 'cliente' | 'parceiro';
+    if (!this.lensDragMoved && ev.target instanceof HTMLElement && ev.target.closest('button')) {
+      this.resetLensToggleDrag(ev.pointerId, track);
+      this.cdr.markForCheck();
+      return;
+    }
+    const g = this.lensGeom;
+    if (g && this.lensThumbLeftPx != null) {
+      const mid = (g.snapLo + g.thumbW / 2 + g.snapHi + g.thumbW / 2) / 2;
+      const c = this.lensThumbLeftPx + g.thumbW / 2;
+      target = c >= mid ? 'parceiro' : 'cliente';
+    } else {
+      const rect = track.getBoundingClientRect();
+      const tapX = ev.clientX - rect.left;
+      target = tapX >= rect.width * 0.5 ? 'parceiro' : 'cliente';
+    }
+    if (this.lensDragMoved && ev.target instanceof HTMLElement) {
+      const btn = ev.target.closest('button');
+      if (btn) {
+        const killClick = (e: Event) => {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        };
+        btn.addEventListener('click', killClick, { capture: true, once: true });
+      }
+    }
+    this.resetLensToggleDrag(ev.pointerId, track);
+    if (target === 'parceiro') {
+      this.navigateToParceiroPanel();
+    } else {
+      this.navigateToClienteAppHome();
+    }
+    this.cdr.markForCheck();
+  }
+
+  private resetLensToggleDrag(pointerId?: number, track?: HTMLElement): void {
+    if (pointerId != null && track) {
+      try {
+        track.releasePointerCapture(pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    this.lensToggleDragging = false;
+    this.lensCapturePointerId = null;
+    this.lensGeom = null;
+    this.lensThumbLeftPx = null;
+    this.lensDragMoved = false;
+    this.lensThumbUseSpringCurve = true;
+  }
+
+  private lensRefreshThumbGeom(track: HTMLElement): void {
+    const cs = getComputedStyle(track);
+    const pl = parseFloat(cs.paddingLeft) || 0;
+    const pr = parseFloat(cs.paddingRight) || 0;
+    const innerContentW = Math.max(0, track.clientWidth - pl - pr);
+    if (innerContentW < 16) {
+      this.lensGeom = null;
+      return;
+    }
+    const thumbW = Math.min(Math.max(innerContentW / 2 - 4, 16), innerContentW * 0.5);
+    const snapLo = pl + 2;
+    const snapHi = pl + innerContentW / 2 + 2;
+    if (snapHi <= snapLo) {
+      this.lensGeom = null;
+      return;
+    }
+    this.lensGeom = { thumbW, snapLo, snapHi };
+  }
+
+  private updateLensThumbFromClientX(clientX: number, track: HTMLElement): void {
+    const g = this.lensGeom;
+    if (!g) {
+      return;
+    }
+    const rect = track.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const minC = g.snapLo + g.thumbW / 2;
+    const maxC = g.snapHi + g.thumbW / 2;
+    const center = Math.max(minC, Math.min(x, maxC));
+    this.lensThumbLeftPx = center - g.thumbW / 2;
   }
 
   isDockFillItem(item: NavMainItem): boolean {
@@ -857,6 +1009,17 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly COMPACT_ENTER_SCROLL_Y = 96;
   private static readonly COMPACT_EXIT_SCROLL_Y = 44;
   private static readonly COMPACT_DIRECTION_DELTA_PX = 6;
+  private static readonly LENS_DRAG_TAP_PX = 7;
+
+  /** Pill Tutores / Profissionais — thumb arrastável. */
+  lensToggleDragging = false;
+  lensThumbLeftPx: number | null = null;
+  /** Usa easing "spring" no thumb quando não está em arrasto (clique). */
+  lensThumbUseSpringCurve = true;
+  private lensCapturePointerId: number | null = null;
+  private lensDragMoved = false;
+  private lensPointerStartX = 0;
+  private lensGeom: { thumbW: number; snapLo: number; snapHi: number } | null = null;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -871,6 +1034,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     private parceirosMobileShell: ParceirosMobileShellService,
     private parceiroAuth: ParceiroAuthService,
     private parceiroNavPrefs: ParceiroNavPrefsService,
+    private lensToggleTransition: LensToggleTransitionService,
   ) {}
 
   ngOnInit(): void {

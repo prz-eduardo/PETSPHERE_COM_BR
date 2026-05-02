@@ -422,7 +422,7 @@ nav.app-navbar {
     }
   }
 
-  // Segmented tutor / prestador — visível também no telefone na barra do topo (evita depender só do FAB)
+  // Segmented tutor / prestador — thumb desliza (CSS + pointer drag) como “pill” física
   .ps-view-toggle {
     display: inline-flex;
     align-items: stretch;
@@ -431,6 +431,50 @@ nav.app-navbar {
     background: rgba(15, 11, 46, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .ps-view-toggle__track {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+    min-height: 30px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .ps-view-toggle__thumb {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 3px;
+    width: calc(50% - 6px);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid color-mix(in srgb, var(--ps-aurora) 72%, transparent);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.65) inset,
+      0 4px 14px rgba(15, 11, 46, 0.25);
+    z-index: 0;
+    pointer-events: none;
+    transition:
+      left 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: left;
+  }
+
+  .ps-view-toggle--parceiro .ps-view-toggle__thumb {
+    left: calc(50% + 1px);
+  }
+
+  .ps-view-toggle--dragging .ps-view-toggle__thumb {
+    transition: none !important;
+  }
+
+  .ps-view-toggle__thumb--spring {
+    transition-timing-function: cubic-bezier(0.34, 1.48, 0.64, 1);
+    transition-duration: 0.48s;
   }
 
   .ps-view-toggle__btn {
@@ -446,23 +490,22 @@ nav.app-navbar {
     text-transform: none;
     padding: 6px 12px;
     border-radius: 999px;
+    position: relative;
+    z-index: 1;
     color: rgba(255, 255, 255, 0.55);
     background: transparent;
-    transition:
-      background 0.2s ease,
-      color 0.2s ease,
-      transform 0.18s var(--ps-ease-spring);
+    transition: color 0.22s ease;
 
     &:hover:not(:disabled) {
-      color: rgba(255, 255, 255, 0.88);
+      color: rgba(255, 255, 255, 0.9);
     }
 
     &.ps-view-toggle__btn--active {
-      background: rgba(255, 255, 255, 0.95);
       color: var(--ps-cosmos);
-      box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.65) inset,
-        0 4px 14px rgba(15, 11, 46, 0.25);
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.25);
+      background: transparent;
+      box-shadow: none;
+      transform: none;
     }
 
     &.ps-view-toggle__btn--prof {
@@ -862,6 +905,11 @@ nav.app-navbar {
     width: var(--ps-fab-size);
     height: var(--ps-fab-size);
     pointer-events: none;
+
+    /* Acima do .ps-radial-backdrop (blur) — radial continua com z-index maior que os atalhos */
+    &--lift {
+      z-index: 2000053;
+    }
   }
 
   .ps-fab-host .ps-fab {
@@ -896,6 +944,10 @@ nav.app-navbar {
       transition-duration: 0.12s;
     }
 
+    &.ps-fab--open:active {
+      transform: rotate(180deg) scale(0.98);
+    }
+
     .ps-fab__halo {
       position: absolute;
       inset: -8px;
@@ -927,7 +979,7 @@ nav.app-navbar {
   }
 
   .ps-fab-host .ps-fab.ps-fab--open {
-    transform: rotate(90deg) scale(1.06);
+    transform: rotate(180deg) scale(1.06);
   }
 
   // Avatar no canto — hit area própria (abre área da conta)
@@ -974,9 +1026,13 @@ nav.app-navbar {
   &.is-compact .ps-fab-host .ps-fab {
     transform: scale(0.92);
   }
-  // Em compact, mesma prioridade de antes: escala compacta sobrepõe rotação do sheet aberto
+  // Compact + aberto: mantém meia-volta e a escala reduzida do dock
   &.is-compact .ps-fab-host .ps-fab.ps-fab--open {
-    transform: scale(0.92);
+    transform: rotate(180deg) scale(0.92);
+  }
+
+  &.is-compact .ps-fab-host .ps-fab.ps-fab--open:active {
+    transform: rotate(180deg) scale(0.86);
   }
   &.is-compact .ps-ribbon {
     bottom: calc(12px + var(--ps-dock-height-compact) + 14px + env(safe-area-inset-bottom, 0px));
@@ -1466,9 +1522,10 @@ nav.app-navbar {
     position: fixed;
     inset: 0;
     z-index: 2000050;
-    background: rgba(6, 4, 24, 0.32);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    /* Menos nevoeiro na tela: overlay mais transparente + blur baixo */
+    background: rgba(6, 4, 24, 0.22);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
     animation: psSheetBackdropIn 0.18s ease;
   }
   .ps-radial {
@@ -1476,7 +1533,8 @@ nav.app-navbar {
     left: 50%;
     bottom: calc(12px + var(--ps-dock-height) + var(--ps-fab-size) + 4px + env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%);
-    z-index: 2000051;
+    /* Acima do FAB levantado (2000053) para os atalhos do arco continuarem clicáveis */
+    z-index: 2000056;
     width: 0;
     height: 0;
     pointer-events: none;
@@ -1494,23 +1552,35 @@ nav.app-navbar {
       width: 64px;
       height: 64px;
       padding: 0;
-      border: 0;
+      box-sizing: border-box;
+      border: 1px solid var(--ps-glass-line);
       border-radius: 999px;
-      background: var(--ps-cosmos);
+      background: rgba(15, 11, 46, 0.22);
       color: var(--ps-aurora);
       cursor: pointer;
+      -webkit-backdrop-filter: blur(10px) saturate(1.3);
+      backdrop-filter: blur(10px) saturate(1.3);
       box-shadow:
-        0 12px 28px rgba(6, 4, 24, 0.55),
-        0 0 0 1px rgba(197, 255, 61, 0.35) inset,
-        0 0 14px rgba(197, 255, 61, 0.18);
+        0 8px 24px rgba(6, 4, 24, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 0 0 1px rgba(255, 255, 255, 0.07) inset,
+        0 0 12px rgba(197, 255, 61, 0.1);
 
       display: inline-flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 2px;
-      transition: transform 0.18s var(--ps-ease-spring);
-      &:hover { transform: translate(-50%, -50%) scale(1.06); }
+      transition:
+        transform 0.18s var(--ps-ease-spring),
+        background 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+      &:hover {
+        transform: translate(-50%, -50%) scale(1.06);
+        background: rgba(15, 11, 46, 0.32);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
       &:active { transform: translate(-50%, -50%) scale(0.94); }
       &:focus-visible { outline: 2px solid var(--ps-aurora); outline-offset: 3px; }
 
@@ -1636,17 +1706,26 @@ nav.app-navbar {
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
 
+    .ps-view-toggle__thumb {
+      border-color: color-mix(in srgb, var(--ps-aurora) 55%, rgba(15, 11, 46, 0.2));
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.65) inset,
+        0 4px 14px rgba(15, 11, 46, 0.12);
+    }
+
     .ps-view-toggle__btn {
       color: rgba(15, 11, 46, 0.48);
       &:hover:not(:disabled) {
         color: rgba(15, 11, 46, 0.78);
       }
       &.ps-view-toggle__btn--active {
-        background: #fff;
-        color: var(--ps-cosmos);
-        box-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.65) inset,
-          0 4px 14px rgba(15, 11, 46, 0.12);
+        color: var(--ps-aurora-deep);
+        text-shadow: none;
+        background: transparent;
+        box-shadow: none;
+        &:hover:not(:disabled) {
+          color: var(--ps-aurora-deep);
+        }
       }
     }
 
@@ -1687,11 +1766,22 @@ nav.app-navbar {
     }
 
     .ps-radial__btn {
-      background: linear-gradient(180deg, var(--ps-cream) 0%, #fff 100%);
+      background: rgb(37 108 157 / 18%);
       color: var(--ps-cosmos);
+      border: 1px solid rgba(37, 108, 157, 0.22);
+      -webkit-backdrop-filter: blur(10px) saturate(1.3);
+      backdrop-filter: blur(10px) saturate(1.3);
       box-shadow:
-        0 10px 28px rgba(15, 11, 46, 0.16),
-        0 0 0 1px var(--ps-glass-line-d) inset;
+        0 8px 22px rgba(15, 23, 42, 0.06),
+        0 10px 24px rgba(37, 108, 157, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.32) inset,
+        0 0 10px rgba(197, 255, 61, 0.08);
+
+      &:hover {
+        background: rgb(37 108 157 / 28%);
+        border-color: rgba(37, 108, 157, 0.3);
+      }
     }
 
     .ps-radial__label {

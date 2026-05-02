@@ -153,6 +153,45 @@
 
 /* body top padding moved to global .app-main to properly account for safe-area insets */
 
+@keyframes ps-lens-main-enter-from-end {
+  from {
+    transform: translate3d(min(4.5vw, 32px), 0, 0);
+    opacity: 0.86;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes ps-lens-main-enter-from-start {
+  from {
+    transform: translate3d(max(-4.5vw, -32px), 0, 0);
+    opacity: 0.86;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+:host .app-main.app-main--lens-from-end {
+  animation: ps-lens-main-enter-from-end 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+:host .app-main.app-main--lens-from-start {
+  animation: ps-lens-main-enter-from-start 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host .app-main.app-main--lens-from-end,
+  :host .app-main.app-main--lens-from-start {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+}
+
  .testimonial-slider{
     display: flex;
     justify-content: center;

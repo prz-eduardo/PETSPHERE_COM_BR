@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, PLATFORM_ID, NgZone, OnDestroy } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID, NgZone, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
@@ -21,6 +21,7 @@ import { MARCA_NOME } from './constants/loja-public';
 import { TenantLojaService } from './services/tenant-loja.service';
 import { register } from 'swiper/element/bundle';
 import { PartnerChatModalComponent } from './features/partner-chat/partner-chat-modal/partner-chat-modal.component';
+import { LensToggleTransitionService } from './services/lens-toggle-transition.service';
 
 @Component({
   selector: 'app-root',
@@ -57,6 +58,9 @@ export class AppComponent implements OnInit, OnDestroy {
     this.zone.run(() => this.syncShellVisibility());
   };
   showLoginModal = false;
+  /** Transição horizontal curta após toggle Tutores ⇄ Profissionais na navbar. */
+  lensOutletAnim: 'from-end' | 'from-start' | null = null;
+  private lensAnimClearTimer: number | null = null;
   private openLoginHandler?: EventListenerOrEventListenerObject;
   private cookiePreferencesSub?: Subscription;
   private elfsightBadgeInterval: ReturnType<typeof setInterval> | null = null;
@@ -69,7 +73,9 @@ export class AppComponent implements OnInit, OnDestroy {
     private rastreio: RastreioLojaService,
     private cookiePreferences: CookiePreferencesService,
     private titleService: Title,
-    private tenantLoja: TenantLojaService
+    private tenantLoja: TenantLojaService,
+    private lensToggleTransition: LensToggleTransitionService,
+    private cdr: ChangeDetectorRef
   ) {
     register(); // Swiper
   }
@@ -127,6 +133,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.syncShellVisibility(u);
         this.syncMapaNoTopnavBodyClass();
         this.syncParceiroShellBodyClass(u);
+        this.applyLensToggleOutletSlide();
       });
     } catch (e) {}
     try {
@@ -188,6 +195,12 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       }
     } catch (e) {}
+    try {
+      if (this.lensAnimClearTimer) {
+        clearTimeout(this.lensAnimClearTimer);
+        this.lensAnimClearTimer = null;
+      }
+    } catch {}
     try { if (this.routerSub) this.routerSub.unsubscribe(); } catch (e) {}
     try { this.cookiePreferencesSub?.unsubscribe(); } catch (e) {}
     try { if (this.elfsightBadgeInterval) { clearInterval(this.elfsightBadgeInterval); } } catch (e) {}
@@ -296,6 +309,50 @@ export class AppComponent implements OnInit, OnDestroy {
     } catch (e) {
       /* */
     }
+  }
+
+  /** Anima `<main>` como um slide horizontal só quando o arm veio da pill cliente/prestador. */
+  private applyLensToggleOutletSlide(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    const arm = this.lensToggleTransition.consume();
+    if (!arm) {
+      return;
+    }
+    try {
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    if (this.lensAnimClearTimer) {
+      try {
+        clearTimeout(this.lensAnimClearTimer);
+      } catch {
+        /* */
+      }
+      this.lensAnimClearTimer = null;
+    }
+    this.lensOutletAnim = arm === 'to-parceiro' ? 'from-end' : 'from-start';
+    this.zone.run(() => {
+      try {
+        this.cdr.markForCheck();
+      } catch {
+        /* */
+      }
+    });
+    const ms = 460;
+    this.lensAnimClearTimer = window.setTimeout(() => {
+      this.lensOutletAnim = null;
+      this.lensAnimClearTimer = null;
+      try {
+        this.cdr.markForCheck();
+      } catch {
+        /* */
+      }
+    }, ms);
   }
 
   private syncShellVisibility(url?: string): void {
