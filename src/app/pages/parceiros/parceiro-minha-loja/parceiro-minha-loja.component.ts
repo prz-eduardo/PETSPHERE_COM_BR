@@ -7,7 +7,7 @@ import { environment } from '../../../../environments/environment';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
 import { ParceiroNavPrefsService, ParceiroNavCatalogGroup } from '../../../services/parceiro-nav-prefs.service';
 import { ToastService } from '../../../services/toast.service';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-parceiro-minha-loja',
@@ -37,6 +37,8 @@ export class ParceiroMinhaLojaComponent implements OnInit {
     public auth: ParceiroAuthService,
     private toast: ToastService,
     readonly navPrefs: ParceiroNavPrefsService,
+    private route: ActivatedRoute,
+    private router: Router,
   ) {
     this.form = this.fb.group({
       loja_slug: [''],
@@ -47,6 +49,29 @@ export class ParceiroMinhaLojaComponent implements OnInit {
   ngOnInit(): void {
     void this.reload();
     this.loadNavPrefsFromService();
+    this.route.queryParamMap.subscribe((q) => {
+      const mp = q.get('mp');
+      if (mp === 'connected') {
+        this.toast.success('Conta Mercado Pago conectada. Sua loja pode receber pagamentos.');
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { mp: null, reason: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      } else if (mp === 'error') {
+        const reason = q.get('reason');
+        this.toast.error(
+          reason ? `Mercado Pago: ${decodeURIComponent(reason)}` : 'Não foi possível conectar o Mercado Pago.'
+        );
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { mp: null, reason: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
+    });
   }
 
   get groupOrder(): ParceiroNavCatalogGroup[] {
@@ -131,6 +156,25 @@ export class ParceiroMinhaLojaComponent implements OnInit {
       this.toast.error('Não foi possível carregar os dados da vitrine.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async conectarMercadoPago(): Promise<void> {
+    if (!this.auth.isMaster()) {
+      this.toast.error('Somente o usuário master pode conectar a conta de pagamentos.');
+      return;
+    }
+    try {
+      const { url } = await firstValueFrom(
+        this.http.get<{ url: string }>(`${this.base}/parceiro/vitrine/mercadopago/oauth/url`, {
+          headers: this.auth.getAuthHeaders() as { Authorization: string },
+        })
+      );
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (e: any) {
+      this.toast.error(e?.error?.error || 'Não foi possível iniciar a conexão com o Mercado Pago.');
     }
   }
 

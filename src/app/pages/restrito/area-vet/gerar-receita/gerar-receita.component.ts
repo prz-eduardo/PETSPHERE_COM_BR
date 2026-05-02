@@ -221,6 +221,10 @@ isBrowser: any;
   readonly clinicalStepLabels = ['Tutor', 'Paciente', 'Anamnese', 'Exame', 'Dx e plano', 'Finalização'];
   /** Atendimento criado ao concluir a fase clínica (gate e POST receita usam este id). */
   atendimentoEmEdicaoId: number | null = null;
+
+  analiseClinicaLoading = false;
+  analiseClinicaErro: string | null = null;
+  analiseClinicaTexto: string | null = null;
   showPosClinicaGateModal = false;
 
   constructor(
@@ -1220,6 +1224,97 @@ isBrowser: any;
   voltarClinical(): void {
     if (this.clinicalStep > 1) this.clinicalStep--;
     this.cdr.detectChanges();
+  }
+
+  buildCasePayloadForClinicalAnalysis(): Record<string, unknown> {
+    const pet = this.petSelecionado
+      ? {
+          especie: this.petSelecionado.especie ?? '',
+          raca: this.petSelecionado.raca ?? '',
+          idade: this.petSelecionado.idade ?? '',
+          peso: this.petSelecionado.peso ?? '',
+        }
+      : {
+          especie: this.novosDadosPet.especie ?? '',
+          raca: this.novosDadosPet.raca ?? '',
+          idade: this.novosDadosPet.idade ?? '',
+          peso: this.novosDadosPet.peso ?? '',
+        };
+    const exame = JSON.parse(JSON.stringify(this.exameFisicoForm)) as ExameFisicoEstruturadoV1;
+    return {
+      pet,
+      exameFisico: exame,
+      queixaPrincipal: this.queixaPrincipal,
+      anamnese: this.anamnese,
+      diagnostico: this.diagnostico,
+      planoTerapeutico: this.planoTerapeutico,
+      examesSolicitados: (this.examesSolicitados || []).map((e) => ({
+        nome: e.nome,
+        status: e.status,
+        observacoes: e.observacoes,
+      })),
+      fotosMeta: (this.fotosAtendimento || []).map((f) => ({
+        nomeArquivo: f.nomeArquivo,
+        descricao: f.descricao,
+      })),
+    };
+  }
+
+  gerarAnaliseClinicaAssistida(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const token = this.getEffectiveToken();
+    if (!token) {
+      this.toastService.error('Sessão expirada ou sem permissão.', 'IA');
+      return;
+    }
+    this.analiseClinicaErro = null;
+    this.analiseClinicaLoading = true;
+    const idem =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `analise-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const refId = this.atendimentoEmEdicaoId ?? undefined;
+    this.apiService
+      .postAnaliseClinicaAssistida(
+        {
+          casePayload: this.buildCasePayloadForClinicalAnalysis(),
+          refId,
+          atendimentoId: refId,
+          idempotencyKey: idem,
+        },
+        token
+      )
+      .subscribe({
+        next: (r) => {
+          this.analiseClinicaLoading = false;
+          this.analiseClinicaTexto = r && r.analysis ? String(r.analysis) : null;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.analiseClinicaLoading = false;
+          const st = err && err.status;
+          const body = err && err.error;
+          if (st === 402) {
+            this.analiseClinicaErro =
+              (body && body.error) || 'Créditos insuficientes para esta análise. Recarregue o saldo no plano.';
+          } else if (st === 503 && body && body.code === 'AI_PROVIDER_MISSING') {
+            this.analiseClinicaErro = body.error || 'Servidor sem GEMINI_API_KEY configurada.';
+          } else if (st === 403 && body && body.code === 'PARCEIRO_BILLING_REQUIRED') {
+            this.analiseClinicaErro = body.error || 'Conta parceiro vinculada ao e-mail do vet é necessária.';
+          } else if (st === 400) {
+            this.analiseClinicaErro = (body && body.error) || 'Preencha anamnese, exame físico ou exames antes de analisar.';
+          } else {
+            this.analiseClinicaErro =
+              (body && body.error) || (err && err.message) || 'Não foi possível gerar a análise. Tente de novo.';
+          }
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  limparAnaliseClinicaAssistida(): void {
+    this.analiseClinicaTexto = null;
+    this.analiseClinicaErro = null;
   }
 
   exameToggleVal(key: ExameFisicoToggleKey): ExameFisicoToggle {

@@ -59,6 +59,26 @@
   }
 }
 
+.mp-connect {
+  margin-bottom: var(--admin-space-5);
+  padding: var(--admin-space-4);
+  border-radius: var(--admin-radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.45);
+
+  h2 {
+    margin: 0 0 var(--admin-space-2);
+    font-size: 16px;
+    font-weight: var(--admin-font-weight-semibold);
+    color: var(--admin-text-strong);
+  }
+
+  .btn-primary {
+    margin-top: var(--admin-space-3);
+    margin-right: var(--admin-space-3);
+  }
+}
+
 .lead {
   margin: 0;
   font-size: var(--admin-font-size-sm);

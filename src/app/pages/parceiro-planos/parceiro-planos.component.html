@@ -14,6 +14,11 @@
         Plataforma de crescimento para negócios pet
       </span>
 
+      <p class="strategic-strip">
+        <strong>Você só paga mais quando cresce.</strong>
+        Comece grátis e evolua conforme seu negócio aumenta.
+      </p>
+
       <h1>
         Automatize seu negócio pet e pague apenas pelo
         <em>que gera resultado</em>.
@@ -105,12 +110,17 @@
   <section id="planos" class="block plans">
     <div class="block-head">
       <span class="eyebrow">Planos</span>
-      <h2>Comece grátis. Escale quando fizer sentido.</h2>
-      <p>Três caminhos simples. Sem letras miúdas, sem tarifa escondida.</p>
+      <h2>Basic para entrar. Pro para vender. Premium como âncora de valor.</h2>
+      <p>Três caminhos claros: comece sem fricção, profissionalize com o plano principal ou escale com prioridade total.</p>
     </div>
 
     <p *ngIf="loading()" class="state">Carregando planos…</p>
     <p *ngIf="errorMsg()" class="msg-error">{{ errorMsg() }}</p>
+
+    <div class="fee-callout" *ngIf="!loading() && !errorMsg()" role="note">
+      <strong>Menos taxa, mais lucro.</strong>
+      <span>Planos maiores reduzem o quanto você paga por venda em produtos e serviços no marketplace.</span>
+    </div>
 
     <div class="plans-grid" *ngIf="!loading()">
       <article
@@ -131,6 +141,10 @@
           <span *ngIf="t.precoSub">{{ t.precoSub }}</span>
         </div>
 
+        <div class="plan-meta" *ngIf="t.metaLines?.length">
+          <p *ngFor="let line of t.metaLines">{{ line }}</p>
+        </div>
+
         <ul class="plan-benefits">
           <li *ngFor="let b of t.benefits">
             <i class="fa-solid fa-check" aria-hidden="true"></i>
@@ -148,6 +162,34 @@
           {{ t.cta.label }}
         </a>
       </article>
+    </div>
+
+    <div class="compare-wrap" *ngIf="!loading() && !errorMsg()">
+      <div class="compare-head">
+        <span class="eyebrow">Comparar</span>
+        <h3>Resumo lado a lado</h3>
+        <p>Limites e taxas refletem o plano ativo na API; valores padrão comercial quando o backend ainda não expõe o slug.</p>
+      </div>
+      <div class="compare-scroll">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th scope="col">Funcionalidade</th>
+              <th scope="col">Basic</th>
+              <th scope="col">Pro</th>
+              <th scope="col">Premium</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of comparisonRows()">
+              <th scope="row">{{ row.feature }}</th>
+              <td>{{ row.basic }}</td>
+              <td>{{ row.pro }}</td>
+              <td>{{ row.premium }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <p class="plans-foot">
@@ -207,9 +249,9 @@
         <h2>Créditos = combustível das automações</h2>
         <p>
           Créditos <strong>não são plano</strong> e <strong>não são assinatura</strong>. Cada
-          disparo de WhatsApp, chamada de IA ou destaque no mapa consome créditos do seu saldo.
-          O plano Pro já vem com créditos mensais inclusos — você só compra mais se quiser
-          acelerar.
+          disparo de WhatsApp, recurso de IA (resumos, áudio, chat) ou destaque no mapa consome
+          créditos do seu saldo. Planos pagos incluem mais créditos mensais — você só compra
+          pacotes se quiser acelerar.
         </p>
       </div>
       <div class="credits-pills">

@@ -1,7 +1,7 @@
 import { environment } from '../../environments/environment';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError, map, switchMap, throwError } from 'rxjs';
+import { Observable, of, catchError, throwError } from 'rxjs';
 
 export interface Ativo {
   id: string;
@@ -283,23 +283,57 @@ export interface GoogleClaimIntentResponse {
   };
 }
 
-export interface ClienteGaleriaFoto {
+export interface PostImagem {
   id: number;
-  pet_imagem_id: number;
-  pet_id?: number;
   url: string;
-  ativo?: number | boolean;
-  created_at?: string;
-  pet_ids?: number[];
-  pets?: Array<{ id: number; nome: string; especie?: string; raca?: string }>;
+  ordem?: number | null;
 }
 
-export interface PetImagemPatchPayload {
-  colecao_id?: number | null;
-  ordem?: number;
-  legenda?: string | null;
+export interface PostEngagement {
+  love?: number;
+  haha?: number;
+  sad?: number;
+  angry?: number;
+  total?: number;
+  comentarios?: number;
+  minha_reacao?: { id?: number; tipo: string } | null;
+}
+
+export interface PostPetResumo {
+  id: number;
+  nome?: string | null;
+  especie?: string | null;
+  raca?: string | null;
+  foto?: string | null;
+}
+
+export interface PostDto {
+  id: number;
+  pet_id: number;
+  pet?: PostPetResumo | null;
+  pets?: PostPetResumo[];
+  caption?: string | null;
+  cover_imagem_id?: number | null;
+  galeria_publica?: number | boolean;
+  ativo?: number | boolean;
+  created_at?: string;
+  imagens: PostImagem[];
+  engagement?: PostEngagement;
+  type?: 'post';
+}
+
+export interface PostPatchPayload {
+  caption?: string | null;
   galeria_publica?: boolean | number;
-  set_as_cover?: boolean;
+  cover_imagem_id?: number | null;
+}
+
+export interface PostListResponse {
+  items: PostDto[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+  ad?: any | null;
 }
 
 export interface AlergiaLookup {
@@ -682,6 +716,24 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/atendimentos/${encodeURIComponent(String(atendimentoId))}`, { headers });
   }
 
+  /** IA — análise clínica assistida (Gemini; créditos ia_analise_clinica_assistida). */
+  postAnaliseClinicaAssistida(
+    body: {
+      casePayload: Record<string, unknown>;
+      refId?: number | string | null;
+      atendimentoId?: number | string | null;
+      idempotencyKey?: string;
+    },
+    token?: string
+  ): Observable<{ ok: boolean; analysis: string; charge?: unknown }> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.post<{ ok: boolean; analysis: string; charge?: unknown }>(
+      `${this.baseUrl}/atendimentos/ia/analise-clinica-assistida`,
+      body,
+      { headers }
+    );
+  }
+
   patchAtendimento(atendimentoId: number | string, body: Record<string, unknown>, token?: string): Observable<any> {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
     return this.http.patch(
@@ -866,22 +918,19 @@ export class ApiService {
     );
   }
 
-  getMinhaGaleriaFotos(token: string) {
-    return this.http.get<ClienteGaleriaFoto[]>(`${this.baseUrl}/clientes/me/galeria-fotos`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).pipe(
-      catchError((err) => {
-        if (err?.status !== 404) return throwError(() => err);
-        return this.getClienteMe(token).pipe(
-          switchMap((me) => {
-            const clienteId = Number(me?.user?.id ?? 0);
-            if (!clienteId) return of([] as ClienteGaleriaFoto[]);
-            return this.getPetsByCliente(clienteId, token).pipe(
-              map((pets: any[] | null | undefined) => this.mapMinhaGaleriaFotosFromPets(pets))
-            );
-          })
-        );
-      })
+  /**
+   * Lista os posts do cliente autenticado (galeria pessoal).
+   * Substitui o antigo `getMinhaGaleriaFotos`.
+   */
+  getMyPosts(token: string, params?: { page?: number; pageSize?: number; petId?: number | string }) {
+    const search = new URLSearchParams();
+    if (params?.page) search.set('page', String(params.page));
+    if (params?.pageSize) search.set('pageSize', String(params.pageSize));
+    if (params?.petId) search.set('pet_id', String(params.petId));
+    const qp = search.toString();
+    return this.http.get<PostListResponse>(
+      `${this.baseUrl}/clientes/me/posts${qp ? `?${qp}` : ''}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     );
   }
 
@@ -1112,57 +1161,6 @@ export class ApiService {
     });
   }
 
-  private mapMinhaGaleriaFotosFromPets(pets: any[] | null | undefined): ClienteGaleriaFoto[] {
-    const fotos = new Map<number, ClienteGaleriaFoto>();
-
-    for (const pet of Array.isArray(pets) ? pets : []) {
-      const petId = Number(pet?.id);
-      const petResumo = {
-        id: petId,
-        nome: pet?.nome || '',
-        especie: pet?.especie,
-        raca: pet?.raca,
-      };
-
-      for (const imagem of Array.isArray(pet?.galeria_imagens) ? pet.galeria_imagens : []) {
-        const imagemId = Number(imagem?.id ?? imagem?.pet_imagem_id);
-        const url = typeof imagem?.url === 'string' ? imagem.url.trim() : '';
-        if (!imagemId || !url) continue;
-
-        const existente = fotos.get(imagemId);
-        if (existente) {
-          const petIds = new Set<number>([...(existente.pet_ids || []), petId].filter((id) => !isNaN(id) && id > 0));
-          const petsLista = [...(existente.pets || [])];
-          if (petId > 0 && !petsLista.some((item) => Number(item?.id) === petId)) {
-            petsLista.push(petResumo);
-          }
-          existente.pet_ids = [...petIds];
-          existente.pets = petsLista;
-          if (!existente.pet_id && petId > 0) existente.pet_id = petId;
-          continue;
-        }
-
-        fotos.set(imagemId, {
-          id: imagemId,
-          pet_imagem_id: imagemId,
-          pet_id: petId > 0 ? petId : undefined,
-          url,
-          ativo: imagem?.ativo,
-          created_at: imagem?.created_at,
-          pet_ids: petId > 0 ? [petId] : [],
-          pets: petId > 0 ? [petResumo] : [],
-        });
-      }
-    }
-
-    return [...fotos.values()].sort((a, b) => {
-      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
-      if (aTime !== bTime) return bTime - aTime;
-      return (b.id || 0) - (a.id || 0);
-    });
-  }
-
   getPetsByCliente(id: number, token: string) {
     return this.http.get<any[]>(`${this.baseUrl}/clientes/${id}/pets`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -1266,10 +1264,13 @@ export class ApiService {
     });
   }
 
-  /** Posta uma foto na galeria com um ou mais pets (campo `foto` + `pet_ids` JSON no FormData). */
-  postGaleriaFoto(clienteId: number, formData: FormData, token: string) {
-    return this.http.post<any>(`${this.baseUrl}/clientes/${clienteId}/galeria-fotos`, formData, {
-      headers: { Authorization: `Bearer ${token}` }
+  /**
+   * Cria um post na galeria. `formData` aceita múltiplos arquivos no campo `foto`
+   * e os campos opcionais `caption`, `pet_ids` (JSON), `primary_pet_id`, `galeria_publica`.
+   */
+  createPost(clienteId: number, formData: FormData, token: string) {
+    return this.http.post<PostDto>(`${this.baseUrl}/clientes/${clienteId}/posts`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
     });
   }
 
@@ -1370,105 +1371,152 @@ export class ApiService {
     });
   }
 
-  // Galeria pública de pets (paginação)
-  // Accepts optional token so callers can request the gallery as an authenticated user
-  getGaleriaPublica(params?: { page?: number; pageSize?: number; parceiro_slug?: string | null }, token?: string) {
+  /** Feed público (paginação). Resposta: `{ items, page, pageSize, hasMore, ad? }`. */
+  getGaleriaPublica(
+    params?: { page?: number; pageSize?: number; parceiro_slug?: string | null },
+    token?: string
+  ) {
     const search = new URLSearchParams();
     if (params?.page) search.set('page', String(params.page));
     if (params?.pageSize) search.set('pageSize', String(params.pageSize));
     if (params?.parceiro_slug) search.set('parceiro_slug', String(params.parceiro_slug));
     const qp = search.toString();
     const url = `${this.baseUrl}/pets/galeria-publica${qp ? `?${qp}` : ''}`;
-    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
-    return this.http.get<any>(url, { headers });
+    const headers = token ? { Authorization: `Bearer ${token}` } : (undefined as any);
+    return this.http.get<PostListResponse>(url, { headers });
   }
 
   getPetPerfilPublico(petId: string | number, token?: string) {
     const url = `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/perfil-publico`;
-    const h = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    const h = token ? { Authorization: `Bearer ${token}` } : (undefined as any);
     return this.http.get<any>(url, { headers: h });
   }
 
-  getFotoEngajamento(imagemId: string | number, token?: string) {
-    const url = `${this.baseUrl}/pets/fotos/${encodeURIComponent(String(imagemId))}/engajamento`;
-    const h = token ? { Authorization: `Bearer ${token}` } : undefined as any;
-    return this.http.get<any>(url, { headers: h });
-  }
+  // ---------------------------------------------------------------------------
+  // Posts API (substitui fotos/coleções/imagens individuais)
+  // ---------------------------------------------------------------------------
 
-  postFotoReacao(imagemId: string | number, body: { tipo?: string; comentario?: string }, token: string) {
-    return this.http.post<any>(`${this.baseUrl}/pets/fotos/${encodeURIComponent(String(imagemId))}/reacoes`, body, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-  }
-
-  deleteFotoReacao(imagemId: string | number, body: { tipo?: string } | undefined, token: string) {
-    return this.http.request<any>(
-      'delete',
-      `${this.baseUrl}/pets/fotos/${encodeURIComponent(String(imagemId))}/reacoes`,
-      { headers: { Authorization: `Bearer ${token}` }, body: body || undefined }
-    );
-  }
-
-  getFotoComentarios(imagemId: string | number, params?: { page?: number; pageSize?: number }) {
+  /** Lista posts de um pet específico (paginado). */
+  listPostsByPet(petId: string | number, params?: { page?: number; pageSize?: number }, token?: string) {
     const search = new URLSearchParams();
     if (params?.page) search.set('page', String(params.page));
     if (params?.pageSize) search.set('pageSize', String(params.pageSize));
     const qp = search.toString();
-    return this.http.get<any>(`${this.baseUrl}/pets/fotos/${encodeURIComponent(String(imagemId))}/comentarios${qp ? `?${qp}` : ''}`);
+    const url = `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/posts${qp ? `?${qp}` : ''}`;
+    const h = token ? { Authorization: `Bearer ${token}` } : (undefined as any);
+    return this.http.get<PostListResponse>(url, { headers: h });
   }
 
-  postFotoComentario(imagemId: string | number, comentario: string, token: string) {
+  /** Atualiza caption / visibilidade / cover de um post. */
+  patchPost(petId: string | number, postId: string | number, body: PostPatchPayload, token: string) {
+    return this.http.patch<PostDto>(
+      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/posts/${encodeURIComponent(String(postId))}`,
+      body,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  /** Soft-delete do post inteiro. */
+  deletePost(petId: string | number, postId: string | number, token: string) {
+    return this.http.delete<{ ok: boolean; id: number }>(
+      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/posts/${encodeURIComponent(String(postId))}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  /** Remove uma imagem específica do carrossel do post. */
+  removePostImage(
+    petId: string | number,
+    postId: string | number,
+    imagemId: string | number,
+    token: string
+  ) {
+    return this.http.delete<any>(
+      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/posts/${encodeURIComponent(
+        String(postId)
+      )}/imagens/${encodeURIComponent(String(imagemId))}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  /** Define uma imagem do post como capa do pet (atualiza pets.photoURL). */
+  setPostImageAsPetCover(
+    petId: string | number,
+    postId: string | number,
+    body: { imagem_id: number },
+    token: string
+  ) {
     return this.http.post<any>(
-      `${this.baseUrl}/pets/fotos/${encodeURIComponent(String(imagemId))}/comentarios`,
+      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/posts/${encodeURIComponent(
+        String(postId)
+      )}/cover-pet`,
+      body,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  /** Reordena imagens do post (`ordem` = array de imagem IDs na nova ordem). */
+  reorderPostImages(
+    petId: string | number,
+    postId: string | number,
+    body: { ordem: number[] },
+    token: string
+  ) {
+    return this.http.post<any>(
+      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/posts/${encodeURIComponent(
+        String(postId)
+      )}/reorder`,
+      body,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  // Engajamento por POST -------------------------------------------------------
+
+  getPostEngajamento(postId: string | number, token?: string) {
+    const url = `${this.baseUrl}/posts/${encodeURIComponent(String(postId))}/engajamento`;
+    const h = token ? { Authorization: `Bearer ${token}` } : (undefined as any);
+    return this.http.get<PostEngagement>(url, { headers: h });
+  }
+
+  postPostReacao(postId: string | number, body: { tipo?: string }, token: string) {
+    return this.http.post<any>(
+      `${this.baseUrl}/posts/${encodeURIComponent(String(postId))}/reacoes`,
+      body,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  deletePostReacao(postId: string | number, token: string) {
+    return this.http.delete<any>(
+      `${this.baseUrl}/posts/${encodeURIComponent(String(postId))}/reacoes`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  getPostComentarios(postId: string | number, params?: { page?: number; pageSize?: number }) {
+    const search = new URLSearchParams();
+    if (params?.page) search.set('page', String(params.page));
+    if (params?.pageSize) search.set('pageSize', String(params.pageSize));
+    const qp = search.toString();
+    return this.http.get<any>(
+      `${this.baseUrl}/posts/${encodeURIComponent(String(postId))}/comentarios${qp ? `?${qp}` : ''}`
+    );
+  }
+
+  postPostComentario(postId: string | number, comentario: string, token: string) {
+    return this.http.post<any>(
+      `${this.baseUrl}/posts/${encodeURIComponent(String(postId))}/comentarios`,
       { comentario },
       { headers: { Authorization: `Bearer ${token}` } }
     );
   }
 
-  deleteFotoComentario(imagemId: string | number, commentId: string | number, token: string) {
+  deletePostComentario(postId: string | number, commentId: string | number, token: string) {
     return this.http.delete<any>(
-      `${this.baseUrl}/pets/fotos/${encodeURIComponent(String(imagemId))}/comentarios/${encodeURIComponent(String(commentId))}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }
-
-  listPetColecoes(petId: string | number, token: string) {
-    return this.http.get<any[]>(`${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/colecoes`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-  }
-
-  createPetColecao(petId: string | number, body: { titulo: string }, token: string) {
-    return this.http.post<any>(`${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/colecoes`, body, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-  }
-
-  deletePetColecao(petId: string | number, colecaoId: string | number, token: string) {
-    return this.http.delete<any>(`${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/colecoes/${encodeURIComponent(String(colecaoId))}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-  }
-
-  patchPetColecao(petId: string | number, colecaoId: string | number, body: { titulo: string }, token: string) {
-    return this.http.patch<any>(
-      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/colecoes/${encodeURIComponent(String(colecaoId))}`,
-      body,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }
-
-  patchPetImagem(petId: string | number, imagemId: string | number, body: PetImagemPatchPayload, token: string) {
-    return this.http.patch<any>(
-      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/imagens/${encodeURIComponent(String(imagemId))}`,
-      body,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }
-
-  deletePetImagem(petId: string | number, imagemId: string | number, token: string) {
-    return this.http.delete<any>(
-      `${this.baseUrl}/pets/${encodeURIComponent(String(petId))}/imagens/${encodeURIComponent(String(imagemId))}`,
+      `${this.baseUrl}/posts/${encodeURIComponent(String(postId))}/comentarios/${encodeURIComponent(
+        String(commentId)
+      )}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
   }
@@ -2027,6 +2075,28 @@ export class ApiService {
   getParceiroHomeOverview(token: string | null | undefined): Observable<any> {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
     return this.http.get<any>(`${this.baseUrl}/parceiro/home-overview`, { headers });
+  }
+
+  /** Agregados de GMV / taxa prevista / líquido previsto (pedidos pagos do parceiro). */
+  getParceiroFinanceiroResumo(
+    token: string | null | undefined,
+    params?: { desde?: string; ate?: string }
+  ): Observable<{
+    periodo: { desde: string | null; ate: string | null };
+    total_vendido: number;
+    taxa_plataforma_prevista: number;
+    liquido_parceiro_previsto: number;
+    pedidos_pagos: number;
+  }> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : (undefined as any);
+    let url = `${this.baseUrl}/parceiro/financeiro-resumo`;
+    if (params?.desde || params?.ate) {
+      const q = new URLSearchParams();
+      if (params.desde) q.set('desde', params.desde);
+      if (params.ate) q.set('ate', params.ate);
+      url += `?${q.toString()}`;
+    }
+    return this.http.get<any>(url, { headers });
   }
 
   /** Endereço principal do parceiro logado (panorama / mapa). */

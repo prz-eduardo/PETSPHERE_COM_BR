@@ -978,6 +978,42 @@ select.input-busca {
   margin-top: var(--admin-space-2);
 }
 
+.analise-clinica-ia {
+  margin-bottom: var(--admin-space-4);
+  padding: var(--admin-space-3);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.analise-clinica-ia__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-space-2);
+  margin-bottom: var(--admin-space-2);
+}
+
+.analise-clinica-ia__erro {
+  color: #f87171;
+  font-size: 0.9rem;
+  margin: var(--admin-space-2) 0 0;
+}
+
+.analise-clinica-ia__out {
+  margin: var(--admin-space-3) 0 0;
+  padding: var(--admin-space-3);
+  max-height: 420px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--admin-text);
+}
+
 @media (max-width: 600px) {
   .atendimento-page {
     padding-left: var(--admin-space-3);

@@ -8,6 +8,17 @@
     </p>
   </header>
 
+  <section class="mp-connect" *ngIf="!loading()" aria-labelledby="mp-connect-title">
+    <h2 id="mp-connect-title">Pagamentos na loja</h2>
+    <p class="lead muted">
+      Conecte sua conta Mercado Pago para o marketplace processar vendas com split automático (recebimento na sua conta).
+    </p>
+    <button type="button" class="btn-primary" (click)="conectarMercadoPago()" [disabled]="!auth.isMaster()">
+      Conectar Mercado Pago
+    </button>
+    <span *ngIf="!auth.isMaster()" class="muted">Somente o master pode conectar.</span>
+  </section>
+
   <div *ngIf="loading()" class="muted">Carregando…</div>
 
   <form *ngIf="!loading()" [formGroup]="form" (ngSubmit)="salvarLoja()" class="form-card">

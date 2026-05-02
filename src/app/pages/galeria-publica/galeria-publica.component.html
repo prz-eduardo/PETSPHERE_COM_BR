@@ -1,7 +1,7 @@
 <main class="galeria-container container">
   <app-banner-slot posicao="galeria" mode="carousel" class="galeria-banner-slot"></app-banner-slot>
 
-  <!-- ========================================================= HERO -->
+  <!-- HERO -->
   <header class="galeria-hero" role="banner">
     <div class="hero-top">
       <img src="/icones/paw.png" alt="" aria-hidden="true" class="hero-icon" />
@@ -16,54 +16,39 @@
     </div>
 
     <div class="hero-stats" aria-label="Informações da galeria">
-      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span><strong>{{ getDistinctPetsCount() }}</strong> pets</span>
-      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span><strong>{{ getTotalReactions() }}</strong> reações</span>
-      <span class="hero-stat"><span class="stat-dot" aria-hidden="true"></span>Comunidade {{ marcaNome }}</span>
+      <span class="hero-stat">
+        <span class="stat-dot" aria-hidden="true"></span>
+        <strong>{{ getDistinctPetsCount() }}</strong> pets
+      </span>
+      <span class="hero-stat">
+        <span class="stat-dot" aria-hidden="true"></span>
+        <strong>{{ getTotalReactions() }}</strong> reações
+      </span>
+      <span class="hero-stat">
+        <span class="stat-dot" aria-hidden="true"></span>
+        Comunidade {{ marcaNome }}
+      </span>
     </div>
 
     <div class="galeria-share-row" role="group" aria-label="Compartilhar a galeria">
-      <button
-        type="button"
-        class="galeria-share-btn galeria-share-btn--primary"
-        (click)="shareGaleria()"
-        title="Compartilhar (abre o menu do sistema no celular)"
-        aria-label="Compartilhar a galeria"
-      >
-        <i class="fa fa-share-alt" aria-hidden="true"></i>
-        Compartilhar
+      <button type="button" class="galeria-share-btn galeria-share-btn--primary" (click)="shareGaleria()" title="Compartilhar">
+        <i class="fa fa-share-alt" aria-hidden="true"></i> Compartilhar
       </button>
-      <button
-        type="button"
-        class="galeria-share-btn galeria-share-btn--icon"
-        (click)="openWhatsAppShare()"
-        title="Enviar no WhatsApp"
-        aria-label="Compartilhar a galeria no WhatsApp"
-      >
+      <button type="button" class="galeria-share-btn galeria-share-btn--icon" (click)="openWhatsAppShare()" title="WhatsApp">
         <i class="fab fa-whatsapp" aria-hidden="true"></i>
         <span class="galeria-share-btn-label">WhatsApp</span>
       </button>
-      <button
-        type="button"
-        class="galeria-share-btn galeria-share-btn--icon"
-        (click)="copyGaleriaLink()"
-        title="Copiar mensagem com link"
-        aria-label="Copiar link da galeria"
-      >
+      <button type="button" class="galeria-share-btn galeria-share-btn--icon" (click)="copyGaleriaLink()" title="Copiar link">
         <i class="fa fa-link" aria-hidden="true"></i>
         <span class="galeria-share-btn-label">Copiar</span>
       </button>
-      <button
-        type="button"
-        class="galeria-share-btn galeria-share-btn--icon"
-        (click)="openFacebookShare()"
-        title="Compartilhar no Facebook"
-        aria-label="Compartilhar a galeria no Facebook"
-      >
+      <button type="button" class="galeria-share-btn galeria-share-btn--icon" (click)="openFacebookShare()" title="Facebook">
         <i class="fab fa-facebook" aria-hidden="true"></i>
         <span class="galeria-share-btn-label">Facebook</span>
       </button>
     </div>
 
+    <!-- CTA accordion -->
     <section class="galeria-cta-wrap" role="region" aria-label="Participe da galeria">
       <button
         type="button"
@@ -74,23 +59,13 @@
         id="galeria-cta-heading"
       >
         <span class="galeria-cta-trigger__text">Seu pet também merece aparecer</span>
-        <i
-          class="fa fa-chevron-down galeria-cta-chevron"
-          [class.galeria-cta-chevron--open]="ctaAccordionOpen"
-          aria-hidden="true"
-        ></i>
+        <i class="fa fa-chevron-down galeria-cta-chevron" [class.galeria-cta-chevron--open]="ctaAccordionOpen" aria-hidden="true"></i>
       </button>
 
-      <div
-        *ngIf="ctaAccordionOpen"
-        id="galeria-cta-panel"
-        class="galeria-cta-card galeria-cta-card--body"
-        role="region"
-        aria-labelledby="galeria-cta-heading"
-      >
+      <div *ngIf="ctaAccordionOpen" id="galeria-cta-panel" class="galeria-cta-card galeria-cta-card--body" role="region" aria-labelledby="galeria-cta-heading">
         <img src="/icones/mapa-pata.png" alt="" aria-hidden="true" class="galeria-cta-icon" />
         <div class="galeria-cta-body">
-          <p class="galeria-cta-text">Cadastre seu pet, compartilhe as melhores fotos e receba reações da comunidade.</p>
+          <p class="galeria-cta-text">Cadastre seu pet, crie posts com várias fotos e receba reações da comunidade.</p>
           <div class="galeria-cta-shelves">
             <section class="galeria-cta-shelf" aria-label="Pets cadastrados">
               <div class="galeria-cta-shelf__head">
@@ -99,7 +74,17 @@
               </div>
               <p class="galeria-cta-shelf__hint">{{ getCtaPetHint() }}</p>
               <div class="galeria-cta-bubbles" role="list">
-                <span *ngFor="let pet of ctaClientePets" class="galeria-cta-bubble" role="listitem" [attr.title]="pet.nome || 'Pet'" [attr.aria-label]="pet.nome || 'Pet'" tabindex="0" (click)="openClientePet(pet)" (keydown.enter)="openClientePet(pet)" (keydown.space)="$event.preventDefault(); openClientePet(pet)">
+                <span
+                  *ngFor="let pet of ctaClientePets; trackBy: trackPetId"
+                  class="galeria-cta-bubble"
+                  role="listitem"
+                  [attr.title]="pet.nome || 'Pet'"
+                  [attr.aria-label]="pet.nome || 'Pet'"
+                  tabindex="0"
+                  (click)="openClientePet(pet)"
+                  (keydown.enter)="openClientePet(pet)"
+                  (keydown.space)="$event.preventDefault(); openClientePet(pet)"
+                >
                   <ng-container *ngIf="resolveClientePetAvatar(pet) as petAvatar; else petInitial">
                     <img [src]="petAvatar" alt="" aria-hidden="true" />
                   </ng-container>
@@ -107,33 +92,27 @@
                     <span class="galeria-cta-bubble__initials">{{ clientePetInitials(pet.nome) }}</span>
                   </ng-template>
                 </span>
-                <button
-                  type="button"
-                  class="galeria-cta-bubble galeria-cta-bubble--add"
-                  (click)="openClienteAreaView('novo-pet')"
-                  aria-label="Cadastrar novo pet"
-                  title="Cadastrar novo pet"
-                >+</button>
+                <button type="button" class="galeria-cta-bubble galeria-cta-bubble--add" (click)="openClienteAreaView('novo-pet')" aria-label="Cadastrar novo pet" title="Cadastrar novo pet">+</button>
               </div>
             </section>
 
-            <section class="galeria-cta-shelf" aria-label="Fotos já publicadas">
+            <section class="galeria-cta-shelf" aria-label="Posts já publicados">
               <div class="galeria-cta-shelf__head">
-                <h2 class="galeria-cta-shelf__title">Suas fotos</h2>
+                <h2 class="galeria-cta-shelf__title">Seus posts</h2>
                 <span class="galeria-cta-tag">galeria</span>
               </div>
-              <p class="galeria-cta-shelf__hint">{{ getCtaFotoHint() }}</p>
+              <p class="galeria-cta-shelf__hint">{{ getCtaPostHint() }}</p>
               <div class="galeria-cta-bubbles" role="list">
-                <span *ngFor="let foto of ctaClienteFotos" class="galeria-cta-bubble galeria-cta-bubble--photo" role="listitem" title="Foto já publicada" aria-label="Foto já publicada">
-                  <img [src]="resolveClienteFotoThumb(foto)" alt="" aria-hidden="true" />
+                <span
+                  *ngFor="let post of ctaClientePosts; trackBy: trackPostId"
+                  class="galeria-cta-bubble galeria-cta-bubble--photo"
+                  role="listitem"
+                  title="Post publicado"
+                  aria-label="Post publicado"
+                >
+                  <img [src]="resolveClientePostThumb(post)" alt="" aria-hidden="true" />
                 </span>
-                <button
-                  type="button"
-                  class="galeria-cta-bubble galeria-cta-bubble--add galeria-cta-bubble--photo-add"
-                  (click)="openClienteAreaView('postar-foto')"
-                  aria-label="Postar nova foto"
-                  title="Postar nova foto"
-                >+</button>
+                <button type="button" class="galeria-cta-bubble galeria-cta-bubble--add galeria-cta-bubble--photo-add" (click)="openClienteAreaView('postar-foto')" aria-label="Postar novo post" title="Postar novo post">+</button>
               </div>
             </section>
           </div>
@@ -142,121 +121,38 @@
     </section>
   </header>
 
-  <div *ngIf="loading" class="card">Carregando galeria...</div>
-  <div *ngIf="error" class="card danger">{{ error }}</div>
+  <!-- Loading / erro / vazio -->
+  <div *ngIf="feedState.loading" class="card">Carregando galeria…</div>
+  <div *ngIf="feedState.error" class="card danger">{{ feedState.error }}</div>
 
-  <div *ngIf="!loading && !error && isEmptyFeed && pets.length === 0" class="galeria-empty-state">
+  <div
+    *ngIf="!feedState.loading && !feedState.error && feedState.isEmpty"
+    class="galeria-empty-state"
+  >
     <div class="galeria-empty-state__inner">
       <div class="galeria-empty-state__emoji" aria-hidden="true">🐾</div>
       <h3 class="galeria-empty-state__title">Ainda não há fotos por aqui</h3>
       <p class="galeria-empty-state__text">
         Seja o primeiro a postar uma foto do seu pet e abrir a galeria da comunidade {{ marcaNome }}.
       </p>
-      <button
-        type="button"
-        class="galeria-empty-state__cta"
-        (click)="openPostFotoModal()"
-      >Postar a primeira foto</button>
+      <button type="button" class="galeria-empty-state__cta" (click)="openPostFotoModal()">
+        Postar a primeira foto
+      </button>
     </div>
   </div>
 
-  <div class="galeria-feed">
-  <div *ngFor="let p of pets" class="galeria-feed__item" [class.galeria-feed__item--ad]="p.type === 'vet_ad'">
-      <ng-container *ngIf="p.type === 'vet_ad'; else regularPet">
-        <article
-          class="pet-card pet-card--compact pet-card--compact--ad"
-          [class.pet-card--compact--ad-feed]="isMobileFeedOpen"
-          role="article"
-          [attr.aria-label]="'Anúncio: ' + (p.nome || p.name || 'Veterinário')"
-        >
-          <div class="pet-card--compact__media photo-wrap">
-            <span class="pet-card--compact__ribbon" aria-hidden="true">Anúncio</span>
-            <div class="photo-skeleton" *ngIf="!p._imgLoaded" aria-hidden="true"></div>
-            <img
-              [src]="resolveImage(p)"
-              alt=""
-              class="pet-card--img"
-              [class.loaded]="p._imgLoaded"
-              (error)="onImgError($event.target, '/imagens/image.png')"
-              (load)="onImgLoad($event, p)"
-            />
-          </div>
-          <div class="pet-card--compact__footer">
-            <span class="pet-card--compact__name">{{ p.nome || p.name || 'Veterinário' }}</span>
-            <div class="pet-card--compact__end">
-              <span class="pet-card--compact__species" title="Anúncio" aria-hidden="true">🏥</span>
-              <a
-                *ngIf="p.telefone"
-                class="pet-card--compact__phone"
-                [href]="'tel:' + p.telefone"
-                [attr.aria-label]="'Ligar para ' + p.telefone"
-                (click)="$event.stopPropagation()"
-              >📞</a>
-              <span *ngIf="!p.telefone" class="pet-card--compact__hint" aria-hidden="true">Vet</span>
-            </div>
-          </div>
-        </article>
-      </ng-container>
-      <ng-template #regularPet>
-        <ng-container *ngIf="isMobileFeedOpen; else compactCard">
-          <app-pet-lightbox
-            class="galeria-inline-lightbox"
-            [pet]="p"
-            [isOpen]="true"
-            [inlineMode]="true"
-            (reactionSelect)="onInlineLightboxReaction(p, $event)"
-          ></app-pet-lightbox>
-        </ng-container>
-        <ng-template #compactCard>
-          <button
-            type="button"
-            class="pet-card pet-card--compact"
-            (click)="openLightbox(p)"
-            (keydown.enter)="openLightbox(p)"
-            (keydown.space)="$event.preventDefault(); openLightbox(p)"
-            [attr.aria-label]="'Abrir em tamanho grande: ' + (p.nome || p.name || 'pet')"
-          >
-            <div class="pet-card--compact__media photo-wrap">
-              <div class="photo-skeleton" *ngIf="!p._imgLoaded" aria-hidden="true"></div>
-              <img
-                [src]="resolveImage(p)"
-                alt=""
-                class="pet-card--img"
-                [class.loaded]="p._imgLoaded"
-                (error)="onImgError($event.target, '/imagens/image.png')"
-                (load)="onImgLoad($event, p)"
-              />
-            </div>
-            <div class="pet-card--compact__footer">
-              <div class="pet-card--compact__titleblock">
-                <span class="pet-card--compact__name">{{ p.nome || p.name || 'Sem nome' }}</span>
-                <span *ngIf="p.colecao_titulo" class="pet-card--compact__colecao">{{ p.colecao_titulo }}</span>
-              </div>
-              <div class="pet-card--compact__end">
-                <span
-                  class="pet-card--compact__species"
-                  [attr.title]="(p.tipo || p.especie) || 'Pet'"
-                  aria-hidden="true"
-                >{{ typeEmoji(p.tipo || p.especie) }}</span>
-                <span
-                  class="pet-card--compact__stats"
-                  *ngIf="(p.likes ?? 0) + (p.total_comentarios ?? 0) > 0"
-                  aria-hidden="true"
-                >
-                  <span *ngIf="(p.likes ?? 0) > 0" class="pet-card--compact__stat">❤️ {{ p.likes }}</span>
-                  <span *ngIf="(p.total_comentarios ?? 0) > 0" class="pet-card--compact__stat">💬 {{ p.total_comentarios }}</span>
-                </span>
-              </div>
-            </div>
-          </button>
-        </ng-template>
-      </ng-template>
-    </div>
-  </div>
-
-  <div class="loading-more" *ngIf="loadingMore">Carregando mais pets…</div>
-  <div #sentinel class="sentinel" aria-hidden="true"></div>
-
+  <!-- Feed -->
+  <app-galeria-feed-grid
+    *ngIf="!feedState.loading && !feedState.error && !feedState.isEmpty"
+    [items]="feedState.items"
+    [ad]="feedState.ad"
+    [loading]="feedState.loading"
+    [loadingMore]="feedState.loadingMore"
+    [hasMore]="feedState.hasMore"
+    (loadMore)="onLoadMore()"
+    (openPost)="openPostInLightbox($event)"
+    (openAd)="openAd($event)"
+  ></app-galeria-feed-grid>
 </main>
 
 <app-galeria-post-foto-modal
@@ -266,8 +162,8 @@
 ></app-galeria-post-foto-modal>
 
 <app-pet-lightbox
-  [pet]="lightboxPet"
-  [isOpen]="!!lightboxPet"
+  [post]="lightboxPost"
+  [isOpen]="!!lightboxPost"
   (close)="closeLightbox()"
-  (reactionSelect)="onLightboxReaction($event)">
-</app-pet-lightbox>
+  (postChanged)="onLightboxPostChanged($event)"
+></app-pet-lightbox>

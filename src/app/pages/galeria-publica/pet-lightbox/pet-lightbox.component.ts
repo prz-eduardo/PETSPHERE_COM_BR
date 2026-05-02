@@ -1,42 +1,44 @@
-import { Component, EventEmitter, Inject, Input, OnChanges, OnDestroy, Output, PLATFORM_ID, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Inject,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  PLATFORM_ID,
+  SimpleChanges,
+} from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ApiService } from '../../../services/api.service';
+import { firstValueFrom } from 'rxjs';
+import { ApiService, PostEngagement } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
 import { ToastService } from '../../../services/toast.service';
 import { MARCA_NOME } from '../../../constants/loja-public';
-
-export interface PetLightboxReaction { tipo: string; }
-
-/** Estado da foto visível (galeria v2) — não mistura com o cartão quando slide !== 0 */
-interface ImagemEngState {
-  userReactionTipo: string | null;
-  likes: number;
-  reactionTotals: Record<string, number>;
-  totalComentarios: number;
-}
+import { FeedPostItem, typeEmoji } from '../gallery-utils';
 
 @Component({
   selector: 'app-pet-lightbox',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './pet-lightbox.component.html',
-  styleUrls: ['./pet-lightbox.component.scss']
+  styleUrls: ['./pet-lightbox.component.scss'],
 })
 export class PetLightboxComponent implements OnChanges, OnDestroy {
-  @Input() pet: any = null;
+  @Input() post: FeedPostItem | null = null;
   @Input() isOpen = false;
   @Input() inlineMode = false;
 
   @Output() close = new EventEmitter<void>();
-  @Output() reactionSelect = new EventEmitter<PetLightboxReaction>();
+  @Output() postChanged = new EventEmitter<FeedPostItem>();
 
   reactionTypes = [
-    { tipo: 'love', emoji: '❤️', label: 'Amei' },
-    { tipo: 'haha', emoji: '😂', label: 'Haha' },
-    { tipo: 'sad', emoji: '😢', label: 'Triste' },
-    { tipo: 'angry', emoji: '😡', label: 'Grr' }
+    { tipo: 'love',  emoji: '❤️', label: 'Amei' },
+    { tipo: 'haha',  emoji: '😂', label: 'Haha' },
+    { tipo: 'sad',   emoji: '😢', label: 'Triste' },
+    { tipo: 'angry', emoji: '😡', label: 'Grr' },
   ];
 
   comentarios: any[] = [];
@@ -44,153 +46,284 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
   sendingComentario = false;
   novoComentario = '';
   commentsExpanded = false;
-  totalComentarios = 0;
   comentariosError: string | null = null;
-  lightboxImgIndex = 0;
-  /** Reações e totais da foto visível (v2) */
-  imagemState: ImagemEngState = { userReactionTipo: null, likes: 0, reactionTotals: { love: 0, haha: 0, sad: 0, angry: 0 }, totalComentarios: 0 };
+  imageIndex = 0;
+
   private pointerStartX: number | null = null;
   private pointerStartY: number | null = null;
   private pointerId: number | null = null;
   private readonly swipeThresholdPx = 52;
 
-  private _escHandler = (ev: KeyboardEvent) => {
+  private escHandler = (ev: KeyboardEvent) => {
     if (ev.key === 'Escape') this.onClose();
   };
 
   constructor(
-    @Inject(PLATFORM_ID) private platformId: Object,
+    @Inject(PLATFORM_ID) private platformId: object,
     private api: ApiService,
     private auth: AuthService,
     private toast: ToastService
   ) {}
 
-  galeriaFotoV2(): boolean {
-    return !!(this.pet && (this.pet.kind === 'photo' || this.pet.kind === 'collection') && this.pet.pet_id);
-  }
-
-  private _initImagemStateFromPet() {
-    const p = this.pet;
-    const m = p?.minha_reacao;
-    this.imagemState = {
-      userReactionTipo: p?.userReactionTipo ?? m?.tipo ?? null,
-      likes: Number(p?.likes ?? p?.total_reacoes_geral ?? 0),
-      reactionTotals: {
-        love: Number(p?.reactionTotals?.love ?? p?.total_reacao_love ?? 0),
-        haha: Number(p?.reactionTotals?.haha ?? p?.total_reacao_haha ?? 0),
-        sad: Number(p?.reactionTotals?.sad ?? p?.total_reacao_sad ?? 0),
-        angry: Number(p?.reactionTotals?.angry ?? p?.total_reacao_angry ?? 0)
-      },
-      totalComentarios: Number(p?.total_comentarios ?? 0)
-    };
-  }
-
-  activeImagemId(): number | null {
-    if (!this.pet) return null;
-    if (this.pet.kind === 'photo') {
-      return this.pet.pet_imagem_id != null ? Number(this.pet.pet_imagem_id) : null;
-    }
-    if (this.pet.kind === 'collection') {
-      const ft = this.pet.fotos;
-      if (Array.isArray(ft) && ft[this.lightboxImgIndex]) {
-        return Number(ft[this.lightboxImgIndex].id);
-      }
-    }
-    return this.pet.pet_imagem_id != null ? Number(this.pet.pet_imagem_id) : null;
-  }
-
-  private _applyEngajamentoRes(res: any) {
-    if (!res) return;
-    const rt = res.reactionTotals || (res ? {
-      love: Number(res.total_reacao_love ?? 0),
-      haha: Number(res.total_reacao_haha ?? 0),
-      sad: Number(res.total_reacao_sad ?? 0),
-      angry: Number(res.total_reacao_angry ?? 0)
-    } : { love: 0, haha: 0, sad: 0, angry: 0 });
-    this.imagemState = {
-      userReactionTipo: res.minha_reacao ? (res.minha_reacao.tipo ?? null) : null,
-      likes: Number(res.likes ?? res.total_reacoes_geral ?? 0),
-      reactionTotals: {
-        love: Number(rt.love ?? 0),
-        haha: Number(rt.haha ?? 0),
-        sad: Number(rt.sad ?? 0),
-        angry: Number(rt.angry ?? 0)
-      },
-      totalComentarios: Number(res.total_comentarios ?? this.imagemState?.totalComentarios ?? 0)
-    };
-  }
-
-  private _syncCardIfCover() {
-    if (this.galeriaFotoV2() && this.pet && this.lightboxImgIndex === 0) {
-      this.pet.likes = this.imagemState.likes;
-      this.pet.reactionTotals = { ...this.imagemState.reactionTotals };
-      this.pet.userReactionTipo = this.imagemState.userReactionTipo;
-      this.pet.minha_reacao = this.imagemState.userReactionTipo
-        ? { tipo: this.imagemState.userReactionTipo }
-        : null;
-      this.pet.total_comentarios = this.imagemState.totalComentarios;
-    }
-  }
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']) {
-      if (this.isOpen) {
-        this._onOpen();
-      } else {
-        this._onClose();
-      }
-    } else if (changes['pet'] && this.isOpen) {
+      if (this.isOpen) this.onOpen();
+      else this.onCloseInternal();
+    } else if (changes['post'] && (this.isOpen || this.inlineMode)) {
+      this.imageIndex = 0;
       this.commentsExpanded = false;
-      if (this.galeriaFotoV2()) {
-        this._loadSlideFoto();
-      } else {
-        this._loadComentarios();
-      }
+      this.refreshEngagement();
     }
   }
 
   ngOnDestroy(): void {
-    this._onClose();
+    this.onCloseInternal();
   }
 
-  private _onOpen() {
+  private onOpen(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     if (!this.inlineMode) {
-      try { document.body.style.overflow = 'hidden'; } catch {}
-      try { document.addEventListener('keydown', this._escHandler); } catch {}
+      try { document.body.style.overflow = 'hidden'; } catch { /* noop */ }
+      try { document.addEventListener('keydown', this.escHandler); } catch { /* noop */ }
     }
     this.novoComentario = '';
     this.commentsExpanded = false;
     this.comentariosError = null;
-    this.lightboxImgIndex = 0;
-    if (this.galeriaFotoV2()) {
-      this._initImagemStateFromPet();
-      this._loadSlideFoto();
-    } else {
-      this._loadComentarios();
-    }
+    this.imageIndex = 0;
+    this.refreshEngagement();
   }
 
-  private _onClose() {
+  private onCloseInternal(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     if (!this.inlineMode) {
-      try { document.body.style.overflow = ''; } catch {}
-      try { document.removeEventListener('keydown', this._escHandler); } catch {}
+      try { document.body.style.overflow = ''; } catch { /* noop */ }
+      try { document.removeEventListener('keydown', this.escHandler); } catch { /* noop */ }
     }
-    this._resetPointerSwipe();
+    this.resetPointerSwipe();
   }
 
-  onClose() {
+  onClose(): void {
     this.close.emit();
   }
 
-  onOverlayClick(ev: MouseEvent) {
+  onOverlayClick(ev: MouseEvent): void {
     if (this.inlineMode) return;
     const target = ev.target as HTMLElement;
-    if (target && target.classList && target.classList.contains('pet-lightbox-overlay')) {
+    if (target?.classList?.contains('pet-lightbox-overlay')) {
       this.onClose();
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Carrossel
+  // ---------------------------------------------------------------------------
+
+  get galleryUrls(): string[] {
+    return this.post?.galeria_urls || [];
+  }
+
+  get hasMultipleImages(): boolean {
+    return this.galleryUrls.length > 1;
+  }
+
+  get dots(): number[] {
+    const n = this.galleryUrls.length;
+    return n > 1 ? Array.from({ length: n }, (_, i) => i) : [];
+  }
+
+  resolveImage(): string {
+    const urls = this.galleryUrls;
+    const idx = Math.min(Math.max(0, this.imageIndex), Math.max(0, urls.length - 1));
+    const raw = urls[idx] || urls[0] || '';
+    return raw ? this.api.resolveMediaUrl(raw) : '/imagens/image.png';
+  }
+
+  prevSlide(ev?: Event): void {
+    if (ev) ev.stopPropagation();
+    if (!this.hasMultipleImages) return;
+    let i = this.imageIndex - 1;
+    if (i < 0) i = this.galleryUrls.length - 1;
+    this.imageIndex = i;
+  }
+
+  nextSlide(ev?: Event): void {
+    if (ev) ev.stopPropagation();
+    if (!this.hasMultipleImages) return;
+    let i = this.imageIndex + 1;
+    if (i >= this.galleryUrls.length) i = 0;
+    this.imageIndex = i;
+  }
+
+  goSlide(i: number, ev?: Event): void {
+    if (ev) ev.stopPropagation();
+    this.imageIndex = i;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reactions / Comments (per post)
+  // ---------------------------------------------------------------------------
+
+  isLogged(): boolean {
+    try {
+      return !!this.auth.getToken();
+    } catch {
+      return false;
+    }
+  }
+
+  get currentReaction(): string | null {
+    return this.post?.engagement?.minha_reacao?.tipo || null;
+  }
+
+  reactionCount(tipo: string): number {
+    if (!this.post) return 0;
+    return Number((this.post.engagement as any)[tipo] || 0);
+  }
+
+  totalReactions(): number {
+    return this.post?.engagement?.total || 0;
+  }
+
+  getReactionEmoji(tipo: string): string {
+    return this.reactionTypes.find((r) => r.tipo === tipo)?.emoji || '❤️';
+  }
+
+  topReactions(limit = 3): { tipo: string; emoji: string; label: string; count: number }[] {
+    return this.reactionTypes
+      .map((r) => ({ ...r, count: this.reactionCount(r.tipo) }))
+      .filter((r) => r.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+  }
+
+  async refreshEngagement(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId) || !this.post) return;
+    const postId = this.post.id;
+    if (!postId) return;
+    this.loadingComentarios = true;
+    this.comentariosError = null;
+    const token = this.auth.getToken() || undefined;
+    try {
+      const [eng, com] = await Promise.all([
+        firstValueFrom(this.api.getPostEngajamento(postId, token)) as Promise<PostEngagement>,
+        firstValueFrom(this.api.getPostComentarios(postId, { page: 1, pageSize: 50 })) as Promise<any>,
+      ]);
+      this.applyEngagement(eng);
+      this.comentarios = Array.isArray(com) ? com : com?.data || [];
+      if (this.post && eng?.comentarios != null) {
+        this.post.engagement.comentarios = Number(eng.comentarios);
+      }
+      this.emitChange();
+    } catch (e) {
+      console.warn('refreshEngagement', e);
+      this.comentariosError = 'Não foi possível carregar dados deste post.';
+    } finally {
+      this.loadingComentarios = false;
+    }
+  }
+
+  private applyEngagement(eng: PostEngagement | null | undefined): void {
+    if (!this.post || !eng) return;
+    this.post.engagement = {
+      love: Number(eng.love ?? 0),
+      haha: Number(eng.haha ?? 0),
+      sad: Number(eng.sad ?? 0),
+      angry: Number(eng.angry ?? 0),
+      total:
+        Number(eng.total ?? 0) ||
+        Number(eng.love ?? 0) + Number(eng.haha ?? 0) + Number(eng.sad ?? 0) + Number(eng.angry ?? 0),
+      comentarios: Number(eng.comentarios ?? this.post.engagement.comentarios ?? 0),
+      minha_reacao: eng.minha_reacao ? { tipo: String(eng.minha_reacao.tipo) } : null,
+    };
+  }
+
+  async onSelectReaction(tipo: string): Promise<void> {
+    if (!this.isLogged()) {
+      try { this.toast.info('Faça login para reagir aos posts.'); } catch { /* noop */ }
+      return;
+    }
+    const token = this.auth.getToken();
+    if (!token || !this.post) return;
+    const previous = this.currentReaction;
+    const same = previous === tipo;
+    try {
+      if (same) {
+        await firstValueFrom(this.api.deletePostReacao(this.post.id, token));
+      } else {
+        await firstValueFrom(this.api.postPostReacao(this.post.id, { tipo }, token));
+      }
+      const eng = await firstValueFrom(this.api.getPostEngajamento(this.post.id, token));
+      this.applyEngagement(eng as PostEngagement);
+      this.emitChange();
+    } catch (err) {
+      console.error(err);
+      this.toast.error('Não foi possível enviar a reação.');
+    }
+  }
+
+  toggleComments(): void {
+    this.commentsExpanded = !this.commentsExpanded;
+  }
+
+  async enviarComentario(): Promise<void> {
+    const texto = (this.novoComentario || '').trim();
+    if (!texto || !this.post) return;
+    if (texto.length > 500) {
+      try { this.toast.error('Comentário muito longo (máx 500 caracteres).'); } catch { /* noop */ }
+      return;
+    }
+    const token = this.auth.getToken();
+    if (!token) {
+      try { this.toast.info('Faça login para comentar.'); } catch { /* noop */ }
+      return;
+    }
+    this.sendingComentario = true;
+    try {
+      const res: any = await firstValueFrom(this.api.postPostComentario(this.post.id, texto, token));
+      if (res?.comentario) {
+        this.comentarios = [res.comentario, ...this.comentarios];
+      }
+      const total = Number(res?.total_comentarios ?? this.comentarios.length);
+      this.post.engagement.comentarios = total;
+      this.novoComentario = '';
+      try { this.toast.success('Comentário publicado!'); } catch { /* noop */ }
+      this.emitChange();
+    } catch (err: any) {
+      console.error(err);
+      this.toast.error(err?.error?.error || 'Não foi possível enviar seu comentário.');
+    } finally {
+      this.sendingComentario = false;
+    }
+  }
+
+  async removerComentario(c: any): Promise<void> {
+    if (!c?.id || !this.post) return;
+    const token = this.auth.getToken();
+    if (!token) return;
+    if (typeof window !== 'undefined' && !window.confirm('Remover este comentário?')) return;
+    try {
+      const res: any = await firstValueFrom(this.api.deletePostComentario(this.post.id, c.id, token));
+      this.comentarios = this.comentarios.filter((x) => x.id !== c.id);
+      const total = Number(res?.total_comentarios ?? Math.max(0, this.post.engagement.comentarios - 1));
+      this.post.engagement.comentarios = total;
+      this.emitChange();
+    } catch (err) {
+      console.error(err);
+      try { this.toast.error('Não foi possível remover o comentário.'); } catch { /* noop */ }
+    }
+  }
+
+  canDeleteComment(_: any): boolean {
+    return this.isLogged();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compartilhamento
+  // ---------------------------------------------------------------------------
 
   getGaleriaShareUrl(): string {
     if (!isPlatformBrowser(this.platformId) || typeof window === 'undefined') return '';
@@ -198,12 +331,12 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
   }
 
   getPetPerfilPath(): string {
-    if (!this.pet?.pet_id) return '/galeria';
-    return `/galeria/pet/${this.pet.pet_id}`;
+    if (!this.post?.pet_id) return '/galeria';
+    return `/galeria/pet/${this.post.pet_id}`;
   }
 
   getPetShareText(): string {
-    const nome = (this.pet?.nome || this.pet?.name || 'este pet').toString();
+    const nome = this.post?.pet?.nome || 'este pet';
     return `Conheça o ${nome} na galeria da comunidade ${MARCA_NOME}!`;
   }
 
@@ -223,7 +356,7 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
         ta.value = text;
         document.body.appendChild(ta);
         ta.select();
-        try { document.execCommand('copy'); } catch { /* empty */ }
+        try { document.execCommand('copy'); } catch { /* noop */ }
         document.body.removeChild(ta);
       }
       this.toast.success('Link copiado');
@@ -242,20 +375,26 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     if (!isPlatformBrowser(this.platformId)) return;
     const u = this.getGaleriaShareUrl();
     if (!u) return;
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
   }
 
   async shareThisPet(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
-    const nome = (this.pet?.nome || this.pet?.name || 'Pet').toString();
-    const title = `${MARCA_NOME} — ${nome}`;
-    const text = this.getPetShareText();
-    const url = this.getGaleriaShareUrl();
-    const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { share?: (d: ShareData) => Promise<void> }) : null;
+    const nome = this.post?.pet?.nome || 'Pet';
+    const nav = typeof navigator !== 'undefined'
+      ? (navigator as Navigator & { share?: (d: ShareData) => Promise<void> })
+      : null;
     if (nav?.share) {
       try {
-        await nav.share({ title, text, url });
+        await nav.share({
+          title: `${MARCA_NOME} — ${nome}`,
+          text: this.getPetShareText(),
+          url: this.getGaleriaShareUrl(),
+        });
         return;
       } catch (e: unknown) {
         const name = e && typeof e === 'object' && 'name' in e ? (e as { name?: string }).name : '';
@@ -265,109 +404,12 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     await this.copyPetShare();
   }
 
-  isLogged(): boolean {
-    try { return !!this.auth.getToken(); } catch { return false; }
-  }
+  // ---------------------------------------------------------------------------
+  // Eventos de mídia (swipe / wheel)
+  // ---------------------------------------------------------------------------
 
-  getGalleryUrls(): string[] {
-    const p = this.pet;
-    if (!p) return [];
-    if (p.kind === 'photo') {
-      const u = (Array.isArray(p.galeria_urls) && p.galeria_urls[0]) || p.foto || p.photo || '';
-      const s = typeof u === 'string' ? u.trim() : '';
-      return s ? [s] : [];
-    }
-    const out: string[] = [];
-    const direct = p.galeria_urls;
-    if (Array.isArray(direct) && direct.length) {
-      out.push(...direct.map((u: string) => String(u).trim()).filter(Boolean));
-    } else {
-      const fotos = p.fotos;
-      if (Array.isArray(fotos) && fotos.length) {
-        out.push(...fotos.map((x: any) => (typeof x === 'string' ? x : x?.url)).filter(Boolean));
-      }
-    }
-    const main = p.foto || p.photo || p.photoURL || p.url || '';
-    const s = typeof main === 'string' ? main.trim() : '';
-    if (s && !out.some((u) => u.toLowerCase() === s.toLowerCase())) {
-      out.unshift(s);
-    }
-    const seen = new Set<string>();
-    const deduped: string[] = [];
-    for (const u of out) {
-      const k = u.toLowerCase();
-      if (!seen.has(k)) {
-        seen.add(k);
-        deduped.push(u);
-      }
-    }
-    return deduped;
-  }
-
-  showCarouselNav(): boolean {
-    if (!this.pet) return false;
-    if (this.pet.kind === 'photo') return false;
-    if (this.pet.kind === 'collection') {
-      return this.getGalleryUrls().length > 1;
-    }
-    return this.getGalleryUrls().length > 1;
-  }
-
-  lbDots(): number[] {
-    if (!this.showCarouselNav()) return [];
-    const n = this.getGalleryUrls().length;
-    return n > 1 ? Array.from({ length: n }, (_, i) => i) : [];
-  }
-
-  resolveImage(): string {
-    try {
-      const urls = this.getGalleryUrls();
-      const idx = Math.min(Math.max(0, this.lightboxImgIndex), Math.max(0, urls.length - 1));
-      const raw = urls[idx] || urls[0] || '';
-      return this.api.resolveMediaUrl(raw);
-    } catch { return '/imagens/image.png'; }
-  }
-
-  prevLb(ev?: Event) {
-    if (ev) ev.stopPropagation();
-    this.goPrevSlide();
-  }
-
-  nextLb(ev?: Event) {
-    if (ev) ev.stopPropagation();
-    this.goNextSlide();
-  }
-
-  private goPrevSlide() {
-    const urls = this.getGalleryUrls();
-    if (urls.length < 2) return;
-    let i = this.lightboxImgIndex - 1;
-    if (i < 0) i = urls.length - 1;
-    this.lightboxImgIndex = i;
-    this._afterSlideChange();
-  }
-
-  private goNextSlide() {
-    const urls = this.getGalleryUrls();
-    if (urls.length < 2) return;
-    let i = this.lightboxImgIndex + 1;
-    if (i >= urls.length) i = 0;
-    this.lightboxImgIndex = i;
-    this._afterSlideChange();
-  }
-
-  goLb(i: number, ev?: Event) {
-    if (ev) ev.stopPropagation();
-    this.lightboxImgIndex = i;
-    this._afterSlideChange();
-  }
-
-  toggleComments() {
-    this.commentsExpanded = !this.commentsExpanded;
-  }
-
-  onMediaPointerDown(ev: PointerEvent) {
-    if (!this.showCarouselNav()) return;
+  onMediaPointerDown(ev: PointerEvent): void {
+    if (!this.hasMultipleImages) return;
     if (!this.isSwipeCandidateTarget(ev.target)) return;
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     this.pointerId = ev.pointerId;
@@ -375,35 +417,32 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     this.pointerStartY = ev.clientY;
   }
 
-  onMediaPointerUp(ev: PointerEvent) {
-    if (!this.showCarouselNav()) {
-      this._resetPointerSwipe();
-      return;
-    }
-    if (this.pointerId == null || ev.pointerId !== this.pointerId || this.pointerStartX == null || this.pointerStartY == null) {
+  onMediaPointerUp(ev: PointerEvent): void {
+    if (!this.hasMultipleImages || this.pointerId == null || ev.pointerId !== this.pointerId || this.pointerStartX == null || this.pointerStartY == null) {
+      this.resetPointerSwipe();
       return;
     }
     const dx = ev.clientX - this.pointerStartX;
     const dy = ev.clientY - this.pointerStartY;
     if (Math.abs(dx) >= this.swipeThresholdPx && Math.abs(dx) > Math.abs(dy)) {
-      if (dx < 0) this.goNextSlide();
-      else this.goPrevSlide();
+      if (dx < 0) this.nextSlide();
+      else this.prevSlide();
     }
-    this._resetPointerSwipe();
+    this.resetPointerSwipe();
   }
 
-  onMediaPointerCancel() {
-    this._resetPointerSwipe();
+  onMediaPointerCancel(): void {
+    this.resetPointerSwipe();
   }
 
-  onMediaWheel(ev: WheelEvent) {
-    if (!this.showCarouselNav()) return;
+  onMediaWheel(ev: WheelEvent): void {
+    if (!this.hasMultipleImages) return;
     const ax = Math.abs(ev.deltaX);
     const ay = Math.abs(ev.deltaY);
     if (ax < 18 || ax <= ay) return;
     ev.preventDefault();
-    if (ev.deltaX > 0) this.goNextSlide();
-    else this.goPrevSlide();
+    if (ev.deltaX > 0) this.nextSlide();
+    else this.prevSlide();
   }
 
   private isSwipeCandidateTarget(target: EventTarget | null): boolean {
@@ -411,243 +450,29 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     return !target.closest('button, a, textarea, input, [data-no-swipe]');
   }
 
-  private _resetPointerSwipe() {
+  private resetPointerSwipe(): void {
     this.pointerId = null;
     this.pointerStartX = null;
     this.pointerStartY = null;
   }
 
-  private _afterSlideChange() {
-    if (this.galeriaFotoV2()) {
-      this._loadSlideFoto();
-    }
+  // ---------------------------------------------------------------------------
+  // Util
+  // ---------------------------------------------------------------------------
+
+  speciesEmoji(tipo?: string | null): string {
+    return typeEmoji(tipo);
   }
 
-  private async _loadSlideFoto() {
-    if (!isPlatformBrowser(this.platformId) || !this.pet) return;
-    const iid = this.activeImagemId();
-    if (!iid) return;
-    this.loadingComentarios = true;
-    this.comentariosError = null;
-    const token = this.auth.getToken() || undefined;
-    try {
-      const [eng, com] = await Promise.all([
-        this.api.getFotoEngajamento(iid, token).toPromise() as Promise<any>,
-        this.api.getFotoComentarios(iid, { page: 1, pageSize: 50 }).toPromise() as Promise<any>
-      ]);
-      this._applyEngajamentoRes(eng);
-      this._syncCardIfCover();
-      const data = Array.isArray(com) ? com : (com?.data || []);
-      this.comentarios = data || [];
-      this.totalComentarios = Number(eng?.total_comentarios ?? com?.total ?? this.comentarios.length);
-    } catch (e) {
-      console.warn('load slide foto', e);
-      this.comentariosError = 'Não foi possível carregar os dados desta foto.';
-    } finally {
-      this.loadingComentarios = false;
-    }
-  }
-
-  onImgError(ev: Event) {
+  onImgError(ev: Event): void {
     try {
       const el = ev.target as HTMLImageElement;
-      if (el && el.src && el.src.indexOf('/imagens/image.png') === -1) el.src = '/imagens/image.png';
-    } catch {}
-  }
-
-  getReactionEmoji(tipo: string): string {
-    const r = this.reactionTypes.find(x => x.tipo === tipo);
-    return r ? r.emoji : '❤️';
-  }
-
-  getReactionCount(tipo: string): number {
-    try {
-      if (this.galeriaFotoV2()) {
-        return Number(this.imagemState.reactionTotals[tipo] ?? 0);
+      if (el?.src && el.src.indexOf('/imagens/image.png') === -1) {
+        el.src = '/imagens/image.png';
       }
-      const totals = this.pet?.reactionTotals || {};
-      return Number(totals[tipo] ?? 0);
-    } catch { return 0; }
-  }
-
-  getTotalReactions(): number {
-    if (this.galeriaFotoV2()) {
-      return Number(this.imagemState.likes ?? 0) || (
-        this.getReactionCount('love') + this.getReactionCount('haha') +
-        this.getReactionCount('sad') + this.getReactionCount('angry')
-      );
+    } catch {
+      /* noop */
     }
-    return Number(this.pet?.likes ?? 0) || (
-      this.getReactionCount('love') + this.getReactionCount('haha') +
-      this.getReactionCount('sad') + this.getReactionCount('angry')
-    );
-  }
-
-  get userReactionForUi(): string | null {
-    if (this.galeriaFotoV2()) {
-      return this.imagemState.userReactionTipo;
-    }
-    return this.pet?.userReactionTipo ?? this.pet?.minha_reacao?.tipo ?? null;
-  }
-
-  getTopReactions(limit = 3) {
-    const list = this.reactionTypes
-      .map(r => ({ ...r, count: this.getReactionCount(r.tipo) }))
-      .filter(r => r.count > 0)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, limit);
-    return list;
-  }
-
-  async onSelectReaction(tipo: string) {
-    if (!this.isLogged()) {
-      try { this.toast.info('Faça login para reagir às fotos.'); } catch {}
-      return;
-    }
-    if (this.galeriaFotoV2()) {
-      const iid = this.activeImagemId();
-      if (!iid) return;
-      const token = this.auth.getToken();
-      if (!token) return;
-      const prev = this.userReactionForUi;
-      const same = prev === tipo;
-      try {
-        if (same) {
-          const res: any = await this.api.deleteFotoReacao(iid, { tipo }, token).toPromise();
-          this._applyEngajamentoRes(
-            { ...res, minha_reacao: null, total_comentarios: this.imagemState.totalComentarios, reactionTotals: res?.reactionTotals }
-          );
-        } else {
-          const res: any = await this.api.postFotoReacao(iid, { tipo }, token).toPromise();
-          this._applyEngajamentoRes(res);
-        }
-        this._syncCardIfCover();
-      } catch (err) {
-        console.error(err);
-        this.toast.error('Não foi possível enviar a reação.');
-      }
-      return;
-    }
-    this.reactionSelect.emit({ tipo });
-  }
-
-  private _loadComentarios() {
-    if (!this.pet) { this.comentarios = []; this.totalComentarios = 0; return; }
-    const petId = this.pet.pet_id ?? this.pet.id;
-    if (petId == null || petId === '') { this.comentarios = []; this.totalComentarios = 0; return; }
-    if (!isPlatformBrowser(this.platformId)) return;
-    this.loadingComentarios = true;
-    this.comentariosError = null;
-    this.api.getPetComentarios(petId, { page: 1, pageSize: 50 }).subscribe({
-      next: (res: any) => {
-        const data = Array.isArray(res) ? res : (res?.data || []);
-        this.comentarios = data || [];
-        this.totalComentarios = Number(res?.total ?? this.comentarios.length);
-        if (this.pet) this.pet.total_comentarios = this.totalComentarios;
-        this.loadingComentarios = false;
-      },
-      error: (err) => {
-        console.warn('Erro ao carregar comentários', err);
-        this.comentariosError = 'Não foi possível carregar os comentários.';
-        this.loadingComentarios = false;
-      }
-    });
-  }
-
-  async enviarComentario() {
-    const texto = (this.novoComentario || '').trim();
-    if (!texto) return;
-    if (texto.length > 500) {
-      try { this.toast.error('Comentário muito longo (máx 500 caracteres).'); } catch {}
-      return;
-    }
-    const token = this.auth.getToken();
-    if (!token) {
-      try { this.toast.info('Faça login para comentar.'); } catch {}
-      return;
-    }
-    this.sendingComentario = true;
-    try {
-      if (this.galeriaFotoV2()) {
-        const iid = this.activeImagemId();
-        if (!iid) return;
-        const res: any = await this.api.postFotoComentario(iid, texto, token).toPromise();
-        if (res && res.comentario) {
-          this.comentarios = [res.comentario, ...this.comentarios];
-        }
-        this.totalComentarios = Number(res?.total_comentarios ?? (this.totalComentarios + 1));
-        this.imagemState.totalComentarios = this.totalComentarios;
-        this._syncCardIfCover();
-        this.novoComentario = '';
-        this.toast.success('Comentário publicado!');
-        return;
-      }
-      const petId = this.pet.pet_id ?? this.pet.id;
-      const res: any = await this.api.postPetComentario(petId, texto, token).toPromise();
-      if (res && res.comentario) {
-        this.comentarios = [res.comentario, ...this.comentarios];
-      }
-      if (res && typeof res.total_comentarios === 'number') {
-        this.totalComentarios = Number(res.total_comentarios);
-      } else {
-        this.totalComentarios = (this.totalComentarios || 0) + 1;
-      }
-      if (this.pet) this.pet.total_comentarios = this.totalComentarios;
-      this.novoComentario = '';
-      try { this.toast.success('Comentário publicado!'); } catch {}
-    } catch (err: any) {
-      console.error('Erro ao enviar comentário', err);
-      const msg = err?.error?.error || 'Não foi possível enviar seu comentário.';
-      try { this.toast.error(msg); } catch {}
-    } finally {
-      this.sendingComentario = false;
-    }
-  }
-
-  async removerComentario(c: any) {
-    if (!c || !c.id) return;
-    const token = this.auth.getToken();
-    if (!token) return;
-    if (!confirm('Remover este comentário?')) return;
-    try {
-      if (this.galeriaFotoV2()) {
-        const iid = this.activeImagemId();
-        if (!iid) return;
-        const res: any = await this.api.deleteFotoComentario(iid, c.id, token).toPromise();
-        this.comentarios = this.comentarios.filter(x => x.id !== c.id);
-        this.totalComentarios = Number(res?.total_comentarios ?? Math.max(0, (this.totalComentarios || 0) - 1));
-        this.imagemState.totalComentarios = this.totalComentarios;
-        this._syncCardIfCover();
-        return;
-      }
-      const petId = this.pet.pet_id ?? this.pet.id;
-      const res: any = await this.api.deletePetComentario(petId, c.id, token).toPromise();
-      this.comentarios = this.comentarios.filter(x => x.id !== c.id);
-      if (res && typeof res.total_comentarios === 'number') {
-        this.totalComentarios = Number(res.total_comentarios);
-      } else {
-        this.totalComentarios = Math.max(0, (this.totalComentarios || 0) - 1);
-      }
-      if (this.pet) this.pet.total_comentarios = this.totalComentarios;
-    } catch (err) {
-      console.error('Erro ao remover comentário', err);
-      try { this.toast.error('Não foi possível remover o comentário.'); } catch {}
-    }
-  }
-
-  canDeleteComment(c: any): boolean {
-    try {
-      return this.isLogged();
-    } catch { return false; }
-  }
-
-  typeEmoji(tipo?: string) {
-    if (!tipo) return '🐾';
-    const t = (tipo || '').toLowerCase();
-    if (t.includes('cach') || t.includes('dog') || t.includes('cao') || t.includes('cão')) return '🐶';
-    if (t.includes('gat') || t.includes('cat')) return '🐱';
-    if (t.includes('ave') || t.includes('bird') || t.includes('pássar') || t.includes('passar')) return '🐦';
-    return '🐾';
   }
 
   formatDate(d: any): string {
@@ -661,9 +486,15 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
       if (diff < 86400) return `${Math.floor(diff / 3600)} h`;
       if (diff < 86400 * 7) return `${Math.floor(diff / 86400)} d`;
       return dt.toLocaleDateString('pt-BR');
-    } catch { return ''; }
+    } catch {
+      return '';
+    }
   }
 
   trackComentario = (_: number, c: any) => c?.id ?? _;
   trackReaction = (_: number, r: any) => r?.tipo ?? _;
+
+  private emitChange(): void {
+    if (this.post) this.postChanged.emit(this.post);
+  }
 }

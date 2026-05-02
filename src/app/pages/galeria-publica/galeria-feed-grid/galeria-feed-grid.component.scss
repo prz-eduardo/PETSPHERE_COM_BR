@@ -1,0 +1,211 @@
+:host { display: block; width: 100%; }
+
+.galeria-feed {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 12px;
+  width: 100%;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .galeria-feed {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+.pet-card--compact {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(10, 16, 24, 0.08);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(2, 6, 23, 0.07);
+  font: inherit;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+button.pet-card--compact {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+article.pet-card--compact { cursor: default; }
+
+.pet-card--compact:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.12);
+}
+
+.pet-card--compact:focus-visible {
+  outline: 3px solid rgba(196, 214, 0, 0.75);
+  outline-offset: 2px;
+}
+
+.pet-card--compact__media {
+  position: relative;
+  aspect-ratio: var(--pet-photo-feed-ratio, 4 / 5);
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+}
+
+.pet-card--compact__media .pet-card--img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 1;
+  transition: transform 0.35s ease;
+}
+
+.pet-card--compact:hover .pet-card--compact__media .pet-card--img.loaded {
+  transform: scale(1.05);
+}
+
+.pet-card--compact__count {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+
+.pet-card--compact__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+.pet-card--compact__titleblock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pet-card--compact__name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0b1621;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.pet-card--compact__caption {
+  font-size: 10px;
+  color: #475569;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pet-card--compact__end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 24px;
+  line-height: 1;
+}
+
+.pet-card--compact__species {
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+}
+
+.pet-card--compact__stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 1;
+}
+
+.pet-card--compact__stat { white-space: nowrap; }
+
+.pet-card--compact--ad .pet-card--compact__media {
+  background:
+    url('/imagens/vet-placeholder.png') center / cover no-repeat,
+    linear-gradient(135deg, #f3f4f6, #e5e7eb);
+}
+
+.pet-card--compact__ribbon {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  background: #f5a700;
+  color: #08111a;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.pet-card--compact__phone {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+  text-decoration: none;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 24px;
+  transition: background 0.15s ease;
+}
+
+.pet-card--compact__phone:hover,
+.pet-card--compact__phone:focus-visible {
+  background: rgba(6, 78, 59, 0.08);
+  outline: none;
+}
+
+.photo-wrap { position: relative; display: block; overflow: hidden; border-radius: 12px; }
+
+.loading-more {
+  text-align: center;
+  padding: 16px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.sentinel { height: 1px; width: 100%; }

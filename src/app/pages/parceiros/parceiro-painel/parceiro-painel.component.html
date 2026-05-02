@@ -139,6 +139,29 @@
     </div>
   </section>
 
+  <section class="fin-resumo-mini" *ngIf="finLoading || finResumo" aria-labelledby="fin-resumo-title">
+    <h2 id="fin-resumo-title" class="fin-resumo-mini__title">Resumo financeiro (pedidos pagos)</h2>
+    <p *ngIf="finLoading" class="muted">Carregando totais…</p>
+    <div *ngIf="finResumo" class="fin-resumo-mini__grid">
+      <div>
+        <span class="fin-lbl">Total vendido</span>
+        <strong>{{ finResumo.total_vendido | currency : 'BRL' }}</strong>
+      </div>
+      <div>
+        <span class="fin-lbl">Taxa plataforma (prevista)</span>
+        <strong>{{ finResumo.taxa_plataforma_prevista | currency : 'BRL' }}</strong>
+      </div>
+      <div>
+        <span class="fin-lbl">Líquido parceiro (previsto)</span>
+        <strong>{{ finResumo.liquido_parceiro_previsto | currency : 'BRL' }}</strong>
+      </div>
+      <div>
+        <span class="fin-lbl">Pedidos pagos</span>
+        <strong>{{ finResumo.pedidos_pagos }}</strong>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Home Overview: KPIs, gráfico de vendas, fila de pedidos ─────────── -->
   <app-admin-home-overview></app-admin-home-overview>
 

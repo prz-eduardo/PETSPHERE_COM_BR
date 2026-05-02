@@ -1,8 +1,12 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { lastValueFrom } from 'rxjs';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
+import {
+  ChatComercialResponse,
+  ParceiroChatComercialService,
+} from '../../../services/parceiro-chat-comercial.service';
 import {
   ParceiroHistoricoItem,
   ParceiroMinhaAssinaturaResponse,
@@ -24,6 +28,8 @@ import {
 export class PlanosAssinaturaComponent implements OnInit {
   private monetizacao = inject(ParceiroMonetizacaoService);
   private creditos = inject(ParceiroCreditosService);
+  private chatComercial = inject(ParceiroChatComercialService);
+  private router = inject(Router);
   auth = inject(ParceiroAuthService);
 
   loading = true;
@@ -37,6 +43,13 @@ export class PlanosAssinaturaComponent implements OnInit {
   extrato: ParceiroCreditoExtratoResponse | null = null;
   extratoLoading = false;
   extratoError = '';
+
+  assistLoading = false;
+  assistError = '';
+  assistReply = '';
+  assistLeadStage = '';
+  assistSessionId = `sess-${Date.now()}`;
+  assistMsgId = 0;
 
   ngOnInit(): void {
     void this.load();
@@ -152,5 +165,56 @@ export class PlanosAssinaturaComponent implements OnInit {
 
   trackExtrato(_i: number, row: ParceiroCreditoMovimentoExtrato): number {
     return row.id;
+  }
+
+  async sendAssistComercial(input: HTMLTextAreaElement): Promise<void> {
+    const message = String(input?.value || '').trim();
+    if (!message) return;
+    const headers = this.auth.getAuthHeaders();
+    if (!('Authorization' in headers) || !headers.Authorization) {
+      this.assistError = 'Sessão expirada.';
+      return;
+    }
+    this.assistError = '';
+    this.assistLoading = true;
+    this.assistReply = '';
+    this.assistMsgId += 1;
+    try {
+      const res = await lastValueFrom(
+        this.chatComercial.postComercial(
+          {
+            message,
+            sessionId: this.assistSessionId,
+            clientMessageId: String(this.assistMsgId),
+          },
+          headers as { Authorization: string }
+        )
+      );
+      this.applyAssistResponse(res);
+      input.value = '';
+    } catch (e: any) {
+      if (e?.status === 402) {
+        this.assistError = e?.error?.error || 'Créditos insuficientes para o assistente comercial.';
+      } else {
+        this.assistError = e?.error?.error || e?.message || 'Falha ao enviar mensagem.';
+      }
+    } finally {
+      this.assistLoading = false;
+    }
+  }
+
+  private applyAssistResponse(res: ChatComercialResponse): void {
+    this.assistReply = res.message || '';
+    this.assistLeadStage = res.leadStage || '';
+    const fa = res.finalAction;
+    if (
+      fa &&
+      fa.type === 'navigate' &&
+      fa.route &&
+      !fa.requiresConfirmation &&
+      (fa.confidence ?? 0) >= 0.8
+    ) {
+      void this.router.navigateByUrl(fa.route);
+    }
   }
 }

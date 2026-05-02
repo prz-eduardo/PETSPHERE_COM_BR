@@ -1,10 +1,13 @@
 <div class="galeria-pet-wrapper">
   <div class="galeria-pet__header" *ngIf="!modal">
     <h2 class="galeria-pet__title">Minha Galeria</h2>
-    <p class="galeria-pet__desc">Gerencie as fotos dos seus pets, organize em coleções e defina quais aparecem na galeria pública.</p>
+    <p class="galeria-pet__desc">
+      Veja e gerencie os seus posts. Cada post pode ter uma legenda e várias fotos em carrossel.
+    </p>
   </div>
 
-  <div class="pet-selector" *ngIf="pets.length">
+  <!-- Selector de pets -->
+  <div class="pet-selector" *ngIf="hasPets">
     <label class="pet-selector__label">Pets exibidos:</label>
     <div class="pet-selector__avatars">
       <button
@@ -15,232 +18,232 @@
         (click)="togglePetSelection(p.id || p._id)"
         [title]="p.nome || 'Pet sem nome'"
       >
-        <img *ngIf="p.foto_url || p.foto" [src]="p.foto_url || p.foto" [alt]="p.nome || 'Pet'" />
-        <span *ngIf="!(p.foto_url || p.foto)">{{ (p.nome || 'P').slice(0, 1) }}</span>
+        <img *ngIf="p.foto_url || p.foto || p.photoURL" [src]="p.foto_url || p.foto || p.photoURL" [alt]="p.nome || 'Pet'" />
+        <span *ngIf="!(p.foto_url || p.foto || p.photoURL)">{{ (p.nome || 'P').slice(0, 1) }}</span>
       </button>
     </div>
   </div>
 
-  <!-- Main Gallery Section -->
-  <div class="gallery-container" *ngIf="pets.length">
-    <!-- Gallery Toolbar -->
+  <!-- Toolbar / KPIs -->
+  <div class="gallery-container" *ngIf="hasPets">
     <div class="gallery-toolbar">
       <div class="gallery-toolbar__copy">
-        <p class="photo-hint muted small">Pode enviar várias fotos, até 12 novas por vez, com 3MB cada.</p>
-        <p class="gallery-toolbar__subhint">Fotos em coleção aparecem como 1 card no feed público (com carrossel). Por isso, 3 fotos salvas podem virar 2 cards públicos.</p>
+        <p class="photo-hint muted small">Cada post agrupa uma ou mais fotos do mesmo momento.</p>
       </div>
       <div class="gallery-toolbar__actions">
-        <button type="button" class="btn btn-sec btn-sec--small" (click)="carregarColecoesSelecionadas()" [disabled]="!hasSelectedPets">Atualizar coleções</button>
-        <button *ngIf="fotoPreviews.length" type="button" class="btn btn-sec" (click)="removerTodasNovas()">Limpar novas</button>
+        <button type="button" class="btn btn-primary" (click)="openNovoPost()">+ Novo post</button>
       </div>
     </div>
 
     <div class="gallery-kpis" *ngIf="hasSelectedPets">
       <article class="gallery-kpi">
-        <span class="gallery-kpi__label">Fotos salvas</span>
-        <strong class="gallery-kpi__value">{{ totalFotosSalvas }}</strong>
+        <span class="gallery-kpi__label">Posts</span>
+        <strong class="gallery-kpi__value">{{ totalPosts }}</strong>
       </article>
       <article class="gallery-kpi gallery-kpi--public">
-        <span class="gallery-kpi__label">Fotos públicas elegíveis</span>
-        <strong class="gallery-kpi__value">{{ totalFotosPublicas }}</strong>
-      </article>
-      <article class="gallery-kpi gallery-kpi--cards">
-        <span class="gallery-kpi__label">Cards estimados no feed</span>
-        <strong class="gallery-kpi__value">{{ totalCardsPublicosEstimados }}</strong>
+        <span class="gallery-kpi__label">Públicos</span>
+        <strong class="gallery-kpi__value">{{ totalPostsPublicos }}</strong>
       </article>
       <article class="gallery-kpi gallery-kpi--hidden">
-        <span class="gallery-kpi__label">Ocultas/pendentes</span>
-        <strong class="gallery-kpi__value">{{ totalFotosOcultas }}</strong>
+        <span class="gallery-kpi__label">Ocultos / pendentes</span>
+        <strong class="gallery-kpi__value">{{ totalPostsOcultos }}</strong>
       </article>
     </div>
 
-    <!-- Gallery Sections -->
-    <div class="gallery-section-grid">
-      <!-- Saved Photos Panel -->
-      <div class="gallery-panel gallery-panel--saved">
-        <div class="gallery-panel__head">
-          <h4>Fotos salvas</h4>
-          <span>{{ visibleGaleriaItens.length }} item(ns)</span>
-        </div>
-        <p class="gallery-panel__hint">Use a coleção para definir se a foto aparece no feed como avulsa ou agrupada num álbum.</p>
+    <div class="visibility-tabs" *ngIf="hasSelectedPets">
+      <button
+        type="button"
+        class="visibility-tab"
+        [class.visibility-tab--active]="isVisibilityFilterActive('all')"
+        (click)="setVisibilityFilter('all')"
+      >Todos</button>
+      <button
+        type="button"
+        class="visibility-tab"
+        [class.visibility-tab--active]="isVisibilityFilterActive('public')"
+        (click)="setVisibilityFilter('public')"
+      >Públicos</button>
+      <button
+        type="button"
+        class="visibility-tab"
+        [class.visibility-tab--active]="isVisibilityFilterActive('hidden')"
+        (click)="setVisibilityFilter('hidden')"
+      >Ocultos / Pendentes</button>
+    </div>
 
-        <!-- Collection Management -->
-        <div class="colecao-box">
-          <div class="colecao-box__head">
-            <strong>Gerenciar coleções</strong>
-            <button type="button" class="btn btn-sec btn-sec--small" (click)="carregarColecoesSelecionadas()" [disabled]="!hasSelectedPets">Atualizar lista</button>
-          </div>
-          <p class="colecao-box__desc">Crie álbuns para montar carrosséis na galeria pública. Fotos sem coleção continuam entrando como fotos avulsas.</p>
-          <div class="colecao-bar__row">
-            <input class="colecao-bar__input" type="text" [(ngModel)]="novoTituloColecao" placeholder="Nome da nova coleção" />
-            <button type="button" class="btn btn-sec" (click)="criarColecao()">+ Coleção</button>
-          </div>
-        </div>
+    <div *ngIf="loading" class="gallery-loading">Carregando seus posts…</div>
 
-        <!-- Gallery Items List -->
-        <div class="collection-tabs" *ngIf="collectionTabs.length > 1">
-          <button
-            type="button"
-            class="collection-tab"
-            *ngFor="let tab of collectionTabs"
-            [class.collection-tab--active]="activeCollectionTabId === tab.id"
-            (click)="selectCollectionTab(tab.id)"
+    <!-- Grupos por pet -->
+    <div *ngIf="!loading" class="pet-groups">
+      <section *ngFor="let group of groups" class="pet-group">
+        <header class="pet-group__head">
+          <h3 class="pet-group__title">{{ group.pet_nome }}</h3>
+          <span class="pet-group__count">{{ group.posts.length }} post(s)</span>
+        </header>
+
+        <div *ngIf="visiblePostsForGroup(group).length; else emptyGroup" class="post-grid">
+          <article
+            *ngFor="let post of visiblePostsForGroup(group); trackBy: trackPostId"
+            class="post-card"
+            (click)="openPostEditor(post)"
+            (keydown.enter)="openPostEditor(post)"
+            tabindex="0"
+            role="button"
           >
-            {{ tab.label }} ({{ tab.count }})
-          </button>
-        </div>
-
-        <div class="visibility-tabs" *ngIf="hasSelectedPets">
-          <button type="button" class="visibility-tab" [class.visibility-tab--active]="isVisibilityFilterActive('all')" (click)="setVisibilityFilter('all')">
-            Todas
-          </button>
-          <button type="button" class="visibility-tab" [class.visibility-tab--active]="isVisibilityFilterActive('public')" (click)="setVisibilityFilter('public')">
-            Públicas
-          </button>
-          <button type="button" class="visibility-tab" [class.visibility-tab--active]="isVisibilityFilterActive('hidden')" (click)="setVisibilityFilter('hidden')">
-            Ocultas/Pendentes
-          </button>
-        </div>
-
-        <div class="gallery-list" *ngIf="visibleGaleriaItens.length; else noFotoSalva">
-          <article class="gallery-item-card gallery-item-card--clickable" *ngFor="let g of visibleGaleriaItens" (click)="openGalleryItemSettings(g)" (keydown.enter)="openGalleryItemSettings(g)" tabindex="0">
-            <div class="gallery-item-card__media">
-              <img [src]="g.url" alt="Foto guardada" />
-              <span class="g-badge">Salva</span>
+            <div class="post-card__media">
+              <img [src]="post.cover_url || post.galeria_urls[0] || ''" alt="Capa do post" />
+              <span class="post-card__count" *ngIf="post.imagens.length > 1">
+                +{{ post.imagens.length - 1 }}
+              </span>
+              <span
+                class="post-card__status"
+                [ngClass]="'post-card__status--' + postStatusTone(post)"
+              >{{ postStatusLabel(post) }}</span>
             </div>
-            <div class="gallery-item-card__body">
-              <div class="gallery-item-card__title">Foto da galeria</div>
-              <div class="gallery-item-card__pet">{{ g.pet_nome }}</div>
-              <div class="gallery-item-card__status" [ngClass]="'gallery-item-card__status--' + galleryItemStatusTone(g)">{{ galleryItemStatus(g) }}</div>
-              <div class="gallery-item-card__meta" *ngIf="g.legenda">{{ g.legenda }}</div>
-              <div class="gallery-item-card__actions">
+            <div class="post-card__body">
+              <div class="post-card__caption" *ngIf="post.caption">{{ post.caption }}</div>
+              <div class="post-card__caption post-card__caption--empty" *ngIf="!post.caption">Sem legenda</div>
+              <div class="post-card__meta">
+                <span *ngIf="post.created_at">{{ formatDate(post.created_at) }}</span>
+                <span class="post-card__engagement" *ngIf="post.engagement.total > 0">
+                  ❤️ {{ post.engagement.total }}
+                </span>
+                <span class="post-card__engagement" *ngIf="post.engagement.comentarios > 0">
+                  💬 {{ post.engagement.comentarios }}
+                </span>
+              </div>
+              <div class="post-card__actions">
                 <button
                   type="button"
                   class="btn btn-sec btn-sec--small"
-                  (click)="toggleGalleryItemVisibility(g, $event)"
+                  (click)="togglePostPublic(post, $event)"
                 >
-                  {{ (g.galeria_publica === false || g.galeria_publica === 0 || g.galeria_publica === '0') ? 'Publicar foto' : 'Ocultar foto' }}
+                  {{ post.galeria_publica ? 'Ocultar' : 'Publicar' }}
                 </button>
               </div>
-              <div class="gallery-item-card__cta">Clique para configurar esta foto</div>
             </div>
           </article>
         </div>
-        <ng-template #noFotoSalva>
+
+        <ng-template #emptyGroup>
           <div class="gallery-empty">
-            <span *ngIf="!hasSelectedPets">Nenhum pet selecionado. Toque nos avatares acima para filtrar.</span>
-            <span *ngIf="hasSelectedPets">Nenhuma foto salva para o filtro atual.</span>
+            <span *ngIf="visibilityFilter === 'all'">Nenhum post ainda. Use o botão "Novo post" para começar.</span>
+            <span *ngIf="visibilityFilter !== 'all'">Nenhum post para o filtro atual.</span>
           </div>
         </ng-template>
-      </div>
+      </section>
 
-      <!-- New Photos Panel -->
-      <div class="gallery-panel gallery-panel--new">
-        <div class="gallery-panel__head">
-          <h4>Novas fotos</h4>
-          <span>{{ fotoPreviews.length }} pronta(s)</span>
-        </div>
-        <p class="gallery-panel__hint">As novas fotos entram ao salvar esta galeria.</p>
-
-        <div class="gallery-list gallery-list--new" *ngIf="fotoPreviews.length; else noFotoNova">
-          <article class="gallery-item-card gallery-item-card--new" *ngFor="let p of fotoPreviews; let i = index">
-            <div class="gallery-item-card__media">
-              <img [src]="p" alt="Nova foto" />
-            </div>
-            <div class="gallery-item-card__body">
-              <div class="gallery-item-card__title">Nova foto {{ i + 1 }}</div>
-              <div class="gallery-item-card__status">Será enviada ao salvar.</div>
-              <button type="button" class="btn btn-sec btn-sec--small" (click)="removerNovaFoto(i)">Remover desta edição</button>
-            </div>
-          </article>
-        </div>
-        <ng-template #noFotoNova>
-          <div class="gallery-empty gallery-empty--upload" (click)="openUploadPicker(fileInput)">
-            <input #fileInput type="file" accept="image/*" multiple (change)="onFileChange($event)" hidden />
-            <span *ngIf="hasSelectedPets">Nenhuma nova foto selecionada. Clique aqui para adicionar fotos.</span>
-            <span *ngIf="!hasSelectedPets">Selecione pelo menos um pet para adicionar novas fotos.</span>
-          </div>
-        </ng-template>
+      <div *ngIf="hasSelectedPets && !groups.length" class="gallery-empty">
+        Nenhum pet selecionado.
       </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="gallery-actions">
-      <button type="button" class="btn btn-sec" *ngIf="modal" (click)="fechar()" [disabled]="carregando">Fechar</button>
-      <button type="button" class="btn btn-primary" *ngIf="fotoPreviews.length" (click)="salvarFotos()" [disabled]="carregando">
-        {{ carregando ? 'Salvando...' : 'Salvar fotos' }}
-      </button>
+    <div class="gallery-actions" *ngIf="modal">
+      <button type="button" class="btn btn-sec" (click)="fechar()">Fechar</button>
     </div>
   </div>
 
-  <!-- No Pet Selected -->
-  <div class="gallery-empty" *ngIf="pets.length === 0">
+  <div class="gallery-empty" *ngIf="!hasPets">
     <p>Você não tem pets cadastrados. Cadastre um pet para gerenciar suas fotos.</p>
   </div>
 
-  <!-- Gallery Item Settings Modal -->
-  <div *ngIf="selectedGalleryItem" class="gallery-settings-modal__backdrop" (click)="closeGalleryItemSettings()">
-    <div class="gallery-settings-modal" (click)="$event.stopPropagation()">
-      <div class="gallery-settings-modal__header">
-        <h3>Configurar foto</h3>
-        <button type="button" class="btn-close" (click)="closeGalleryItemSettings()" [disabled]="savingGalleryItem">×</button>
+  <!-- Post Editor Modal -->
+  <div *ngIf="editingPost" class="post-edit-modal__backdrop" (click)="closePostEditor()">
+    <div class="post-edit-modal" (click)="$event.stopPropagation()">
+      <div class="post-edit-modal__header">
+        <h3>Editar post</h3>
+        <button type="button" class="btn-close" (click)="closePostEditor()" [disabled]="savingPost || deletingPost">×</button>
       </div>
 
-      <div class="gallery-settings-modal__body">
-        <div class="gallery-settings-modal__preview">
-          <img [src]="selectedGalleryItem.url" alt="Foto em configuração" />
+      <div class="post-edit-modal__body">
+        <!-- Carrossel de imagens (com gerenciamento) -->
+        <div class="post-edit-modal__images">
+          <div
+            *ngFor="let img of editingPost.imagens; let i = index; trackBy: trackImagemId"
+            class="post-edit-image"
+            [class.post-edit-image--cover]="img.id === editingPost.cover_imagem_id"
+          >
+            <img [src]="img.url" alt="Imagem do post" />
+            <span class="post-edit-image__order">{{ i + 1 }}</span>
+            <span *ngIf="img.id === editingPost.cover_imagem_id" class="post-edit-image__badge">Capa</span>
+
+            <div class="post-edit-image__actions">
+              <button
+                type="button"
+                class="post-edit-image__btn"
+                [disabled]="i === 0 || workingImagemId === img.id"
+                (click)="movePostImage(editingPost, i, i - 1)"
+                title="Mover para a esquerda"
+              >‹</button>
+              <button
+                type="button"
+                class="post-edit-image__btn"
+                [disabled]="i === editingPost.imagens.length - 1 || workingImagemId === img.id"
+                (click)="movePostImage(editingPost, i, i + 1)"
+                title="Mover para a direita"
+              >›</button>
+              <button
+                type="button"
+                class="post-edit-image__btn"
+                [disabled]="img.id === editingPost.cover_imagem_id || workingImagemId === img.id"
+                (click)="setPostCover(editingPost, img.id)"
+                title="Definir como capa do post"
+              >★</button>
+              <button
+                type="button"
+                class="post-edit-image__btn"
+                [disabled]="workingImagemId === img.id"
+                (click)="setImageAsPetCover(editingPost, img.id)"
+                title="Usar como foto principal do pet"
+              >🐾</button>
+              <button
+                type="button"
+                class="post-edit-image__btn post-edit-image__btn--danger"
+                [disabled]="workingImagemId === img.id"
+                (click)="removePostImage(editingPost, img.id)"
+                title="Remover esta foto do post"
+              >×</button>
+            </div>
+          </div>
         </div>
 
-        <div class="gallery-settings-modal__form">
+        <div class="post-edit-modal__form">
           <div class="field">
             <label>Legenda</label>
-            <textarea [(ngModel)]="galleryDraft.legenda" placeholder="Adicione uma legenda para a foto..." rows="3"></textarea>
-          </div>
-
-          <div class="field">
-            <label>Coleção</label>
-            <select [(ngModel)]="galleryDraft.colecao_id">
-              <option [value]="null">Sem coleção (foto avulsa)</option>
-              <option *ngFor="let c of getColecoesDoItemSelecionado()" [value]="c.id">{{ c.titulo }}</option>
-            </select>
+            <textarea
+              [(ngModel)]="editDraft.caption"
+              rows="3"
+              maxlength="800"
+              placeholder="Adicione ou edite a legenda do post…"
+            ></textarea>
           </div>
 
           <div class="field field--checkbox">
             <label class="checkbox-row">
-              <input type="checkbox" [(ngModel)]="galleryDraft.galeria_publica" />
+              <input type="checkbox" [(ngModel)]="editDraft.galeria_publica" />
               <span>Exibir na galeria pública</span>
             </label>
-            <p class="field-hint">Com a opção ativa, esta foto poderá aparecer na galeria pública do site.</p>
           </div>
         </div>
       </div>
 
-      <div class="gallery-settings-modal__footer gallery-settings-modal__footer--split">
-        <div class="gallery-settings-modal__footer-left">
+      <div class="post-edit-modal__footer">
+        <div class="post-edit-modal__footer-left">
           <button
             type="button"
-            class="btn btn-sec btn-sec--small"
-            (click)="definirComoCapa(selectedGalleryItem)"
-            [disabled]="savingGalleryItem || deletingGalleryItem || settingCoverGalleryItem"
-            title="Usar esta foto como foto principal do pet"
+            class="btn btn-danger-ghost"
+            (click)="deletePost(null)"
+            [disabled]="savingPost || deletingPost"
           >
-            {{ settingCoverGalleryItem ? 'Definindo...' : 'Definir como capa' }}
-          </button>
-          <button
-            type="button"
-            class="btn btn-danger-ghost btn-sec--small"
-            (click)="excluirFoto(selectedGalleryItem)"
-            [disabled]="savingGalleryItem || deletingGalleryItem || settingCoverGalleryItem"
-          >
-            {{ deletingGalleryItem ? 'Excluindo...' : 'Excluir foto' }}
+            {{ deletingPost ? 'Excluindo…' : 'Excluir post' }}
           </button>
         </div>
-        <div class="gallery-settings-modal__footer-right">
-          <button type="button" class="btn btn-sec" (click)="closeGalleryItemSettings()" [disabled]="savingGalleryItem || deletingGalleryItem || settingCoverGalleryItem">
+        <div class="post-edit-modal__footer-right">
+          <button type="button" class="btn btn-sec" (click)="closePostEditor()" [disabled]="savingPost || deletingPost">
             Cancelar
           </button>
-          <button type="button" class="btn btn-primary" (click)="saveGalleryItemSettings()" [disabled]="savingGalleryItem || deletingGalleryItem || settingCoverGalleryItem">
-            {{ savingGalleryItem ? 'Salvando...' : 'Salvar configuração' }}
+          <button type="button" class="btn btn-primary" (click)="savePostEdits()" [disabled]="savingPost || deletingPost">
+            {{ savingPost ? 'Salvando…' : 'Salvar' }}
           </button>
         </div>
       </div>

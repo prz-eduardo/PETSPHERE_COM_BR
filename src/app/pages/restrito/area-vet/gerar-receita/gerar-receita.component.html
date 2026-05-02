@@ -377,6 +377,35 @@
         <p class="panel-hint">Hipótese diagnóstica e conduta terapêutica.</p>
       </div>
     </div>
+
+    <div class="analise-clinica-ia">
+      <p class="muted small" style="margin-bottom: 8px;">
+        Rascunho assistido a partir do prontuário (anamnese, exame físico, exames, pet). Não substitui decisão clínica; consome créditos de IA.
+      </p>
+      <div class="analise-clinica-ia__actions">
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="gerarAnaliseClinicaAssistida()"
+          [disabled]="analiseClinicaLoading"
+        >
+          <span *ngIf="analiseClinicaLoading">Gerando…</span>
+          <span *ngIf="!analiseClinicaLoading">Gerar análise clínica com IA</span>
+        </button>
+        <button
+          type="button"
+          class="btn-sec"
+          *ngIf="analiseClinicaTexto || analiseClinicaErro"
+          (click)="limparAnaliseClinicaAssistida()"
+          [disabled]="analiseClinicaLoading"
+        >
+          Limpar resultado
+        </button>
+      </div>
+      <p class="analise-clinica-ia__erro" *ngIf="analiseClinicaErro">{{ analiseClinicaErro }}</p>
+      <pre class="analise-clinica-ia__out" *ngIf="analiseClinicaTexto">{{ analiseClinicaTexto }}</pre>
+    </div>
+
     <div class="grid-pet">
       <div class="input-group full">
         <label>Diagnóstico</label>

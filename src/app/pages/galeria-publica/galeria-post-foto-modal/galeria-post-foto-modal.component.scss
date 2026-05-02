@@ -349,6 +349,110 @@
   color: rgba(148, 163, 184, 0.9);
 }
 
+.gpf-preview-grid {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.gpf-preview-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f172a;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+}
+
+.gpf-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gpf-preview-order {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  z-index: 1;
+}
+
+.gpf-preview-actions {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: space-between;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.55));
+  padding: 18px 4px 4px;
+}
+
+.gpf-preview-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.gpf-preview-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.gpf-preview-btn--danger { color: #b91c1c; }
+
+.gpf-caption {
+  width: 100%;
+  resize: vertical;
+  min-height: 72px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  font-family: inherit;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fff;
+  box-sizing: border-box;
+}
+.gpf-dialog--embedded .gpf-caption {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+}
+
+.gpf-caption-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: right;
+}
+
+.gpf-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.gpf-dialog--embedded .gpf-toggle {
+  color: #e2e8f0;
+}
+
 .gpf-actions {
   display: flex;
   gap: 10px;

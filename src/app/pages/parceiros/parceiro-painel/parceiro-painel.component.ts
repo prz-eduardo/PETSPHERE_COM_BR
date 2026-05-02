@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
 import { ParceiroCreditosService } from '../../../services/parceiro-creditos.service';
+import { ApiService } from '../../../services/api.service';
 import { AdminHomeOverviewComponent } from '../../restrito/admin/home-overview/home-overview.component';
 import { ParceiroPainelOperacaoVendasComponent } from './parceiro-painel-operacao-vendas/parceiro-painel-operacao-vendas.component';
 import { ParceiroPainelOperacaoHotelariaComponent } from './parceiro-painel-operacao-hotelaria/parceiro-painel-operacao-hotelaria.component';
@@ -50,6 +51,14 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
   creditosSaldo: number | null = null;
   creditosLoading = false;
 
+  finResumo: {
+    total_vendido: number;
+    taxa_plataforma_prevista: number;
+    liquido_parceiro_previsto: number;
+    pedidos_pagos: number;
+  } | null = null;
+  finLoading = false;
+
   private collapsed: Record<string, boolean> = {};
 
   private sectionItems: Record<SectionKey, string[]> = {
@@ -85,6 +94,7 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
     private router: Router,
     private parceiroAuth: ParceiroAuthService,
     private parceiroCreditos: ParceiroCreditosService,
+    private api: ApiService,
   ) {}
 
   ngOnInit(): void {
@@ -118,6 +128,7 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
     }
 
     this.loadCreditosSaldo();
+    this.loadFinResumo();
   }
 
   ngOnDestroy(): void {}
@@ -134,6 +145,22 @@ export class ParceiroPainelComponent implements OnInit, OnDestroy {
       error: () => {
         this.creditosSaldo = null;
         this.creditosLoading = false;
+      },
+    });
+  }
+
+  loadFinResumo(): void {
+    const tok = this.parceiroAuth.getToken();
+    if (!tok) return;
+    this.finLoading = true;
+    this.api.getParceiroFinanceiroResumo(tok).subscribe({
+      next: (r) => {
+        this.finResumo = r;
+        this.finLoading = false;
+      },
+      error: () => {
+        this.finResumo = null;
+        this.finLoading = false;
       },
     });
   }

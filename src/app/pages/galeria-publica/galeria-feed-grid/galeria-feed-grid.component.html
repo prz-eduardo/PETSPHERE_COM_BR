@@ -1,0 +1,79 @@
+<div class="galeria-feed">
+  <ng-container *ngIf="ad">
+    <article
+      class="pet-card pet-card--compact pet-card--compact--ad"
+      role="article"
+      [attr.aria-label]="'Anúncio: ' + (ad.nome || 'Veterinário')"
+      tabindex="0"
+      (click)="openAd.emit(ad)"
+      (keydown.enter)="openAd.emit(ad)"
+    >
+      <div class="pet-card--compact__media photo-wrap">
+        <span class="pet-card--compact__ribbon" aria-hidden="true">Anúncio</span>
+        <img
+          [src]="resolveAdImage(ad)"
+          alt=""
+          class="pet-card--img loaded"
+          (error)="imgFallback($event.target)"
+        />
+      </div>
+      <div class="pet-card--compact__footer">
+        <span class="pet-card--compact__name">{{ ad.nome || 'Veterinário' }}</span>
+        <div class="pet-card--compact__end">
+          <span class="pet-card--compact__species" title="Anúncio" aria-hidden="true">🏥</span>
+          <a
+            *ngIf="ad.telefone"
+            class="pet-card--compact__phone"
+            [href]="'tel:' + ad.telefone"
+            [attr.aria-label]="'Ligar para ' + ad.telefone"
+            (click)="$event.stopPropagation()"
+          >📞</a>
+        </div>
+      </div>
+    </article>
+  </ng-container>
+
+  <button
+    *ngFor="let post of items; trackBy: trackPostId"
+    type="button"
+    class="pet-card pet-card--compact"
+    (click)="openPost.emit(post)"
+    [attr.aria-label]="'Abrir post de ' + (post.pet?.nome || 'pet')"
+  >
+    <div class="pet-card--compact__media photo-wrap">
+      <img
+        [src]="resolveImage(post)"
+        alt=""
+        class="pet-card--img loaded"
+        (error)="imgFallback($event.target)"
+      />
+      <span class="pet-card--compact__count" *ngIf="post.imagens.length > 1" aria-hidden="true">
+        +{{ post.imagens.length - 1 }}
+      </span>
+    </div>
+    <div class="pet-card--compact__footer">
+      <div class="pet-card--compact__titleblock">
+        <span class="pet-card--compact__name">{{ post.pet?.nome || 'Sem nome' }}</span>
+        <span class="pet-card--compact__caption" *ngIf="post.caption">{{ post.caption }}</span>
+      </div>
+      <div class="pet-card--compact__end">
+        <span class="pet-card--compact__species" aria-hidden="true">{{ speciesEmoji(post) }}</span>
+        <span
+          class="pet-card--compact__stats"
+          *ngIf="post.engagement.total > 0 || post.engagement.comentarios > 0"
+          aria-hidden="true"
+        >
+          <span *ngIf="post.engagement.total > 0" class="pet-card--compact__stat">
+            ❤️ {{ post.engagement.total }}
+          </span>
+          <span *ngIf="post.engagement.comentarios > 0" class="pet-card--compact__stat">
+            💬 {{ post.engagement.comentarios }}
+          </span>
+        </span>
+      </div>
+    </div>
+  </button>
+</div>
+
+<div class="loading-more" *ngIf="loadingMore">Carregando mais posts…</div>
+<div #sentinel class="sentinel" aria-hidden="true"></div>

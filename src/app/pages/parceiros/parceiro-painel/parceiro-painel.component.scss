@@ -633,6 +633,36 @@
 
 .item:hover:not([disabled]) .item-arrow { transform: translateX(3px); }
 
+.fin-resumo-mini {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 20px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.fin-resumo-mini__title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.fin-resumo-mini__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px 18px;
+}
+
+.fin-lbl {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--admin-muted);
+  margin-bottom: 4px;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .painel-wrapper {

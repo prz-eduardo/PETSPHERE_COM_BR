@@ -138,5 +138,23 @@
         </table>
       </div>
     </section>
+
+    <section class="list-card assist-comercial" *ngIf="!loading && assinatura">
+      <h3>Assistente comercial (beta)</h3>
+      <p class="muted">
+        Pergunte sobre planos ou créditos. A navegação só segue <code>finalAction</code> com confiança ≥ 0,8 e sem confirmação obrigatória.
+      </p>
+      <div class="alert error" *ngIf="assistError">{{ assistError }}</div>
+      <textarea #assistTa rows="3" placeholder="Ex.: Quais são os planos e preços?"></textarea>
+      <div class="toolbar">
+        <button type="button" (click)="sendAssistComercial(assistTa)" [disabled]="assistLoading">
+          {{ assistLoading ? 'Enviando…' : 'Enviar' }}
+        </button>
+      </div>
+      <div class="assist-reply" *ngIf="assistReply">
+        <p><strong>Resposta:</strong> {{ assistReply }}</p>
+        <p class="muted" *ngIf="assistLeadStage"><strong>Funil:</strong> {{ assistLeadStage }}</p>
+      </div>
+    </section>
   </ng-container>
 </div>

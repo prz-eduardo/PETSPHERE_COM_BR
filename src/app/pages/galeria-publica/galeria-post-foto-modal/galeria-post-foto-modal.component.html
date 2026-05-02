@@ -15,15 +15,25 @@
     (click)="$event.stopPropagation()"
   >
     <div class="gpf-head" *ngIf="!embedded">
-      <h2 id="gpf-title" class="gpf-title">Postar nova foto</h2>
-      <button type="button" class="gpf-x" (click)="close()" [attr.aria-label]="embedded ? 'Voltar' : 'Fechar'">×</button>
+      <h2 id="gpf-title" class="gpf-title">Novo post na galeria</h2>
+      <button
+        type="button"
+        class="gpf-x"
+        (click)="close()"
+        [attr.aria-label]="embedded ? 'Voltar' : 'Fechar'"
+      >×</button>
     </div>
-    <p class="gpf-hint" [class.gpf-hint--embedded]="embedded">O primeiro pet da lista é o <strong>principal</strong> na galeria. Marque todos que aparecem na foto.</p>
+    <p class="gpf-hint" [class.gpf-hint--embedded]="embedded">
+      Adicione até <strong>{{ maxFiles }}</strong> fotos do mesmo momento. O primeiro pet selecionado é o
+      <strong>principal</strong> do post.
+    </p>
 
     <form (ngSubmit)="submit($event)" class="gpf-form" [class.gpf-form--embedded]="embedded">
+      <!-- Pets envolvidos -->
       <div class="gpf-section" [class.gpf-section--card]="embedded">
-        <span class="gpf-label">Quem aparece na foto?</span>
+        <span class="gpf-label">Quem aparece?</span>
         <div *ngIf="loadingPets" class="gpf-loading">Carregando seus pets…</div>
+
         <ul *ngIf="!loadingPets && pets.length" class="gpf-pet-list" role="list">
           <li *ngFor="let p of pets" class="gpf-pet-item">
             <button
@@ -41,49 +51,118 @@
                 <ng-template #petInitial>
                   <span class="gpf-pet-bubble__initials">{{ petInitials(p.nome) }}</span>
                 </ng-template>
-                <span *ngIf="selectionIndex(p.id)" class="gpf-pet-bubble__order">{{ selectionIndex(p.id) }}</span>
+                <span *ngIf="selectionIndex(p.id)" class="gpf-pet-bubble__order">
+                  {{ selectionIndex(p.id) }}
+                </span>
               </span>
               <span class="gpf-pet-copy">
                 <span class="gpf-pet-nome">{{ p.nome || 'Sem nome' }}</span>
                 <span class="gpf-pet-raca" *ngIf="petMeta(p)">{{ petMeta(p) }}</span>
-                <span
-                  *ngIf="p.exibir_galeria_publica != 1 && p.exibir_galeria_publica !== true && p.exibir_galeria_publica !== '1'"
-                  class="gpf-pet-gallery-badge"
-                  title="Este pet será habilitado para a galeria ao publicar a foto"
-                >+ galeria</span>
               </span>
             </button>
           </li>
         </ul>
+
         <div *ngIf="!loadingPets && !pets.length" class="gpf-empty-card">
-          <p class="gpf-empty">Você ainda não tem pets cadastrados para marcar na foto.</p>
-          <button type="button" class="gpf-inline-cta" (click)="openNovoPet()">Cadastrar meu primeiro pet</button>
+          <p class="gpf-empty">Você ainda não tem pets cadastrados para marcar.</p>
+          <button type="button" class="gpf-inline-cta" (click)="openNovoPet()">
+            Cadastrar meu primeiro pet
+          </button>
         </div>
-        <p *ngIf="selectedOrder.length" class="gpf-order-hint">Ordem: {{ orderNames() }} (o primeiro é o pet principal no feed)</p>
+
+        <p *ngIf="selectedOrder.length" class="gpf-order-hint">
+          Ordem: {{ orderNames() }} (o primeiro é o pet principal no feed)
+        </p>
       </div>
 
+      <!-- Imagens -->
       <div class="gpf-section" [class.gpf-section--card]="embedded">
-        <label class="gpf-label" [attr.for]="fileInputId()">Imagem</label>
+        <label class="gpf-label" [attr.for]="fileInputId()">
+          Fotos ({{ files.length }}/{{ maxFiles }})
+        </label>
+
         <div class="gpf-file-row">
-          <label class="gpf-file-picker" [attr.for]="fileInputId()">Escolher imagem</label>
-          <span class="gpf-filename" [class.gpf-filename--placeholder]="!file">{{ fileLabel() }}</span>
+          <label class="gpf-file-picker" [attr.for]="fileInputId()">+ Adicionar fotos</label>
+          <span class="gpf-filename gpf-filename--placeholder" *ngIf="!files.length">
+            Você pode escolher várias de uma vez
+          </span>
         </div>
+
         <input
           class="gpf-file-input"
           [attr.id]="fileInputId()"
           [attr.name]="'foto-' + fileInputReset"
           type="file"
           accept="image/*"
+          multiple
           (change)="onFileInput($event)"
         />
+
+        <ul class="gpf-preview-grid" *ngIf="files.length" role="list">
+          <li *ngFor="let item of files; let i = index; trackBy: trackById" class="gpf-preview-item">
+            <span class="gpf-preview-order" aria-hidden="true">{{ i + 1 }}</span>
+            <img [src]="item.url" alt="" class="gpf-preview-img" />
+            <div class="gpf-preview-actions">
+              <button
+                type="button"
+                class="gpf-preview-btn"
+                [disabled]="i === 0"
+                (click)="moveFile(i, i - 1)"
+                aria-label="Mover para a esquerda"
+              >‹</button>
+              <button
+                type="button"
+                class="gpf-preview-btn"
+                [disabled]="i === files.length - 1"
+                (click)="moveFile(i, i + 1)"
+                aria-label="Mover para a direita"
+              >›</button>
+              <button
+                type="button"
+                class="gpf-preview-btn gpf-preview-btn--danger"
+                (click)="removeFile(i)"
+                aria-label="Remover foto"
+              >×</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Legenda + visibilidade -->
+      <div class="gpf-section" [class.gpf-section--card]="embedded">
+        <label class="gpf-label" for="gpf-caption">Legenda (opcional)</label>
+        <textarea
+          id="gpf-caption"
+          class="gpf-caption"
+          rows="3"
+          [maxlength]="maxCaption"
+          [(ngModel)]="caption"
+          name="caption"
+          placeholder="Conte algo sobre esse momento…"
+        ></textarea>
+        <p class="gpf-caption-meta">{{ caption.length }}/{{ maxCaption }}</p>
+
+        <label class="gpf-toggle">
+          <input
+            type="checkbox"
+            [(ngModel)]="galeriaPublica"
+            name="galeria_publica"
+          />
+          <span>Mostrar na galeria pública</span>
+        </label>
       </div>
 
       <div class="gpf-actions">
-        <button type="button" class="gpf-btn gpf-btn--ghost" (click)="close()" [disabled]="submitting">Cancelar</button>
+        <button
+          type="button"
+          class="gpf-btn gpf-btn--ghost"
+          (click)="close()"
+          [disabled]="submitting"
+        >Cancelar</button>
         <button
           type="submit"
           class="gpf-btn gpf-btn--primary"
-          [disabled]="submitting || loadingPets || !pets.length"
+          [disabled]="submitting || loadingPets || !pets.length || !files.length || !selectedOrder.length"
         >
           {{ submitting ? 'Enviando…' : 'Publicar' }}
         </button>

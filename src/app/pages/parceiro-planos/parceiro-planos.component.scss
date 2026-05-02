@@ -268,6 +268,25 @@
     }
   }
 
+  .strategic-strip {
+    max-width: 640px;
+    margin: -8px auto 22px;
+    padding: 14px 20px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.88);
+
+    strong {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 700;
+      color: #fff;
+    }
+  }
+
   @keyframes psPulse {
     0%, 100% { transform: scale(1); opacity: 1; }
     50%       { transform: scale(1.3); opacity: 0.6; }
@@ -497,6 +516,29 @@
     }
   }
 
+  .fee-callout {
+    max-width: 720px;
+    margin: 0 auto 32px;
+    padding: 16px 22px;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, rgba(123, 216, 255, 0.12), rgba(197, 255, 61, 0.1));
+    border: 1px solid rgba(15, 11, 46, 0.08);
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: var(--c-ink);
+
+    strong {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 700;
+      color: var(--c-cosmos-soft);
+    }
+
+    span {
+      color: var(--c-ink-soft);
+    }
+  }
+
   .plan-card {
     position: relative;
     background: #fff;
@@ -568,6 +610,19 @@
       }
     }
 
+    .plan-meta {
+      margin-top: -8px;
+
+      p {
+        margin: 0 0 8px;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        color: var(--c-ink-soft);
+      }
+
+      p:last-child { margin-bottom: 0; }
+    }
+
     .plan-benefits {
       list-style: none;
       padding: 0;
@@ -619,6 +674,10 @@
         span   { color: rgba(255, 255, 255, 0.7); }
       }
 
+      .plan-meta p {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
       .plan-benefits li {
         color: rgba(255, 255, 255, 0.92);
         i {
@@ -641,6 +700,85 @@
     i {
       color: var(--c-aurora-deep);
       margin-right: 6px;
+    }
+  }
+
+  .compare-wrap {
+    margin-top: 48px;
+    padding: 28px 24px 32px;
+    border-radius: var(--radius-lg);
+    background: #fff;
+    border: 1px solid rgba(15, 11, 46, 0.08);
+    box-shadow: var(--shadow-card);
+  }
+
+  .compare-head {
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto 24px;
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      color: var(--c-aurora-deep);
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+      margin: 0 0 10px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--c-ink-soft);
+      line-height: 1.5;
+    }
+  }
+
+  .compare-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .compare-table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+
+    th,
+    td {
+      padding: 12px 14px;
+      text-align: center;
+      border-bottom: 1px solid rgba(15, 11, 46, 0.08);
+    }
+
+    thead th {
+      font-weight: 700;
+      background: rgba(15, 11, 46, 0.03);
+      color: var(--c-ink);
+    }
+
+    tbody th[scope='row'] {
+      text-align: left;
+      font-weight: 600;
+      color: var(--c-ink);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      color: var(--c-ink-soft);
+      font-variant-numeric: tabular-nums;
+    }
+
+    tbody tr:last-child th,
+    tbody tr:last-child td {
+      border-bottom: none;
     }
   }
 
