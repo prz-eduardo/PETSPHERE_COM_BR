@@ -1,0 +1,89 @@
+<main class="mgp">
+  <header class="mgp__head">
+    <a routerLink="/area-cliente" class="mgp__back">← Área do cliente</a>
+    <h1>Motorista na rede {{ marca }}</h1>
+    <p class="mgp__lead">
+      Quem dirige pode ser <strong>pessoa física (PF)</strong>, autônomo: usa a <strong>mesma conta de tutor</strong> no app.
+      Depois do KYC aprovado, fique <strong>online</strong> para ver corridas pagas do marketplace, aceitar e concluir a viagem.
+    </p>
+    <p class="mgp__links">
+      <a routerLink="/restrito/kyc-motorista-global">Documentação e selfie (KYC)</a>
+      ·
+      <a routerLink="/mapa" [queryParams]="{ service: 'transporte' }">Mapa — pedir transporte (tutor)</a>
+    </p>
+  </header>
+
+  <p *ngIf="erro" class="mgp__err" role="alert">{{ erro }}</p>
+
+  <div *ngIf="loading" class="mgp__loading">Carregando…</div>
+
+  <ng-container *ngIf="!loading && painel">
+    <section *ngIf="!painel.motorista_global" class="mgp-card">
+      <h2>Cadastro na rede</h2>
+      <p>Você ainda não se inscreveu como motorista global. É gratuito encaixar na fila; o KYC vem em seguida.</p>
+      <button type="button" class="btn btn-primary" [disabled]="busy" (click)="enroll()">Inscrever como motorista PF</button>
+    </section>
+
+    <section *ngIf="painel.motorista_global as mg" class="mgp-card">
+      <h2>Seu cadastro</h2>
+      <ul class="mgp-meta">
+        <li><strong>KYC:</strong> {{ mg['kyc_status'] }}</li>
+        <li><strong>Online:</strong> {{ onlineLocal ? 'sim' : 'não' }}</li>
+        <li *ngIf="mg['ultimo_lat'] != null"><strong>Última posição:</strong> atualizada (mapa público agrega de forma anônima)</li>
+      </ul>
+
+      <ng-container *ngIf="mg['kyc_status'] !== 'approved'">
+        <p class="mgp-warn">
+          Enquanto o KYC não for <code>approved</code>, você não aparece na fila de motoristas. Envie CNH e selfie na página de
+          verificação.
+        </p>
+        <a routerLink="/restrito/kyc-motorista-global" class="btn btn-primary">Abrir verificação KYC</a>
+      </ng-container>
+
+      <ng-container *ngIf="mg['kyc_status'] === 'approved'">
+        <label class="mgp-toggle">
+          <input
+            type="checkbox"
+            [checked]="onlineLocal"
+            [disabled]="busy"
+            (change)="toggleOnline($any($event.target).checked)"
+          />
+          Ficar online para receber corridas (compartilha localização aproximada)
+        </label>
+        <p class="mgp-hint muted">Tutores pedem transporte no mapa (marketplace), pagam pelo app e a corrida entra aqui quando o pagamento confirmar.</p>
+      </ng-container>
+    </section>
+
+    <section *ngIf="painel.corridas_ativas?.length" class="mgp-card mgp-card--emph">
+      <h2>Sua corrida agora</h2>
+      <div *ngFor="let c of painel.corridas_ativas" class="mgp-corrida">
+        <div class="mgp-corrida__tit">Corrida #{{ c['id'] }}</div>
+        <div class="mgp-corrida__status">{{ statusTutorPt(c['status']) }}</div>
+        <div class="muted">Valor bruto {{ fmtReais(c['preco_centavos']) }}</div>
+        <div class="mgp-corrida__acoes" *ngIf="proximoPassoMotorista(c['status']) as passo">
+          <button type="button" class="btn btn-primary" [disabled]="busy" (click)="avancarCorrida(idCorrida(c), passo.action)">
+            {{ passo.label }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="painel.motorista_global?.['kyc_status'] === 'approved'" class="mgp-card">
+      <h2>Corridas disponíveis na rede</h2>
+      <p *ngIf="!onlineLocal" class="muted">Ative <strong>Ficar online</strong> e permita localização para aceitar corridas.</p>
+      <p *ngIf="!painel.corridas_abertas?.length" class="muted">Nenhuma corrida paga aguardando motorista no momento.</p>
+      <div *ngFor="let c of painel.corridas_abertas" class="mgp-corrida mgp-corrida--fila">
+        <div class="mgp-corrida__tit">#{{ c['id'] }} · {{ fmtReais(c['preco_centavos']) }}</div>
+        <div *ngIf="c['dist_to_pickup_km'] != null" class="muted">
+          ~{{ c['dist_to_pickup_km'] }} km até a coleta · ~{{ c['eta_pickup_min'] }} min
+        </div>
+        <div *ngIf="c['dist_to_pickup_km'] == null" class="muted">Ative online e GPS para ver distância até a origem.</div>
+        <button type="button" class="btn btn-secondary" [disabled]="busy || !onlineLocal" (click)="aceitar(idCorrida(c))">
+          Aceitar corrida
+        </button>
+      </div>
+    </section>
+
+    <button type="button" class="btn btn-ghost mgp-refresh" [disabled]="loading" (click)="refresh(true)">Atualizar agora</button>
+  </ng-container>
+</main>

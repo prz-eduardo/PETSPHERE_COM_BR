@@ -1104,15 +1104,28 @@ export class ApiService {
     );
   }
 
+  /** Sem `loja_slug` retorna todas as corridas de transporte do tutor (útil para acompanhar marketplace + loja). */
   listClienteTransportePetCorridas(
     token: string,
-    lojaSlug: string,
+    lojaSlug?: string,
     operacao?: 'marketplace' | 'estabelecimento'
   ) {
-    const params: Record<string, string> = { loja_slug: lojaSlug };
+    const params: Record<string, string> = {};
+    if (lojaSlug != null && String(lojaSlug).trim() !== '') params['loja_slug'] = String(lojaSlug).trim();
     if (operacao) params['operacao'] = operacao;
     return this.http.get<{ corridas: unknown[] }>(`${this.baseUrl}/clientes/me/transporte-pet/corridas`, {
-      params,
+      ...(Object.keys(params).length ? { params } : {}),
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  /** Painel motorista rede global (PF): cadastro + fila + corridas aceitas. */
+  getClienteTransportePetGlobalMotoristaPainel(token: string) {
+    return this.http.get<{
+      motorista_global: Record<string, unknown> | null;
+      corridas_abertas: Record<string, unknown>[];
+      corridas_ativas: Record<string, unknown>[];
+    }>(`${this.baseUrl}/clientes/me/transporte-pet/global-motorista/painel`, {
       headers: { Authorization: `Bearer ${token}` },
     });
   }

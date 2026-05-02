@@ -660,7 +660,10 @@
               <a routerLink="/dirigir-petsphere" class="transporte-intent-card__cta">Quero ganhar com transporte pet</a>
               <button type="button" class="transporte-intent-card__cta transporte-intent-card__cta--ghost" (click)="recarregarParceirosMapaTransporte()">Recarregar mapa</button>
             </div>
-            <p *ngIf="transportePetLastCorridaId" class="transporte-pet-map-panel__hint">Última corrida criada neste aparelho: <strong>#{{ transportePetLastCorridaId }}</strong></p>
+            <p *ngIf="transportePetLastCorridaId" class="transporte-pet-map-panel__hint">
+              Última corrida neste aparelho: <strong>#{{ transportePetLastCorridaId }}</strong> —
+              <a routerLink="/restrito/transporte-pet-corridas" class="transporte-pet-map-panel__hint-link">ver status no app</a>
+            </p>
             <button
               *ngIf="transportePetLastParceiroId && transportePetLastCorridaId"
               class="transporte-pet-map-panel__chat-btn"

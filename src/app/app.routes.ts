@@ -131,6 +131,24 @@ export const routes: Routes = [
     data: { title: 'KYC motorista PetSphere' },
   },
   {
+    path: 'restrito/motorista-global',
+    canActivate: [clienteSessionGuard],
+    loadComponent: () =>
+      import('./pages/restrito/motorista-global-painel/motorista-global-painel.component').then(
+        (m) => m.MotoristaGlobalPainelComponent
+      ),
+    data: { title: 'Painel motorista PetSphere' },
+  },
+  {
+    path: 'restrito/transporte-pet-corridas',
+    canActivate: [clienteSessionGuard],
+    loadComponent: () =>
+      import('./pages/restrito/transporte-pet-corridas-tutor/transporte-pet-corridas-tutor.component').then(
+        (m) => m.TransportePetCorridasTutorComponent
+      ),
+    data: { title: 'Meus transportes pet' },
+  },
+  {
     path: 'restrito/admin',
     component: AdminComponent,
     canActivate: [authGuard],

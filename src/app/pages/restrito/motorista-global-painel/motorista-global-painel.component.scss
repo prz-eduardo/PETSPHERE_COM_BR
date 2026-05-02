@@ -1,0 +1,123 @@
+.mgp {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2.5rem;
+}
+
+.mgp__head {
+  margin-bottom: 1.25rem;
+}
+
+.mgp__back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.mgp__back:hover {
+  text-decoration: underline;
+}
+
+.mgp h1 {
+  font-size: 1.35rem;
+  margin: 0 0 0.5rem;
+}
+
+.mgp__lead {
+  margin: 0 0 0.75rem;
+  line-height: 1.55;
+}
+
+.mgp__links {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.mgp__links a {
+  color: inherit;
+}
+
+.mgp__err {
+  color: #b00020;
+}
+
+.mgp__loading {
+  opacity: 0.8;
+}
+
+.mgp-card {
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.mgp-card--emph {
+  border: 1px solid rgba(0, 188, 212, 0.35);
+  background: rgba(0, 188, 212, 0.06);
+}
+
+.mgp-card h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+}
+
+.mgp-meta {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+}
+
+.mgp-warn {
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+
+.mgp-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0.5rem 0 0;
+}
+
+.mgp-hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.92rem;
+}
+
+.mgp-corrida {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.mgp-corrida:last-child {
+  border-bottom: none;
+}
+
+.mgp-corrida__tit {
+  font-weight: 700;
+}
+
+.mgp-corrida__status {
+  margin: 0.2rem 0;
+}
+
+.mgp-corrida__acoes {
+  margin-top: 0.75rem;
+}
+
+.mgp-corrida--fila .btn {
+  margin-top: 0.6rem;
+}
+
+.mgp-refresh {
+  margin-top: 0.5rem;
+}
+
+.muted {
+  opacity: 0.82;
+  font-size: 0.92rem;
+}

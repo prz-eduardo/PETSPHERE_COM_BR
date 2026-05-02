@@ -1,0 +1,31 @@
+<main class="tpt">
+  <header class="tpt__head">
+    <a routerLink="/area-cliente" class="tpt__back">← Área do cliente</a>
+    <h1>Meus transportes pet</h1>
+    <p class="tpt__lead">
+      Acompanhe o status após o pagamento: busca na rede PetSphere (<strong>marketplace</strong>) ou frota da loja. Para pedir novo
+      transporte use o mapa.
+    </p>
+    <p><a routerLink="/mapa" [queryParams]="{ service: 'transporte' }">Abrir mapa — transporte</a></p>
+  </header>
+
+  <p *ngIf="erro" class="tpt__err" role="alert">{{ erro }}</p>
+
+  <div *ngIf="loading">Carregando…</div>
+
+  <button *ngIf="!loading" type="button" class="btn btn-secondary tpt__btn" (click)="carregar()">Atualizar</button>
+
+  <ul *ngIf="!loading && corridas.length" class="tpt-list">
+    <li *ngFor="let c of corridas" class="tpt-list__item">
+      <div class="tpt-list__id">#{{ c['id'] }}</div>
+      <div class="tpt-list__status">{{ statusPt(c['status']) }}</div>
+      <div class="tpt-list__meta muted">
+        {{ fmtReais(c['preco_centavos']) }}
+        <span *ngIf="isGlobal(c)"> · rede global</span>
+        <span *ngIf="!isGlobal(c)"> · frota parceira</span>
+      </div>
+    </li>
+  </ul>
+
+  <p *ngIf="!loading && !corridas.length" class="muted">Nenhuma corrida registrada ainda.</p>
+</main>

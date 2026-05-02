@@ -2167,6 +2167,12 @@
   color: var(--fp-ink-soft);
 }
 
+.transporte-pet-map-panel__hint-link {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 .transporte-pet-map-panel__quote-box {
   margin: 0.75rem 0 0;
   padding: 0.75rem 0.9rem;
