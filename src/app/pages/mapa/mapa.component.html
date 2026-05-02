@@ -410,7 +410,7 @@
             type="button"
             class="mapa-transporte-trigger"
             (click)="abrirTransportePetPainel()"
-            aria-label="Pedir transporte pet — escolher loja e cotar corrida">
+            aria-label="Pedir transporte pet — agora ou com clínica">
             <span class="mapa-transporte-trigger__icon" aria-hidden="true">🚗</span>
             <span class="mapa-transporte-trigger__text">Transporte</span>
           </button>
@@ -452,7 +452,7 @@
             type="button"
             class="mapa-transporte-trigger"
             (click)="abrirTransportePetPainel()"
-            aria-label="Pedir transporte pet — escolher loja e cotar corrida">
+            aria-label="Pedir transporte pet — agora ou com clínica">
             <span class="mapa-transporte-trigger__icon" aria-hidden="true">🚗</span>
             <span class="mapa-transporte-trigger__text">Transporte</span>
           </button>
@@ -489,32 +489,66 @@
             class="mapa-transporte-sheet mapa-transporte-picker transporte-pet-map-panel transporte-pet-map-panel--sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="Escolher loja para transporte pet"
+            aria-label="Pedir transporte pet"
             (click)="$event.stopPropagation()"
           >
             <div class="mapa-transporte-sheet__head mapa-transporte-picker__head">
               <h2 class="transporte-pet-map-panel__title mapa-transporte-sheet__title">Pedir transporte pet</h2>
               <button type="button" class="mapa-transporte-sheet__close" (click)="fecharTransporteSelecaoLoja()" aria-label="Fechar">✕</button>
             </div>
-            <p class="mapa-transporte-picker__lead">
-              Escolha a loja que vai operar o transporte. A cotação e o pagamento ficam vinculados a ela.
-            </p>
-            <p *ngIf="loading" class="mapa-transporte-picker__state muted">Carregando parceiros no mapa…</p>
-            <ul *ngIf="!loading" class="mapa-transporte-picker__list" role="listbox" aria-label="Lojas com vitrine">
-              <li *ngFor="let loja of parceirosParaTransportePet">
-                <button
-                  type="button"
-                  class="mapa-transporte-picker__row"
-                  (click)="escolherLojaParaTransporte(loja.slug, loja.lat, loja.lng)"
-                >
-                  <span class="mapa-transporte-picker__nome">{{ loja.nome }}</span>
-                  <span class="mapa-transporte-picker__slug">{{ loja.slug }}</span>
-                </button>
-              </li>
-            </ul>
-            <p *ngIf="!loading && !parceirosParaTransportePet.length" class="mapa-transporte-picker__empty muted">
-              Nenhuma loja com vitrine apareceu neste mapa ainda. Espere o carregamento, aproxime o zoom ou abra pelo site da loja.
-            </p>
+
+            <ng-container *ngIf="transportePetFluxoEtapa === 'intencao'">
+              <p class="mapa-transporte-picker__lead">
+                Escolha como você quer o transporte do seu pet.
+              </p>
+              <div class="transporte-intent-grid">
+                <div class="transporte-intent-card">
+                  <span class="transporte-intent-card__icon" aria-hidden="true">🚗</span>
+                  <h3 class="transporte-intent-card__title">Agora</h3>
+                  <p class="transporte-intent-card__text">Corrida rápida pela rede, com preço estimado antes de pagar.</p>
+                  <ul class="transporte-intent-card__bullets muted">
+                    <li>Busca de motoristas próximos</li>
+                    <li>Pagamento no app</li>
+                  </ul>
+                  <button type="button" class="transporte-intent-card__cta" (click)="escolherTransporteAgora()">Transporte agora</button>
+                  <a routerLink="/dirigir-petsphere" class="transporte-intent-card__link">Quer fazer parte da rede?</a>
+                </div>
+                <div class="transporte-intent-card transporte-intent-card--secondary">
+                  <span class="transporte-intent-card__icon" aria-hidden="true">🏪</span>
+                  <h3 class="transporte-intent-card__title">Agendar com clínica</h3>
+                  <p class="transporte-intent-card__text">Transporte vinculado a um petshop, clínica ou hotel parceiro.</p>
+                  <ul class="transporte-intent-card__bullets muted">
+                    <li>Cotação e pagamento pela loja escolhida</li>
+                    <li>Pode combinar com consulta ou banho</li>
+                  </ul>
+                  <button type="button" class="transporte-intent-card__cta transporte-intent-card__cta--secondary" (click)="escolherTransporteComClinica()">Escolher estabelecimento</button>
+                </div>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="transportePetFluxoEtapa === 'lista_lojas'">
+              <button type="button" class="mapa-transporte-sheet__linkish transporte-intent-back" (click)="voltarTransporteIntencao()">← Voltar</button>
+              <p class="mapa-transporte-picker__lead">
+                Escolha um estabelecimento para agendar o transporte do seu pet. A cotação e o pagamento ficam vinculados a ele.
+              </p>
+              <p *ngIf="loading" class="mapa-transporte-picker__state muted">Carregando parceiros no mapa…</p>
+              <ul *ngIf="!loading" class="mapa-transporte-picker__list" role="listbox" aria-label="Lojas com vitrine">
+                <li *ngFor="let loja of parceirosParaTransportePet">
+                  <button
+                    type="button"
+                    class="mapa-transporte-picker__row"
+                    (click)="escolherLojaParaTransporte(loja.slug, loja.lat, loja.lng)"
+                  >
+                    <span class="mapa-transporte-picker__nome">{{ loja.nome }}</span>
+                    <span class="mapa-transporte-picker__slug">{{ loja.slug }}</span>
+                  </button>
+                </li>
+              </ul>
+              <p *ngIf="!loading && !parceirosParaTransportePet.length" class="mapa-transporte-picker__empty muted">
+                Nenhuma loja com vitrine apareceu neste mapa ainda. Espere o carregamento, aproxime o zoom ou abra pelo site da loja.
+              </p>
+              <button type="button" class="transporte-intent-card__cta transporte-intent-card__cta--ghost" (click)="recarregarParceirosMapaTransporte()">Recarregar mapa</button>
+            </ng-container>
           </div>
         </div>
 
@@ -535,10 +569,36 @@
                 <button type="button" class="mapa-transporte-sheet__close" (click)="fecharTransportePetPainel()" aria-label="Fechar">✕</button>
               </div>
             </div>
-            <p class="transporte-pet-map-panel__intro">
-              Você está solicitando com a loja <strong class="transporte-pet-map-panel__loja">{{ transporteLojaSlugParaCorrida }}</strong>.
+            <p class="transporte-pet-map-panel__intro" *ngIf="transportePetOperacaoAtual === 'marketplace'">
+              Transporte imediato pela rede <strong>{{ marcaNomeMapa }}</strong>. Escolha porte e urgência, ajuste a rota e pague com segurança pelo Mercado Pago.
+            </p>
+            <p class="transporte-pet-map-panel__intro" *ngIf="transportePetOperacaoAtual === 'estabelecimento'">
+              Você está solicitando com <strong class="transporte-pet-map-panel__loja">{{ transporteLojaSlugParaCorrida }}</strong>.
               Escolha porte e urgência, ajuste a rota e pague com segurança pelo Mercado Pago.
             </p>
+            <label *ngIf="transportePetPets.length" class="transporte-pet-map-panel__row">
+              Pet no transporte
+              <select
+                [(ngModel)]="transportePetSelectedPetId"
+                (ngModelChange)="onTransportePetSelectedChange()"
+              >
+                <option [ngValue]="null">Selecione…</option>
+                <option *ngFor="let p of transportePetPets" [ngValue]="p.id">{{ p.nome || p.apelido || ('Pet #' + p.id) }}</option>
+              </select>
+            </label>
+            <label class="transporte-pet-map-panel__row">
+              Endereço de destino (texto livre)
+              <input
+                type="text"
+                [(ngModel)]="transporteDestinoTexto"
+                placeholder="Rua, número, bairro, referência"
+                autocomplete="street-address"
+              />
+            </label>
+            <label class="transporte-pet-map-panel__row">
+              Origem (opcional)
+              <input type="text" [(ngModel)]="transporteOrigemTexto" placeholder="De onde o pet sai" />
+            </label>
             <div class="transporte-pet-map-panel__row transporte-pet-map-panel__row--2">
               <label>Porte do pet
                 <select [(ngModel)]="transportePetPorte">
@@ -591,9 +651,14 @@
               <p class="transporte-pet-map-panel__quote-meta muted" *ngIf="transportePetQuote.pickup_eta_min != null">
                 Coleta estimada · {{ transportePetQuote.pickup_eta_min }} min
               </p>
-              <p class="transporte-pet-map-panel__quote-meta muted" *ngIf="transportePetQuote.online_driver_count != null">
-                Motoristas online próximos · {{ transportePetQuote.online_driver_count }}
-              </p>
+            </div>
+            <div
+              *ngIf="transportePetOperacaoAtual === 'marketplace' && transportePetQuote && transportePetQuote.online_driver_count === 0"
+              class="transporte-pet-map-panel__empty-drivers"
+            >
+              <p class="muted">Disponibilidade imediata limitada neste trecho — você pode tentar de novo em instantes.</p>
+              <a routerLink="/dirigir-petsphere" class="transporte-intent-card__cta">Quero ganhar com transporte pet</a>
+              <button type="button" class="transporte-intent-card__cta transporte-intent-card__cta--ghost" (click)="recarregarParceirosMapaTransporte()">Recarregar mapa</button>
             </div>
             <p *ngIf="transportePetLastCorridaId" class="transporte-pet-map-panel__hint">Última corrida criada neste aparelho: <strong>#{{ transportePetLastCorridaId }}</strong></p>
             <button

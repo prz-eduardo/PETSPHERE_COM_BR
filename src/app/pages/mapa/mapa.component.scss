@@ -983,6 +983,98 @@
   font-size: 0.84rem;
   line-height: 1.45;
 }
+
+.transporte-intent-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+@media (min-width: 480px) {
+  .transporte-intent-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.transporte-intent-card {
+  border: 1px solid var(--fp-border, rgba(15, 23, 42, 0.12));
+  border-radius: 14px;
+  padding: 0.85rem 0.9rem;
+  background: rgba(255, 255, 255, 0.97);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.transporte-intent-card--secondary {
+  background: rgba(248, 250, 252, 0.98);
+}
+.transporte-intent-card__icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.transporte-intent-card__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--fp-ink, #0f172a);
+}
+.transporte-intent-card__text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--fp-ink-soft, #475569);
+}
+.transporte-intent-card__bullets {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.transporte-intent-card__cta {
+  margin-top: 0.35rem;
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-weight: 750;
+  font-size: 0.82rem;
+  cursor: pointer;
+  background: linear-gradient(135deg, #0369a1, #0ea5e9);
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+}
+.transporte-intent-card__cta--secondary {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+}
+.transporte-intent-card__cta--ghost {
+  background: rgba(148, 163, 184, 0.25);
+  color: var(--fp-ink, #0f172a);
+  margin-top: 0.5rem;
+  width: 100%;
+}
+.transporte-intent-card__link {
+  font-size: 0.76rem;
+  font-weight: 650;
+  color: #0369a1;
+  margin-top: 0.25rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.transporte-intent-back {
+  margin-bottom: 0.5rem;
+}
+.transporte-pet-map-panel__empty-drivers {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgba(254, 243, 199, 0.45);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.transporte-pet-map-panel__empty-drivers .transporte-intent-card__cta {
+  text-align: center;
+}
 .mapa-transporte-sheet__title {
   margin: 0;
   flex: 1;

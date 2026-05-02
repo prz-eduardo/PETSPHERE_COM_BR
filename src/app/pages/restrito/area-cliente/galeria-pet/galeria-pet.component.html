@@ -1,40 +1,72 @@
 <div class="galeria-pet-wrapper">
-  <div class="galeria-pet__header" *ngIf="!modal">
-    <h2 class="galeria-pet__title">Minha Galeria</h2>
-    <p class="galeria-pet__desc">
-      Veja e gerencie os seus posts. Cada post pode ter uma legenda e várias fotos em carrossel.
-    </p>
+  <!-- Drop overlay global na galeria -->
+  <div class="gp-global-drop" *ngIf="globalDragActive" aria-hidden="true">
+    <div class="gp-global-drop__inner">
+      <span class="gp-global-drop__icon">⤓</span>
+      <span class="gp-global-drop__title">Solte para criar um novo post</span>
+      <span class="gp-global-drop__sub">Até {{ 12 }} fotos por post • JPG, PNG, WEBP, GIF</span>
+    </div>
   </div>
 
-  <!-- Selector de pets -->
+  <!-- Hero header -->
+  <header class="galeria-hero" *ngIf="!modal || hasPets">
+    <div class="galeria-hero__copy">
+      <p class="galeria-hero__eyebrow">Minha Galeria</p>
+      <h2 class="galeria-hero__title" *ngIf="hasPets && totalPosts > 0">
+        {{ totalPosts }} {{ totalPosts === 1 ? 'post publicado' : 'posts publicados' }}
+      </h2>
+      <h2 class="galeria-hero__title" *ngIf="hasPets && totalPosts === 0">
+        Nenhum post ainda
+      </h2>
+      <p class="galeria-hero__desc">
+        Cada post é um momento — junte até 12 fotos e uma legenda. Arraste arquivos aqui para começar.
+      </p>
+    </div>
+    <div class="galeria-hero__cta" *ngIf="hasPets">
+      <button type="button" class="btn btn-primary btn-primary--lg" (click)="openNovoPost()">
+        + Novo post
+      </button>
+    </div>
+  </header>
+
+  <!-- Empty state: sem pets -->
+  <div class="gallery-empty gallery-empty--hero" *ngIf="!hasPets">
+    <svg class="gallery-empty__icon" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="30" fill="rgba(196,214,0,0.08)" />
+      <path d="M22 36 L42 36 L42 24 L22 24 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" />
+      <circle cx="28" cy="29" r="2.5" fill="currentColor" />
+      <path d="M22 36 L29 30 L33 33 L42 27" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+    </svg>
+    <h3 class="gallery-empty__title">Nenhum pet cadastrado</h3>
+    <p class="gallery-empty__hint">Cadastre seu primeiro pet para começar a postar fotos.</p>
+  </div>
+
+  <!-- Selector de pets com badge "X posts" -->
   <div class="pet-selector" *ngIf="hasPets">
     <label class="pet-selector__label">Pets exibidos:</label>
     <div class="pet-selector__avatars">
       <button
         type="button"
-        class="pet-avatar"
+        class="pet-chip"
         *ngFor="let p of pets"
-        [class.pet-avatar--active]="isPetSelected(p.id || p._id)"
+        [class.pet-chip--active]="isPetSelected(p.id || p._id)"
         (click)="togglePetSelection(p.id || p._id)"
         [title]="p.nome || 'Pet sem nome'"
       >
-        <img *ngIf="p.foto_url || p.foto || p.photoURL" [src]="p.foto_url || p.foto || p.photoURL" [alt]="p.nome || 'Pet'" />
-        <span *ngIf="!(p.foto_url || p.foto || p.photoURL)">{{ (p.nome || 'P').slice(0, 1) }}</span>
+        <span class="pet-chip__avatar">
+          <img *ngIf="p.foto_url || p.foto || p.photoURL" [src]="p.foto_url || p.foto || p.photoURL" [alt]="p.nome || 'Pet'" />
+          <span *ngIf="!(p.foto_url || p.foto || p.photoURL)">{{ (p.nome || 'P').slice(0, 1) }}</span>
+        </span>
+        <span class="pet-chip__name">{{ p.nome || 'Sem nome' }}</span>
+        <span class="pet-chip__badge" [class.pet-chip__badge--zero]="postsCountForPet(p.id || p._id) === 0">
+          {{ postsCountForPet(p.id || p._id) }} posts
+        </span>
       </button>
     </div>
   </div>
 
   <!-- Toolbar / KPIs -->
   <div class="gallery-container" *ngIf="hasPets">
-    <div class="gallery-toolbar">
-      <div class="gallery-toolbar__copy">
-        <p class="photo-hint muted small">Cada post agrupa uma ou mais fotos do mesmo momento.</p>
-      </div>
-      <div class="gallery-toolbar__actions">
-        <button type="button" class="btn btn-primary" (click)="openNovoPost()">+ Novo post</button>
-      </div>
-    </div>
-
     <div class="gallery-kpis" *ngIf="hasSelectedPets">
       <article class="gallery-kpi">
         <span class="gallery-kpi__label">Posts</span>
@@ -73,8 +105,21 @@
 
     <div *ngIf="loading" class="gallery-loading">Carregando seus posts…</div>
 
+    <!-- Empty state: tem pets mas nenhum post -->
+    <div *ngIf="!loading && totalPosts === 0 && hasSelectedPets" class="gallery-empty gallery-empty--hero">
+      <svg class="gallery-empty__icon" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="rgba(196,214,0,0.08)" />
+        <path d="M22 36 L42 36 L42 24 L22 24 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" />
+        <circle cx="28" cy="29" r="2.5" fill="currentColor" />
+        <path d="M22 36 L29 30 L33 33 L42 27" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+      </svg>
+      <h3 class="gallery-empty__title">Sua galeria está vazia</h3>
+      <p class="gallery-empty__hint">Arraste fotos para esta tela ou clique em "Novo post" pra publicar.</p>
+      <button type="button" class="btn btn-primary btn-primary--lg" (click)="openNovoPost()">+ Postar primeiro post</button>
+    </div>
+
     <!-- Grupos por pet -->
-    <div *ngIf="!loading" class="pet-groups">
+    <div *ngIf="!loading && totalPosts > 0" class="pet-groups">
       <section *ngFor="let group of groups" class="pet-group">
         <header class="pet-group__head">
           <h3 class="pet-group__title">{{ group.pet_nome }}</h3>
@@ -126,16 +171,12 @@
         </div>
 
         <ng-template #emptyGroup>
-          <div class="gallery-empty">
-            <span *ngIf="visibilityFilter === 'all'">Nenhum post ainda. Use o botão "Novo post" para começar.</span>
+          <div class="gallery-empty gallery-empty--soft">
+            <span *ngIf="visibilityFilter === 'all'">Nenhum post ainda para {{ group.pet_nome }}.</span>
             <span *ngIf="visibilityFilter !== 'all'">Nenhum post para o filtro atual.</span>
           </div>
         </ng-template>
       </section>
-
-      <div *ngIf="hasSelectedPets && !groups.length" class="gallery-empty">
-        Nenhum pet selecionado.
-      </div>
     </div>
 
     <div class="gallery-actions" *ngIf="modal">
@@ -143,9 +184,17 @@
     </div>
   </div>
 
-  <div class="gallery-empty" *ngIf="!hasPets">
-    <p>Você não tem pets cadastrados. Cadastre um pet para gerenciar suas fotos.</p>
-  </div>
+  <!-- Modal de NOVO POST (overlay local, não via internalHost) -->
+  <app-galeria-post-foto-modal
+    *ngIf="postModalOpen"
+    [open]="postModalOpen"
+    [embedded]="false"
+    [initialPets]="pets"
+    [initialClienteId]="clienteMe?.user?.id || clienteMe?.id || null"
+    [initialFiles]="pendingDropFiles"
+    (closeModal)="onPostModalClose()"
+    (posted)="onPostModalPosted()"
+  ></app-galeria-post-foto-modal>
 
   <!-- Post Editor Modal -->
   <div *ngIf="editingPost" class="post-edit-modal__backdrop" (click)="closePostEditor()">
@@ -156,53 +205,94 @@
       </div>
 
       <div class="post-edit-modal__body">
-        <!-- Carrossel de imagens (com gerenciamento) -->
+        <p class="post-edit-modal__hint">
+          Arraste as fotos para reordenar. Use o menu <strong>⋯</strong> em cada uma para definir capa ou remover.
+        </p>
+
+        <!-- Carrossel de imagens (drag-and-drop + kebab) -->
         <div class="post-edit-modal__images">
           <div
             *ngFor="let img of editingPost.imagens; let i = index; trackBy: trackImagemId"
             class="post-edit-image"
             [class.post-edit-image--cover]="img.id === editingPost.cover_imagem_id"
+            [class.post-edit-image--hover]="editorDragHoverIdx === i"
+            draggable="true"
+            (dragstart)="onEditorDragStart(i, $event)"
+            (dragover)="onEditorDragOver(i, $event)"
+            (drop)="onEditorDrop(i, $event)"
+            (dragend)="onEditorDragEnd()"
           >
             <img [src]="img.url" alt="Imagem do post" />
-            <span class="post-edit-image__order">{{ i + 1 }}</span>
-            <span *ngIf="img.id === editingPost.cover_imagem_id" class="post-edit-image__badge">Capa</span>
+            <span class="post-edit-image__order" aria-hidden="true">imagem {{ i + 1 }} de {{ editingPost.imagens.length }}</span>
+            <span *ngIf="img.id === editingPost.cover_imagem_id" class="post-edit-image__badge">Capa do post</span>
+            <span *ngIf="isPetCoverImage(editingPost, img.id)" class="post-edit-image__badge post-edit-image__badge--pet">Capa do pet</span>
 
-            <div class="post-edit-image__actions">
+            <!-- Setas (fallback a11y / mobile) -->
+            <div class="post-edit-image__arrows">
               <button
                 type="button"
                 class="post-edit-image__btn"
                 [disabled]="i === 0 || workingImagemId === img.id"
-                (click)="movePostImage(editingPost, i, i - 1)"
+                (click)="movePostImage(editingPost, i, i - 1); $event.stopPropagation()"
                 title="Mover para a esquerda"
+                aria-label="Mover para a esquerda"
               >‹</button>
               <button
                 type="button"
                 class="post-edit-image__btn"
                 [disabled]="i === editingPost.imagens.length - 1 || workingImagemId === img.id"
-                (click)="movePostImage(editingPost, i, i + 1)"
+                (click)="movePostImage(editingPost, i, i + 1); $event.stopPropagation()"
                 title="Mover para a direita"
+                aria-label="Mover para a direita"
               >›</button>
+            </div>
+
+            <!-- Kebab menu -->
+            <button
+              type="button"
+              class="post-edit-image__kebab"
+              [disabled]="workingImagemId === img.id"
+              (click)="toggleImageMenu(editingPost, img.id, $event)"
+              title="Mais ações"
+              aria-label="Mais ações para esta foto"
+            >⋯</button>
+
+            <div
+              class="post-edit-image__menu"
+              *ngIf="isImageMenuOpen(editingPost, img.id)"
+              (click)="$event.stopPropagation()"
+              role="menu"
+            >
               <button
                 type="button"
-                class="post-edit-image__btn"
+                role="menuitem"
+                class="post-edit-image__menu-item"
                 [disabled]="img.id === editingPost.cover_imagem_id || workingImagemId === img.id"
                 (click)="setPostCover(editingPost, img.id)"
-                title="Definir como capa do post"
-              >★</button>
+              >
+                <span class="post-edit-image__menu-icon" aria-hidden="true">★</span>
+                <span>Tornar capa do post</span>
+              </button>
               <button
                 type="button"
-                class="post-edit-image__btn"
+                role="menuitem"
+                class="post-edit-image__menu-item"
                 [disabled]="workingImagemId === img.id"
                 (click)="setImageAsPetCover(editingPost, img.id)"
-                title="Usar como foto principal do pet"
-              >🐾</button>
+              >
+                <span class="post-edit-image__menu-icon" aria-hidden="true">🐾</span>
+                <span>Tornar capa do pet</span>
+              </button>
               <button
                 type="button"
-                class="post-edit-image__btn post-edit-image__btn--danger"
+                role="menuitem"
+                class="post-edit-image__menu-item post-edit-image__menu-item--danger"
                 [disabled]="workingImagemId === img.id"
                 (click)="removePostImage(editingPost, img.id)"
-                title="Remover esta foto do post"
-              >×</button>
+              >
+                <span class="post-edit-image__menu-icon" aria-hidden="true">×</span>
+                <span>Remover do post</span>
+              </button>
             </div>
           </div>
         </div>

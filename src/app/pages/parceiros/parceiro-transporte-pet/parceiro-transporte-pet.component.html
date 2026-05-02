@@ -5,7 +5,56 @@
     <p class="transporte-pet-lead">
       O tutor paga pela corrida (Mercado Pago). Apenas motoristas cadastrados na sua loja recebem a oferta de aceitar a viagem.
     </p>
+    <p class="transporte-pet-lead transporte-pet-lead--tight">
+      <strong>Cadastro de motorista:</strong> feito aqui pela conta <strong>master</strong> do parceiro (seção “Quem pode dirigir”), ao vincular um
+      <em>colaborador</em> já existente. Não há etapa de “aceite” ou homologação por administrador da PetSphere; a loja responde pela habilitação,
+      documentação e relação com o motorista.
+    </p>
+    <button type="button" class="btn btn--primary transporte-chamar-btn" (click)="abrirLogisticaModal()">
+      Chamar transporte
+    </button>
   </header>
+
+  <div class="logistica-modal-backdrop" *ngIf="logisticaModalAberto" (click)="fecharLogisticaModal()" aria-hidden="true"></div>
+  <div class="logistica-modal" *ngIf="logisticaModalAberto" role="dialog" aria-modal="true" aria-label="Solicitar transporte">
+    <div class="logistica-modal__inner" (click)="$event.stopPropagation()">
+      <h2 class="logistica-modal__title">Chamar transporte</h2>
+      <p class="muted small">Origem padrão: endereço da clínica no cadastro. O backend decide execução (frota vs rede).</p>
+      <label>ID do tutor (cliente_id) <input type="number" [(ngModel)]="logisticaForm.cliente_id" /></label>
+      <label>ID do pet <input type="number" [(ngModel)]="logisticaForm.pet_id" /></label>
+      <label>Destino · latitude <input type="number" step="0.000001" [(ngModel)]="logisticaForm.destino_lat" /></label>
+      <label>Destino · longitude <input type="number" step="0.000001" [(ngModel)]="logisticaForm.destino_lng" /></label>
+      <label>Destino (texto) <input type="text" [(ngModel)]="logisticaForm.destino_texto" placeholder="Endereço de entrega" /></label>
+      <label>Destino é
+        <select [(ngModel)]="logisticaForm.destination_type">
+          <option value="user">Cliente / residência</option>
+          <option value="partner">Outro parceiro</option>
+        </select>
+      </label>
+      <label *ngIf="logisticaForm.destination_type === 'partner'">ID parceiro destino
+        <input type="number" [(ngModel)]="logisticaForm.destination_partner_id" />
+      </label>
+      <label>Porte
+        <select [(ngModel)]="logisticaForm.pet_porte">
+          <option value="pequeno">Pequeno</option>
+          <option value="medio">Médio</option>
+          <option value="grande">Grande</option>
+        </select>
+      </label>
+      <details class="logistica-modal__adv">
+        <summary>Origem (opcional)</summary>
+        <label>Latitude <input type="number" step="0.000001" [(ngModel)]="logisticaForm.origem_lat" /></label>
+        <label>Longitude <input type="number" step="0.000001" [(ngModel)]="logisticaForm.origem_lng" /></label>
+        <label>Texto <input type="text" [(ngModel)]="logisticaForm.origem_texto" /></label>
+      </details>
+      <div class="logistica-modal__actions">
+        <button type="button" class="btn btn--ghost" (click)="fecharLogisticaModal()">Cancelar</button>
+        <button type="button" class="btn btn--primary" [disabled]="logisticaBusy" (click)="enviarLogisticaRequest()">
+          {{ logisticaBusy ? 'Enviando…' : 'Enviar pedido' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Operação do motorista -->
   <section class="card card--motorista" *ngIf="souMotorista">
@@ -31,6 +80,10 @@
     <button type="button" class="btn btn--ghost btn--block motorista-gps" (click)="enviarLocalizacao()">
       Atualizar minha posição no mapa (GPS)
     </button>
+    <p class="muted small motorista-gps-note">
+      Localização é usada para operação do transporte (matching e rota). Tratamento de dados pessoais conforme a
+      <a routerLink="/politica-de-privacidade" target="_blank" rel="noopener noreferrer">política de privacidade</a>.
+    </p>
   </section>
 
   <!-- Demanda -->
@@ -186,6 +239,23 @@
     <p class="card__sub muted small">
       Apenas o <strong>master</strong> vê esta lista. O nível (tier) influencia o repasse ao motorista na plataforma.
     </p>
+    <details class="transporte-lgpd-details">
+      <summary class="transporte-lgpd-details__summary">Dados pessoais, LGPD e responsabilidade legal (Brasil)</summary>
+      <div class="transporte-lgpd-details__body muted small">
+        <p>
+          O sistema armazena hoje o vínculo do colaborador como motorista (conta, tier, ativo, online e posição quando enviada). Nome e e-mail vêm do
+          cadastro de colaborador já existente. <strong>Não há campos no app para CNH, CRLV ou antecedentes</strong>; se a sua operação exigir, trate
+          isso no processo da loja (físico ou outro sistema) e mantenha base legal e transparência perante o titular (arts. 6º, 7º e 9º da LGPD).
+        </p>
+        <p>
+          Em regra, a <strong>loja parceira</strong> decide quem dirige e pode atuar como controladora dos dados dos seus colaboradores; a plataforma
+          processa dados para execução do serviço e segurança da operação. Consulte
+          <a routerLink="/politica-de-privacidade" target="_blank" rel="noopener noreferrer">política de privacidade</a> e
+          <a routerLink="/termos-de-uso" target="_blank" rel="noopener noreferrer">termos de uso</a>. Para vínculo empregatício ou prestador (CLT, PJ,
+          cooperativa etc.) e exigências do DENATRAN/CONTRAN, siga a legislação aplicável e assessoria jurídica.
+        </p>
+      </div>
+    </details>
     <div class="tier-bar">
       <label class="tier-bar__label">
         <span>Nível para novos motoristas</span>

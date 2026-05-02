@@ -1,14 +1,10 @@
-/* ——— Meus endereços — tokens alinhados à área do cliente ——— */
+@use '../../shared/styles/cliente-shell-themes' as cliente-shell;
+
+/* ——— Meus endereços — tokens alinhados à área do cliente (claro por padrão) ——— */
 .meus-enderecos-page.area-like-wrapper {
-	--ac-text: #e6eef8;
-	--ac-text-dim: #94a3b8;
-	--ac-surface: rgba(255, 255, 255, 0.04);
-	--ac-border: rgba(255, 255, 255, 0.1);
-	--ac-accent: #c4d600;
-	--ac-accent-ink: #1a1f00;
+	@include cliente-shell.cliente-ac-vars-light;
 	--ac-danger: #f87171;
 	--ac-radius: 14px;
-	--ac-shadow: 0 12px 40px rgba(2, 6, 23, 0.45);
 	--z-backdrop: 4000;
 	--z-panel: 4010;
 	--z-confirm: 4020;
@@ -16,8 +12,7 @@
 
 .meus-enderecos-page.area-like-wrapper {
 	min-height: 50vh;
-	background: radial-gradient(1200px 600px at 10% 10%, rgba(2, 6, 11, 0.55), transparent),
-		linear-gradient(180deg, #07080a 0%, #0b0e12 100%);
+	@include cliente-shell.cliente-page-bg-light;
 	color: var(--ac-text);
 	padding: 72px 0 48px;
 	font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -26,6 +21,13 @@
 		min-height: 0;
 		padding: 0 0 20px;
 		background: transparent;
+	}
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark {
+	@include cliente-shell.cliente-ac-vars-dark;
+	&:not(.is-modal) {
+		@include cliente-shell.cliente-page-bg-dark;
 	}
 }
 
@@ -115,7 +117,7 @@
 	padding: 16px 16px 16px 14px;
 	border-radius: var(--ac-radius);
 	border: 1px solid var(--ac-border);
-	background: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+	background: linear-gradient(165deg, rgba(255, 255, 255, 0.92) 0%, rgba(247, 244, 238, 0.88) 100%);
 	color: var(--ac-text);
 	cursor: pointer;
 	font: inherit;
@@ -128,6 +130,13 @@
 .address-card:hover {
 	border-color: rgba(196, 214, 0, 0.4);
 	transform: translateY(-1px);
+	box-shadow: 0 16px 36px rgba(15, 11, 46, 0.12);
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .address-card {
+	background: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+.meus-enderecos-page.area-like-wrapper--theme-dark .address-card:hover {
 	box-shadow: 0 16px 40px rgba(2, 6, 23, 0.5);
 }
 
@@ -157,8 +166,9 @@
 
 .address-card__line {
 	font-size: 14px;
-	color: rgba(230, 238, 248, 0.92);
+	color: var(--ac-text);
 	line-height: 1.35;
+	opacity: 0.92;
 }
 
 .address-card__meta {
@@ -176,9 +186,14 @@
 	font-weight: 700;
 	letter-spacing: 0.03em;
 	text-transform: uppercase;
-	background: rgba(196, 214, 0, 0.12);
-	color: #d4e34a;
+	background: rgba(196, 214, 0, 0.14);
+	color: #3d4a00;
 	border: 1px solid rgba(196, 214, 0, 0.3);
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .address-card__chip {
+	color: #d4e34a;
+	background: rgba(196, 214, 0, 0.12);
 }
 
 .address-card__actions {
@@ -197,15 +212,23 @@
 	padding: 0;
 	border-radius: 10px;
 	border: 1px solid var(--ac-border);
-	background: rgba(0, 0, 0, 0.2);
+	background: rgba(255, 255, 255, 0.75);
 	color: var(--ac-text);
 	cursor: pointer;
 	transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .icon-btn:hover {
-	background: rgba(255, 255, 255, 0.1);
+	background: #fff;
 	border-color: rgba(196, 214, 0, 0.35);
+	color: var(--ps-ink);
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .icon-btn {
+	background: rgba(0, 0, 0, 0.2);
+}
+.meus-enderecos-page.area-like-wrapper--theme-dark .icon-btn:hover {
+	background: rgba(255, 255, 255, 0.1);
 	color: #fff;
 }
 
@@ -247,11 +270,16 @@
 	max-height: min(88vh, 720px);
 	display: flex;
 	flex-direction: column;
-	background: #141a22;
+	background: linear-gradient(180deg, var(--ps-cream) 0%, var(--ps-cream-soft) 100%);
 	border: 1px solid var(--ac-border);
 	border-radius: 18px;
-	box-shadow: 0 32px 64px rgba(0, 0, 0, 0.55);
+	box-shadow: 0 28px 56px rgba(15, 11, 46, 0.16);
 	overflow: hidden;
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-modal__panel {
+	background: #141a22;
+	box-shadow: 0 32px 64px rgba(0, 0, 0, 0.55);
 }
 
 .addr-modal__head {
@@ -260,7 +288,7 @@
 	justify-content: space-between;
 	gap: 12px;
 	padding: 18px 20px 14px;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	border-bottom: 1px solid var(--ac-border);
 	flex-shrink: 0;
 }
 
@@ -273,8 +301,12 @@
 	font-size: 20px;
 	font-weight: 800;
 	letter-spacing: -0.02em;
-	color: #fff;
+	color: var(--ac-text);
 	line-height: 1.25;
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-modal__title {
+	color: #fff;
 }
 
 .addr-modal__subtitle {
@@ -299,8 +331,8 @@
 	padding: 0;
 	border: 1px solid var(--ac-border);
 	border-radius: 12px;
-	background: rgba(255, 255, 255, 0.05);
-	color: #fff;
+	background: rgba(255, 255, 255, 0.85);
+	color: var(--ac-text);
 	font-size: 24px;
 	line-height: 1;
 	cursor: pointer;
@@ -311,6 +343,15 @@
 }
 
 .addr-modal__close:hover {
+	background: #fff;
+	border-color: rgba(159, 224, 0, 0.45);
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-modal__close {
+	background: rgba(255, 255, 255, 0.05);
+	color: #fff;
+}
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-modal__close:hover {
 	background: rgba(255, 255, 255, 0.1);
 	border-color: rgba(255, 255, 255, 0.2);
 }
@@ -336,7 +377,7 @@
 	grid-template-columns: 110px 1fr;
 	gap: 10px 14px;
 	padding: 10px 0;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	border-bottom: 1px solid var(--ac-border);
 	font-size: 14px;
 }
 .addr-view__row:last-of-type {
@@ -373,13 +414,21 @@
 	padding: 0 12px;
 	border-radius: 10px;
 	border: 1px solid var(--ac-border);
-	background: #0b0e14;
+	background: #fff;
 	color: var(--ac-text);
 	font-size: 15px;
 	outline: none;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .addr-form__field input::placeholder {
+	color: var(--ps-ink-soft);
+	opacity: 0.55;
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-form__field input {
+	background: #0b0e14;
+}
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-form__field input::placeholder {
 	color: rgba(230, 238, 248, 0.35);
 }
 .addr-form__field input:focus {
@@ -421,14 +470,21 @@
 	font-size: 12px;
 	font-weight: 600;
 	border: 1px solid var(--ac-border);
-	background: rgba(255, 255, 255, 0.04);
+	background: rgba(255, 255, 255, 0.72);
 	color: var(--ac-text);
 	cursor: pointer;
 	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .addr-tipo__btn.is-on {
 	border-color: rgba(196, 214, 0, 0.55);
-	background: rgba(196, 214, 0, 0.14);
+	background: rgba(196, 214, 0, 0.2);
+	color: #2f3800;
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-tipo__btn {
+	background: rgba(255, 255, 255, 0.04);
+}
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-tipo__btn.is-on {
 	color: #e8f0a0;
 }
 
@@ -477,12 +533,17 @@
 .addr-modal__foot {
 	flex-shrink: 0;
 	padding: 14px 20px 18px;
-	border-top: 1px solid rgba(255, 255, 255, 0.06);
-	background: #10151c;
+	border-top: 1px solid var(--ac-border);
+	background: rgba(255, 255, 255, 0.55);
 	display: flex;
 	gap: 10px;
 	justify-content: flex-end;
 	flex-wrap: wrap;
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-modal__foot {
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	background: #10151c;
 }
 
 .addr-btn {
@@ -511,6 +572,10 @@
 	box-shadow: none;
 }
 .addr-btn--ghost:hover {
+	background: rgba(15, 11, 46, 0.06);
+}
+
+.meus-enderecos-page.area-like-wrapper--theme-dark .addr-btn--ghost:hover {
 	background: rgba(255, 255, 255, 0.06);
 }
 .addr-btn--block {

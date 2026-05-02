@@ -71,7 +71,7 @@
   50% { transform: translateY(-6px); }
 }
 
-.galeria-hero .hero-titles { flex: 1; min-width: 220px; }
+.galeria-hero .hero-titles { flex: 1; min-width: 0; }
 .galeria-hero .hero-title {
   font-family: "Pacifico", cursive, "Montserrat", Arial, sans-serif;
   font-size: clamp(28px, 3.4vw, 42px);
@@ -98,7 +98,8 @@
   font-size: 15px;
   line-height: 1.45;
   font-family: 'Poppins', 'Montserrat', sans-serif;
-  max-width: 620px;
+  max-width: min(620px, 100%);
+  overflow-wrap: break-word;
 }
 
 .galeria-hero .hero-stats {

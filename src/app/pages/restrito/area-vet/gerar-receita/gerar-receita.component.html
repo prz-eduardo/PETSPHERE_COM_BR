@@ -379,23 +379,25 @@
     </div>
 
     <div class="analise-clinica-ia">
+      <div class="clinical-copilot-principle">
+        <strong>Regra do sistema:</strong> a IA não grava verdade clínica — só propõe uma leitura probabilística. O que vale no prontuário é sempre a sua decisão explícita. Uma única linha de verdade histórica no servidor: <em>eventos</em> no atendimento; o texto do prontuário é a projeção legal dessa conduta.
+      </div>
+      <p class="muted small clinical-copilot-audit-hint" *ngIf="!atendimentoEmEdicaoId">
+        Para gravar a análise IA na auditoria do servidor, conclua primeiro o registo da fase clínica (passos seguintes) para existir um atendimento com ID.
+      </p>
       <p class="muted small" style="margin-bottom: 8px;">
-        Rascunho assistido a partir do prontuário (anamnese, exame físico, exames, pet). Não substitui decisão clínica. Cada geração debita 20 créditos do saldo da clínica (conta parceiro).
+        Motor de decisão assistida (JSON) a partir do prontuário. Projeção assistida, não substitui julgamento clínico. Cada geração debita 20 créditos do saldo da clínica (conta parceiro).
       </p>
       <div class="analise-clinica-ia__actions">
-        <button
-          type="button"
-          class="btn-primary"
-          (click)="gerarAnaliseClinicaAssistida()"
-          [disabled]="analiseClinicaLoading"
-        >
-          <span *ngIf="analiseClinicaLoading">Gerando…</span>
-          <span *ngIf="!analiseClinicaLoading">Gerar análise clínica com IA</span>
-        </button>
+        <app-ai-generate-button
+          label="Gerar análise clínica com IA"
+          [loading]="analiseClinicaLoading"
+          (pressed)="gerarAnaliseClinicaAssistida()"
+        />
         <button
           type="button"
           class="btn-sec"
-          *ngIf="analiseClinicaTexto || analiseClinicaErro"
+          *ngIf="analiseClinicaStructured || analiseClinicaErro"
           (click)="limparAnaliseClinicaAssistida()"
           [disabled]="analiseClinicaLoading"
         >
@@ -403,10 +405,209 @@
         </button>
       </div>
       <p class="analise-clinica-ia__erro" *ngIf="analiseClinicaErro">{{ analiseClinicaErro }}</p>
-      <pre class="analise-clinica-ia__out" *ngIf="analiseClinicaTexto">{{ analiseClinicaTexto }}</pre>
+
+      @if (analiseClinicaStructured; as ac) {
+      <div class="clinical-v2">
+        <p class="clinical-v2__layer-label">Referência assistida (projeção probabilística — não é prontuário)</p>
+        <div class="clinical-v2__banner-critical" *ngIf="analiseClinicaBloqueadaPorDados" role="alert">
+          <strong>Dados com alerta crítico</strong>
+          <p class="clinical-v2__banner-text">
+            Corrija ou confirme as inconsistências indicadas abaixo antes de aplicar hipóteses ao diagnóstico ou ao plano. As ações de prioridade também ficam bloqueadas até os dados estarem coerentes.
+          </p>
+        </div>
+
+        <div class="clinical-v2__meta">
+          <div class="clinical-v2__pill clinical-v2__pill--urgency">
+            <span class="clinical-v2__meta-label">Urgência (assistida)</span>
+            <span class="clinical-v2__meta-value">{{ urgencyLabel(ac.urgencyLevel) }}</span>
+          </div>
+          <div class="clinical-v2__pill">
+            <span class="clinical-v2__meta-label">Risco clínico (score assistido)</span>
+            <span class="clinical-v2__meta-value">{{ pctAssistido(ac.clinicalRiskScore) }}</span>
+          </div>
+        </div>
+
+        <section class="clinical-v2-tier clinical-v2-tier--immediate" *ngIf="ac.structuredPriority?.immediate?.length">
+          <div class="clinical-v2-tier__head">
+            <h3 class="clinical-v2-tier__title">Prioridade imediata</h3>
+            <button type="button" class="btn-sec btn-sec--compact" (click)="aplicarPrioridadeAoPlano('immediate')" [disabled]="analiseClinicaBloqueadaPorDados">Inserir no plano</button>
+          </div>
+          <ul class="clinical-v2-actions clinical-v2-actions--select">
+            <li *ngFor="let code of ac.structuredPriority.immediate">
+              <label class="clinical-copilot-check">
+                <input type="checkbox" [checked]="isCopilotOn(copilotKeyTreatment('immediate', code))" (change)="toggleCopilot(copilotKeyTreatment('immediate', code))" />
+                <span>{{ labelAcaoClinica(code) }}</span>
+              </label>
+            </li>
+          </ul>
+        </section>
+
+        <section class="clinical-v2-tier clinical-v2-tier--high" *ngIf="ac.structuredPriority?.high?.length">
+          <div class="clinical-v2-tier__head">
+            <h3 class="clinical-v2-tier__title">Prioridade alta</h3>
+            <button type="button" class="btn-sec btn-sec--compact" (click)="aplicarPrioridadeAoPlano('high')" [disabled]="analiseClinicaBloqueadaPorDados">Inserir no plano</button>
+          </div>
+          <ul class="clinical-v2-actions clinical-v2-actions--select">
+            <li *ngFor="let code of ac.structuredPriority.high">
+              <label class="clinical-copilot-check">
+                <input type="checkbox" [checked]="isCopilotOn(copilotKeyTreatment('high', code))" (change)="toggleCopilot(copilotKeyTreatment('high', code))" />
+                <span>{{ labelAcaoClinica(code) }}</span>
+              </label>
+            </li>
+          </ul>
+        </section>
+
+        <section class="clinical-v2-tier clinical-v2-tier--medium" *ngIf="ac.structuredPriority?.medium?.length">
+          <div class="clinical-v2-tier__head">
+            <h3 class="clinical-v2-tier__title">Prioridade moderada</h3>
+            <button type="button" class="btn-sec btn-sec--compact" (click)="aplicarPrioridadeAoPlano('medium')" [disabled]="analiseClinicaBloqueadaPorDados">Inserir no plano</button>
+          </div>
+          <ul class="clinical-v2-actions clinical-v2-actions--select">
+            <li *ngFor="let code of ac.structuredPriority.medium">
+              <label class="clinical-copilot-check">
+                <input type="checkbox" [checked]="isCopilotOn(copilotKeyTreatment('medium', code))" (change)="toggleCopilot(copilotKeyTreatment('medium', code))" />
+                <span>{{ labelAcaoClinica(code) }}</span>
+              </label>
+            </li>
+          </ul>
+        </section>
+
+        <section class="clinical-v2-tier clinical-v2-tier--low" *ngIf="ac.structuredPriority?.low?.length">
+          <div class="clinical-v2-tier__head">
+            <h3 class="clinical-v2-tier__title">Rotina / acompanhamento</h3>
+            <button type="button" class="btn-sec btn-sec--compact" (click)="aplicarPrioridadeAoPlano('low')" [disabled]="analiseClinicaBloqueadaPorDados">Inserir no plano</button>
+          </div>
+          <ul class="clinical-v2-actions clinical-v2-actions--select">
+            <li *ngFor="let code of ac.structuredPriority.low">
+              <label class="clinical-copilot-check">
+                <input type="checkbox" [checked]="isCopilotOn(copilotKeyTreatment('low', code))" (change)="toggleCopilot(copilotKeyTreatment('low', code))" />
+                <span>{{ labelAcaoClinica(code) }}</span>
+              </label>
+            </li>
+          </ul>
+        </section>
+
+        <section class="clinical-v2-block" *ngIf="ac.recommendedActions?.length">
+          <h3 class="clinical-v2-block__title">Ações recomendadas (consolidado)</h3>
+          <ul class="clinical-v2-actions clinical-v2-actions--inline">
+            <li *ngFor="let code of ac.recommendedActions">{{ labelAcaoClinica(code) }}</li>
+          </ul>
+        </section>
+
+        <section class="clinical-v2-block" *ngIf="ac.possibleDiagnosesRanked?.length">
+          <h3 class="clinical-v2-block__title">Diagnósticos possíveis (ranking curto, assistido)</h3>
+          <ol class="clinical-v2-ranked clinical-v2-ranked--select">
+            <li *ngFor="let d of ac.possibleDiagnosesRanked; let idx = index">
+              <label class="clinical-copilot-check clinical-copilot-check--row">
+                <input type="checkbox" [checked]="isCopilotOn(copilotKeyDiagnosis(idx))" (change)="toggleCopilot(copilotKeyDiagnosis(idx))" />
+                <span class="clinical-v2-ranked__name">{{ d.name }}</span>
+                <span class="clinical-v2-ranked__prob">{{ pctAssistido(d.probability) }}</span>
+              </label>
+            </li>
+          </ol>
+        </section>
+
+        <section class="clinical-v2-block" *ngIf="ac.hypotheses?.length">
+          <h3 class="clinical-v2-block__title">Hipóteses</h3>
+          <div class="clinical-v2-hyp-list">
+            <article class="clinical-v2-hyp" *ngFor="let h of ac.hypotheses; trackBy: trackByHypothesisId">
+              <div class="clinical-v2-hyp__head">
+                <label class="clinical-copilot-check clinical-copilot-check--hyp" (click)="$event.stopPropagation()">
+                  <input type="checkbox" [checked]="isCopilotOn(h.id)" (change)="toggleCopilot(h.id)" />
+                </label>
+                <button type="button" class="clinical-v2-hyp__toggle" (click)="toggleExpandHipotese(h.id)" [attr.aria-expanded]="expandedHypothesisId === h.id">
+                  <span class="clinical-v2-hyp__label">{{ h.label }}</span>
+                  <span class="clinical-v2-hyp__conf">Conf. estimada {{ pctAssistido(h.confidence) }}</span>
+                  <span class="clinical-v2-hyp__chev" aria-hidden="true">{{ expandedHypothesisId === h.id ? '▼' : '▶' }}</span>
+                </button>
+              </div>
+              <div class="clinical-v2-hyp__actions" *ngIf="expandedHypothesisId === h.id">
+                <button type="button" class="btn-primary clinical-v2__btn-inline" (click)="aplicarHipoteseAoDiagnostico(h)" [disabled]="analiseClinicaBloqueadaPorDados">Aplicar ao diagnóstico</button>
+                <button type="button" class="btn-sec btn-sec--compact" (click)="aplicarHipoteseAoPlano(h)" [disabled]="analiseClinicaBloqueadaPorDados">Virar plano (texto)</button>
+              </div>
+              <div class="clinical-v2-hyp__detail" *ngIf="expandedHypothesisId === h.id">
+                <div class="clinical-v2-hyp__section" *ngIf="h.supportingFindings?.length">
+                  <strong>Evidências</strong>
+                  <ul><li *ngFor="let x of h.supportingFindings">{{ x }}</li></ul>
+                </div>
+                <div class="clinical-v2-hyp__section" *ngIf="h.contradictions?.length">
+                  <strong>Contradições / limitações</strong>
+                  <ul><li *ngFor="let x of h.contradictions">{{ x }}</li></ul>
+                </div>
+                <div class="clinical-v2-hyp__section" *ngIf="h.suggestedConfirmatoryTests?.length">
+                  <strong>Testes sugeridos</strong>
+                  <ul><li *ngFor="let x of h.suggestedConfirmatoryTests">{{ x }}</li></ul>
+                </div>
+                <p class="clinical-v2-hyp__hint" *ngIf="h.treatmentDirectionHint"><strong>Direção de suporte (hint):</strong> {{ h.treatmentDirectionHint }}</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="clinical-v2-block" *ngIf="ac.missingCriticalData?.length">
+          <h3 class="clinical-v2-block__title">Dados críticos em falta</h3>
+          <ul class="clinical-v2-list">
+            <li *ngFor="let k of ac.missingCriticalData">{{ formatStableDataKey(k) }}</li>
+          </ul>
+        </section>
+
+        <section class="clinical-v2-block" *ngIf="ac.dataQualityFlags?.length">
+          <h3 class="clinical-v2-block__title">Qualidade dos dados</h3>
+          <ul class="clinical-v2-flags">
+            <li *ngFor="let f of ac.dataQualityFlags" [ngClass]="dataQualitySeverityClass(f.severity)">
+              <span class="clinical-v2-flag__type">{{ f.type }}</span>
+              <span class="clinical-v2-flag__sev">{{ f.severity }}</span>
+              <span class="clinical-v2-flag__msg" *ngIf="f.message">{{ f.message }}</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="clinical-v2-block clinical-v2-block--warn" *ngIf="ac.clinicalWarnings?.length">
+          <h3 class="clinical-v2-block__title">Alertas clínicos (assistidos)</h3>
+          <ul class="clinical-v2-list clinical-v2-list--select">
+            <li *ngFor="let w of ac.clinicalWarnings; let wi = index">
+              <label class="clinical-copilot-check">
+                <input type="checkbox" [checked]="isCopilotOn(copilotKeyWarning(wi))" (change)="toggleCopilot(copilotKeyWarning(wi))" />
+                <span>{{ w }}</span>
+              </label>
+            </li>
+          </ul>
+        </section>
+
+        <section class="clinical-v2-block" *ngIf="ac.physicalExamChecklist?.length">
+          <div class="clinical-v2-tier__head">
+            <h3 class="clinical-v2-block__title" style="margin:0">Checklist de exame físico</h3>
+            <button type="button" class="btn-sec btn-sec--compact" (click)="inserirChecklistExameNoPlano()" [disabled]="analiseClinicaBloqueadaPorDados">Adicionar ao plano</button>
+          </div>
+          <ol class="clinical-v2-checklist clinical-v2-checklist--select">
+            <li *ngFor="let item of ac.physicalExamChecklist; let ei = index">
+              <label class="clinical-copilot-check">
+                <input type="checkbox" [checked]="isCopilotOn(copilotKeyExam(ei))" (change)="toggleCopilot(copilotKeyExam(ei))" />
+                <span>{{ item }}</span>
+              </label>
+            </li>
+          </ol>
+        </section>
+
+        <section class="clinical-copilot-mount">
+          <h3 class="clinical-copilot-mount__title">Montar registro (decisão explícita)</h3>
+          <p class="muted small clinical-copilot-mount__hint">
+            Marque os itens da referência assistida acima e aplique ao prontuário. Isto gera texto só após a sua ação e regista no atendimento (quando já existir ID) um <code>vet_intent</code> seguido de <code>clinical_action</code> — decisão explícita, sem inferir por diff de texto.
+          </p>
+          <div class="clinical-copilot-mount__actions">
+            <button type="button" class="btn-primary clinical-v2__btn-inline" (click)="aplicarSelecaoAoDiagnostico('replace')" [disabled]="analiseClinicaBloqueadaPorDados">Diagnóstico: substituir</button>
+            <button type="button" class="btn-sec btn-sec--compact" (click)="aplicarSelecaoAoDiagnostico('append')" [disabled]="analiseClinicaBloqueadaPorDados">Diagnóstico: anexar</button>
+            <button type="button" class="btn-primary clinical-v2__btn-inline" (click)="aplicarSelecaoAoPlano('replace')" [disabled]="analiseClinicaBloqueadaPorDados">Plano: substituir</button>
+            <button type="button" class="btn-sec btn-sec--compact" (click)="aplicarSelecaoAoPlano('append')" [disabled]="analiseClinicaBloqueadaPorDados">Plano: anexar</button>
+          </div>
+        </section>
+      </div>
+      }
+
     </div>
 
-    <div class="grid-pet">
+    <div class="grid-pet clinical-prontuario-oficial">
+      <p class="clinical-prontuario-oficial__label">Prontuário oficial (projeção legal — só texto humano)</p>
       <div class="input-group full">
         <label>Diagnóstico</label>
         <textarea [(ngModel)]="diagnostico" placeholder="Hipóteses diagnósticas / diagnóstico conclusivo..." class="input-busca"></textarea>

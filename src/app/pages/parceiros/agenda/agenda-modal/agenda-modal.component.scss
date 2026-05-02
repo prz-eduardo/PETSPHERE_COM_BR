@@ -1,11 +1,23 @@
 @use '../../../../shared/styles/admin-tokens' as *;
 
+/* Mesmo padrão do sidebar: filhos são fixed; não reservar altura no flex de .shell */
+:host {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 100%;
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   z-index: 300;
   backdrop-filter: blur(2px);
+  touch-action: none;
+  overscroll-behavior: none;
 }
 
 .modal-card {

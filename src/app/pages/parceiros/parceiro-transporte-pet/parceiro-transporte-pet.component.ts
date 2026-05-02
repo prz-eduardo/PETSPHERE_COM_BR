@@ -45,6 +45,34 @@ export class ParceiroTransportePetComponent implements OnInit, OnDestroy {
   } | null = null;
   private poll?: Subscription;
 
+  logisticaModalAberto = false;
+  logisticaBusy = false;
+  logisticaForm: {
+    cliente_id: string;
+    pet_id: string;
+    destino_lat: string;
+    destino_lng: string;
+    destino_texto: string;
+    destination_type: 'user' | 'partner';
+    destination_partner_id: string;
+    origem_lat: string;
+    origem_lng: string;
+    origem_texto: string;
+    pet_porte: 'pequeno' | 'medio' | 'grande';
+  } = {
+    cliente_id: '',
+    pet_id: '',
+    destino_lat: '',
+    destino_lng: '',
+    destino_texto: '',
+    destination_type: 'user',
+    destination_partner_id: '',
+    origem_lat: '',
+    origem_lng: '',
+    origem_texto: '',
+    pet_porte: 'medio',
+  };
+
   constructor(
     private api: ApiService,
     private parceiroAuth: ParceiroAuthService,
@@ -340,5 +368,61 @@ export class ParceiroTransportePetComponent implements OnInit, OnDestroy {
     const m = this.motoristas.find((x) => Number(x.parceiro_account_id) === id);
     const t = m && m.tier != null ? String(m.tier) : '';
     return t || null;
+  }
+
+  abrirLogisticaModal(): void {
+    this.logisticaModalAberto = true;
+  }
+
+  fecharLogisticaModal(): void {
+    this.logisticaModalAberto = false;
+  }
+
+  enviarLogisticaRequest(): void {
+    const h = this.headers();
+    if (!h) return;
+    const cid = Number(this.logisticaForm.cliente_id);
+    const pid = Number(this.logisticaForm.pet_id);
+    const dLat = Number(this.logisticaForm.destino_lat);
+    const dLng = Number(this.logisticaForm.destino_lng);
+    if (![cid, pid, dLat, dLng].every((n) => Number.isFinite(n) && n > 0)) {
+      this.toast.error('Preencha ID do tutor (cliente), pet e coordenadas de destino válidas.');
+      return;
+    }
+    const body: Record<string, unknown> = {
+      cliente_id: cid,
+      pet_id: pid,
+      destino_lat: dLat,
+      destino_lng: dLng,
+      destino_texto: this.logisticaForm.destino_texto.trim() || null,
+      destination_type: this.logisticaForm.destination_type,
+      pet_porte: this.logisticaForm.pet_porte,
+    };
+    if (this.logisticaForm.destination_type === 'partner' && this.logisticaForm.destination_partner_id.trim()) {
+      const dp = Number(this.logisticaForm.destination_partner_id);
+      if (Number.isFinite(dp) && dp > 0) body['destination_partner_id'] = dp;
+    }
+    const ol = Number(this.logisticaForm.origem_lat);
+    const on = Number(this.logisticaForm.origem_lng);
+    if (Number.isFinite(ol) && Number.isFinite(on)) {
+      body['origem_lat'] = ol;
+      body['origem_lng'] = on;
+    }
+    const ot = this.logisticaForm.origem_texto.trim();
+    if (ot) body['origem_texto'] = ot;
+    this.logisticaBusy = true;
+    this.api.createParceiroTransportePetLogisticaRequest(h, body).subscribe({
+      next: (r) => {
+        this.logisticaBusy = false;
+        const rid = (r.corrida as { id?: number })?.id;
+        this.toast.success(rid ? `Pedido registrado — corrida #${rid}` : 'Pedido registrado');
+        this.fecharLogisticaModal();
+        this.refresh();
+      },
+      error: (e) => {
+        this.logisticaBusy = false;
+        this.toast.error(e?.error?.error || 'Falha ao criar pedido logístico');
+      },
+    });
   }
 }

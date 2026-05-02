@@ -32,6 +32,8 @@ import { FP_MAP_STYLES } from './mapa-map-styles';
 import { MapLocationConsentService } from '../../services/map-location-consent.service';
 import { TenantLojaHospedagemLeitoPublic, TenantLojaService } from '../../services/tenant-loja.service';
 import { PartnerChatLauncherService } from '../../features/partner-chat/partner-chat-launcher.service';
+import { environment } from '../../../environments/environment';
+import { RealtimeService } from '../../services/realtime.service';
 
 const FP_MAPA_LS_PREFIX = 'fp_mapa_';
 const DEFAULT_SEARCH_RADIUS_KM = 15;
@@ -147,6 +149,16 @@ export class MapaComponent implements OnInit, OnDestroy {
   transportePetLojaSlugEscolhida: string | null = null;
   /** Fluxo: escolher loja antes do painel de cotação. */
   transportePetSelecaoLojaAberta = false;
+  /** Passo no sheet nacional: intenção (Agora / Com clínica) ou lista de lojas. */
+  transportePetFluxoEtapa: 'intencao' | 'lista_lojas' | null = null;
+  /** Modo de negócio ativo para APIs (intenção validada no backend). */
+  transportePetOperacaoAtual: 'marketplace' | 'estabelecimento' | null = null;
+  /** Pets do tutor (para solicitar transporte com pet_id). */
+  transportePetPets: Array<{ id: number; nome: string; apelido?: string; photoURL?: string; porte?: string }> = [];
+  transportePetSelectedPetId: number | null = null;
+  /** Destino em texto livre (rua, número, bairro). */
+  transporteDestinoTexto = '';
+  transporteOrigemTexto = '';
 
   get transporteLojaSlugEfetivo(): string | null {
     if (!isPlatformBrowser(this.platformId)) return null;
@@ -170,14 +182,24 @@ export class MapaComponent implements OnInit, OnDestroy {
     return isPlatformBrowser(this.platformId);
   }
 
+  /** Slug do operador marketplace (configurado no environment + backend). */
+  get transporteMarketplaceSlug(): string | null {
+    const s = String((environment as { transporteMarketplaceLojaSlug?: string }).transporteMarketplaceLojaSlug || '')
+      .trim()
+      .toLowerCase();
+    return s || null;
+  }
+
   /** Lojas com slug de vitrine carregadas no mapa (para pedir corrida sem URL da loja). */
   get parceirosParaTransportePet(): Array<{ nome: string; slug: string; lat?: number; lng?: number }> {
     const src = this.allPartners?.length ? this.allPartners : this.partners;
     const seen = new Set<string>();
     const out: Array<{ nome: string; slug: string; lat?: number; lng?: number }> = [];
+    const opSlug = this.transporteMarketplaceSlug;
     for (const p of src || []) {
       const slug = this.getPartnerStoreSlug(p);
       if (!slug || seen.has(slug)) continue;
+      if (opSlug && slug === opSlug) continue;
       seen.add(slug);
       const lat = Number(p.latitude ?? p.lat ?? p._raw?.latitude);
       const lng = Number(p.longitude ?? p.lng ?? p._raw?.longitude);
@@ -311,6 +333,7 @@ export class MapaComponent implements OnInit, OnDestroy {
     private router: Router,
     private session: SessionService,
     private partnerChatLauncher: PartnerChatLauncherService,
+    private realtime: RealtimeService,
     @Inject(PLATFORM_ID) private platformId: Object,
     private appRef: ApplicationRef,
     private zone: NgZone
@@ -1038,15 +1061,21 @@ export class MapaComponent implements OnInit, OnDestroy {
           this.transportePetLojaSlugEscolhida = null;
         }
         this.transportePetAtivo = svc === 'transporte';
+        if (svc !== 'transporte') {
+          this.stopTransporteGlobalMapPoll();
+        }
         if (svc === 'transporte') {
           if (this.transporteLojaSlugParaCorrida) {
             this.transportePetSelecaoLojaAberta = false;
+            this.transportePetFluxoEtapa = null;
             this.transportePetPainelAberto = true;
+            this.transportePetOperacaoAtual = 'estabelecimento';
             this.initTransporteCoordsSeNecessario();
             this.ensureTransporteScheduledLocal();
           } else {
             this.transportePetPainelAberto = false;
             this.transportePetSelecaoLojaAberta = true;
+            this.transportePetFluxoEtapa = 'intencao';
           }
         }
         this.capturePartnerFromRoute();
@@ -1093,9 +1122,56 @@ export class MapaComponent implements OnInit, OnDestroy {
       } catch (e) {
         setTimeout(() => { this.loadPartners(); }, 0);
       }
+
+      this.loadTransportePetsForCliente();
+      this.realtime
+        .on<{ status?: string; requestId?: number }>('transportepet:logisticaRequestUpdated')
+        .pipe(takeUntil(this.destroyRoute$))
+        .subscribe((p) => {
+          if (p?.status) {
+            this.toast.info(`Pedido de transporte: ${p.status.replace(/_/g, ' ')}`);
+          }
+        });
     } else {
       this.loading = false;
     }
+  }
+
+  private loadTransportePetsForCliente(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const tok = this.session.getBackendToken();
+    const dec = this.session.decodeToken(tok || undefined);
+    if (!tok || String(dec?.tipo || '').toLowerCase() !== 'cliente') {
+      this.transportePetPets = [];
+      this.transportePetSelectedPetId = null;
+      return;
+    }
+    this.api.listClientePets(tok).subscribe({
+      next: (r) => {
+        this.transportePetPets = r.pets || [];
+        if (this.transportePetPets.length === 1) {
+          this.transportePetSelectedPetId = this.transportePetPets[0].id;
+          this.applyTransportePorteFromPet(this.transportePetPets[0]);
+        }
+      },
+      error: () => {
+        this.transportePetPets = [];
+      },
+    });
+  }
+
+  onTransportePetSelectedChange(): void {
+    const id = this.transportePetSelectedPetId;
+    if (id == null) return;
+    const pet = this.transportePetPets.find((p) => p.id === id);
+    if (pet) this.applyTransportePorteFromPet(pet);
+  }
+
+  private applyTransportePorteFromPet(pet: { porte?: string }): void {
+    const po = String(pet.porte || '').toLowerCase();
+    if (po === 'pequeno' || po === 'mini' || po === 'pequeno_porte') this.transportePetPorte = 'pequeno';
+    else if (po === 'grande' || po === 'gigante') this.transportePetPorte = 'grande';
+    else this.transportePetPorte = 'medio';
   }
 
   private initTransporteCoordsSeNecessario(): void {
@@ -1127,19 +1203,20 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   abrirTransportePetPainel(): void {
+    this.loadTransportePetsForCliente();
     this.mapSearchUiOpen = false;
     this.mapConfigOpen = false;
     if (this.transporteLojaSlugParaCorrida) {
       this.transportePetSelecaoLojaAberta = false;
+      this.transportePetFluxoEtapa = null;
+      this.transportePetOperacaoAtual = 'estabelecimento';
       this.transportePetPainelAberto = true;
       this.initTransporteCoordsSeNecessario();
       this.ensureTransporteScheduledLocal();
     } else {
       this.transportePetPainelAberto = false;
       this.transportePetSelecaoLojaAberta = true;
-      if (!this.parceirosParaTransportePet.length && !this.loading) {
-        this.toast.info('Carregue o mapa ou aproxime a busca: em seguida escolha uma loja para pedir transporte.');
-      }
+      this.transportePetFluxoEtapa = 'intencao';
     }
     this.scheduleMapResize();
   }
@@ -1151,15 +1228,56 @@ export class MapaComponent implements OnInit, OnDestroy {
 
   fecharTransporteSelecaoLoja(): void {
     this.transportePetSelecaoLojaAberta = false;
+    this.transportePetFluxoEtapa = null;
     this.scheduleMapResize();
+  }
+
+  escolherTransporteAgora(): void {
+    const slug = this.transporteMarketplaceSlug;
+    if (!slug) {
+      this.toast.error('Transporte imediato não configurado. Defina environment.transporteMarketplaceLojaSlug e o operador no servidor.');
+      return;
+    }
+    this.transportePetLojaSlugEscolhida = slug;
+    this.transportePetOperacaoAtual = 'marketplace';
+    this.transportePetFluxoEtapa = null;
+    this.transportePetSelecaoLojaAberta = false;
+    this.transportePetPainelAberto = true;
+    this.transportePetOrigemLat = null;
+    this.transportePetOrigemLng = null;
+    this.transportePetDestLat = null;
+    this.transportePetDestLng = null;
+    this.initTransporteCoordsSeNecessario();
+    this.ensureTransporteScheduledLocal();
+    this.scheduleMapResize();
+    this.startTransporteGlobalMapPoll();
+    setTimeout(() => this.refreshGlobalSupplyMarkers(), 400);
+  }
+
+  escolherTransporteComClinica(): void {
+    this.transportePetFluxoEtapa = 'lista_lojas';
+    if (!this.parceirosParaTransportePet.length && !this.loading) {
+      this.toast.info('Carregue o mapa ou aproxime o zoom para listar estabelecimentos com vitrine.');
+    }
+  }
+
+  voltarTransporteIntencao(): void {
+    this.transportePetFluxoEtapa = 'intencao';
+  }
+
+  recarregarParceirosMapaTransporte(): void {
+    this.loadPartners();
   }
 
   escolherLojaParaTransporte(slug: string, lat?: number | null, lng?: number | null): void {
     const s = String(slug || '').trim().toLowerCase();
     if (!s) return;
+    this.transportePetOperacaoAtual = 'estabelecimento';
     this.transportePetLojaSlugEscolhida = s;
     this.transportePetSelecaoLojaAberta = false;
     this.transportePetPainelAberto = true;
+    this.stopTransporteGlobalMapPoll();
+    this.clearGlobalDriverMarkersFromMap();
     const la = lat != null ? Number(lat) : NaN;
     const ln = lng != null ? Number(lng) : NaN;
     if (Number.isFinite(la) && Number.isFinite(ln)) {
@@ -1183,7 +1301,11 @@ export class MapaComponent implements OnInit, OnDestroy {
     this.transportePetPainelAberto = false;
     this.transportePetLojaSlugEscolhida = null;
     this.transportePetQuote = null;
+    this.transportePetOperacaoAtual = null;
+    this.stopTransporteGlobalMapPoll();
+    this.clearGlobalDriverMarkersFromMap();
     this.transportePetSelecaoLojaAberta = true;
+    this.transportePetFluxoEtapa = 'intencao';
     this.scheduleMapResize();
   }
 
@@ -1194,6 +1316,11 @@ export class MapaComponent implements OnInit, OnDestroy {
   transportePetCotar(): void {
     const slug = this.transporteLojaSlugParaCorrida;
     if (!slug) return;
+    const op = this.transportePetOperacaoAtual;
+    if (!op) {
+      this.toast.error('Selecione como deseja pedir o transporte.');
+      return;
+    }
     const oLat = Number(this.transportePetOrigemLat);
     const oLng = Number(this.transportePetOrigemLng);
     const dLat = Number(this.transportePetDestLat);
@@ -1211,6 +1338,7 @@ export class MapaComponent implements OnInit, OnDestroy {
         destino_lng: dLng,
         pet_porte: this.transportePetPorte,
         urgencia: this.transportePetUrgencia,
+        operacao: op,
       })
       .subscribe({
         next: (q) => {
@@ -1228,6 +1356,11 @@ export class MapaComponent implements OnInit, OnDestroy {
   transportePetSolicitar(): void {
     const slug = this.transporteLojaSlugParaCorrida;
     if (!slug) return;
+    const op = this.transportePetOperacaoAtual;
+    if (!op) {
+      this.toast.error('Selecione como deseja pedir o transporte.');
+      return;
+    }
     const tok = this.session.getBackendToken();
     const dec = this.session.decodeToken(tok || undefined);
     if (!tok || String(dec?.tipo || '').toLowerCase() !== 'cliente') {
@@ -1251,17 +1384,25 @@ export class MapaComponent implements OnInit, OnDestroy {
         return;
       }
     }
+    if (this.transportePetPets.length > 0 && this.transportePetSelectedPetId == null) {
+      this.toast.error('Selecione qual pet vai no transporte.');
+      return;
+    }
+    const destTxt = (this.transporteDestinoTexto || '').trim();
+    const origTxt = (this.transporteOrigemTexto || '').trim();
     this.transportePetBusy = true;
     this.api
       .createClienteTransportePetCorrida(tok, {
         loja_slug: slug,
+        operacao: op,
         origem_lat: oLat,
         origem_lng: oLng,
         destino_lng: dLng,
         destino_lat: dLat,
-        origem_texto: 'Origem (mapa)',
-        destino_texto: 'Destino (mapa)',
+        origem_texto: origTxt || 'Origem (mapa)',
+        destino_texto: destTxt || 'Destino (mapa)',
         pet_porte: this.transportePetPorte,
+        pet_id: this.transportePetSelectedPetId != null ? this.transportePetSelectedPetId : undefined,
         urgencia: this.transportePetUrgencia,
         scheduled_at: scheduledIso,
       } as any)
@@ -1269,6 +1410,10 @@ export class MapaComponent implements OnInit, OnDestroy {
         next: (r) => {
           const id = Number((r.corrida as any)?.id);
           const pid = Number((r.corrida as any)?.parceiro_id);
+          const reqLog = r.logistica_request_id;
+          if (reqLog != null) {
+            void this.realtime.emit('transportepet:joinLogisticaRequest', { requestId: Number(reqLog) });
+          }
           this.transportePetLastCorridaId = id;
           this.transportePetLastParceiroId = Number.isFinite(pid) && pid > 0 ? pid : null;
           if (!id) {
@@ -1276,7 +1421,7 @@ export class MapaComponent implements OnInit, OnDestroy {
             this.toast.error('Resposta inválida');
             return;
           }
-          this.api.checkoutClienteTransportePetCorrida(tok, id, slug).subscribe({
+          this.api.checkoutClienteTransportePetCorrida(tok, id, slug, op).subscribe({
             next: (c) => {
               this.transportePetBusy = false;
               if (c.payment_url) window.location.href = c.payment_url;
@@ -1343,6 +1488,7 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopTransporteGlobalMapPoll();
     try {
       this.destroyRoute$.next();
       this.destroyRoute$.complete();
@@ -1507,6 +1653,90 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   private readonly clusterPartnerThreshold = 15;
+  /** Atualização periódica dos motoristas da rede global no mapa (somente modo marketplace). */
+  private transporteGlobalMapPoll: ReturnType<typeof setInterval> | null = null;
+
+  private stopTransporteGlobalMapPoll(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (this.transporteGlobalMapPoll) {
+      clearInterval(this.transporteGlobalMapPoll);
+      this.transporteGlobalMapPoll = null;
+    }
+  }
+
+  private startTransporteGlobalMapPoll(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    this.stopTransporteGlobalMapPoll();
+    this.transporteGlobalMapPoll = setInterval(() => {
+      this.zone.run(() => this.refreshGlobalSupplyMarkers());
+    }, 28000);
+  }
+
+  /** Remove marcadores da API pública de motoristas PetSphere (sem afetar parceiros). */
+  private clearGlobalDriverMarkersFromMap(): void {
+    if (!this.map) return;
+    const keep: any[] = [];
+    for (const m of this.markers) {
+      if ((m as any).__isGlobalDriver) {
+        try {
+          m.setMap(null);
+        } catch {
+          /* ignore */
+        }
+      } else {
+        keep.push(m);
+      }
+    }
+    this.markers = keep;
+  }
+
+  /**
+   * Rede pública: motoristas globais online (não inclui frota privada de clínicas).
+   * Só no fluxo transporte + operação marketplace.
+   */
+  private refreshGlobalSupplyMarkers(): void {
+    if (!isPlatformBrowser(this.platformId) || !this.map || !(window as any).google) return;
+    if (!this.transportePetAtivo || this.transportePetOperacaoAtual !== 'marketplace') {
+      this.clearGlobalDriverMarkersFromMap();
+      return;
+    }
+    this.clearGlobalDriverMarkersFromMap();
+    this.api.getPublicTransportePetGlobalMotoristasMap().subscribe({
+      next: (res) => {
+        const google = (window as any).google;
+        const list = res.motoristas || [];
+        const icon = {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: '#0284c7',
+          fillOpacity: 0.92,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        };
+        for (const d of list) {
+          const lat = Number(d['lat']);
+          const lng = Number(d['lng']);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+          try {
+            const mk = new google.maps.Marker({
+              position: { lat, lng },
+              map: this.map,
+              title: 'Motorista PetSphere (rede)',
+              zIndex: 850,
+              icon,
+            });
+            (mk as any).__isGlobalDriver = true;
+            this.markers.push(mk);
+          } catch {
+            /* ignore */
+          }
+        }
+      },
+      error: () => {
+        /* silencioso: endpoint público pode falhar antes do backend subir */
+      },
+    });
+  }
 
   private refreshMarkers() {
     if (!this.map || !(window as any).google) return;
@@ -1651,6 +1881,8 @@ export class MapaComponent implements OnInit, OnDestroy {
         }
       }
     }
+
+    this.refreshGlobalSupplyMarkers();
   }
 
   /** Abre o chat parceiro-cliente usando o modal reutilizável global. */
@@ -1987,6 +2219,7 @@ export class MapaComponent implements OnInit, OnDestroy {
             tipo: Array.isArray(p.tipos) && p.tipos[0] ? p.tipos[0] : null,
             tipos: Array.isArray(p.tipos) ? p.tipos : undefined,
             partner_type: p.partner_type ?? 'anunciante',
+            loja_slug: p.loja_slug != null ? String(p.loja_slug).trim().toLowerCase() : undefined,
             _raw: p
           };
         });

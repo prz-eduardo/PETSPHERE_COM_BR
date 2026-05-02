@@ -1,71 +1,67 @@
 <div class="shell">
 
-  <!-- Mobile Dia/Timeline: um scrollport (evita nested + WebKit); FAB fica fora deste bloco. -->
-  <div class="agenda-mobile-scroll">
-  <app-agenda-convites-dados></app-agenda-convites-dados>
+  <ng-template #agendaChrome>
+    <app-agenda-convites-dados></app-agenda-convites-dados>
 
-  <!-- ── Toolbar ─────────────────────────────────────────────────────── -->
-  <div class="toolbar">
-    <div class="toolbar-left">
-      <!-- Date navigation -->
-      <div class="date-nav">
-        <button class="nav-btn" (click)="prevDate()" aria-label="Anterior">‹</button>
-        <button class="today-btn" [class.is-today]="isToday()" (click)="goToToday()">Hoje</button>
-        <button class="nav-btn" (click)="nextDate()" aria-label="Próximo">›</button>
-      </div>
-      <h2 class="date-label">{{ dateLabel() }}</h2>
-    </div>
-
-    <div class="toolbar-right">
-      <!-- KPIs -->
-      <div class="kpi-chips">
-        <span class="kpi-chip">{{ totalCount() }} agend.</span>
-        <span class="kpi-chip warn" *ngIf="atrasadosCount() > 0">
-          ⚠ {{ atrasadosCount() }} atrasado{{ atrasadosCount() > 1 ? 's' : '' }}
-        </span>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="date-nav">
+          <button class="nav-btn" (click)="prevDate()" aria-label="Anterior">‹</button>
+          <button class="today-btn" [class.is-today]="isToday()" (click)="goToToday()">Hoje</button>
+          <button class="nav-btn" (click)="nextDate()" aria-label="Próximo">›</button>
+        </div>
+        <h2 class="date-label">{{ dateLabel() }}</h2>
       </div>
 
-      <!-- View mode toggle -->
-      <div class="view-toggle" role="group" aria-label="Modo de visualização">
-        <button
-          *ngFor="let m of ALL_MODES"
-          class="view-btn"
-          [class.active]="viewMode() === m"
-          [disabled]="!isViewAvailable(m)"
-          (click)="setViewMode(m)"
-          [attr.aria-pressed]="viewMode() === m"
-        >
-          {{ MODE_LABELS[m] }}
+      <div class="toolbar-right">
+        <div class="kpi-chips">
+          <span class="kpi-chip">{{ totalCount() }} agend.</span>
+          <span class="kpi-chip warn" *ngIf="atrasadosCount() > 0">
+            ⚠ {{ atrasadosCount() }} atrasado{{ atrasadosCount() > 1 ? 's' : '' }}
+          </span>
+        </div>
+
+        <div class="view-toggle" role="group" aria-label="Modo de visualização">
+          <button
+            *ngFor="let m of ALL_MODES"
+            class="view-btn"
+            [class.active]="viewMode() === m"
+            [disabled]="!isViewAvailable(m)"
+            (click)="setViewMode(m)"
+            [attr.aria-pressed]="viewMode() === m"
+          >
+            {{ MODE_LABELS[m] }}
+          </button>
+        </div>
+
+        <div *ngIf="viewMode() === 'DAY'" class="window-toggle" role="group" aria-label="Janela de horário">
+          <button type="button" class="window-btn" [class.active]="windowPreset() === 'default'" (click)="setWindow('default')">Padrão</button>
+          <button type="button" class="window-btn" [class.active]="windowPreset() === '12-24'" (click)="setWindow('12-24')">Meio-dia–Meia-noite</button>
+          <button type="button" class="window-btn" [class.active]="windowPreset() === '9-18'" (click)="setWindow('9-18')">09–18</button>
+          <button type="button" class="window-btn" [class.active]="windowPreset() === '0-24'" (click)="setWindow('0-24')">Todos</button>
+        </div>
+
+        <a routerLink="/parceiros/agenda/regras" class="btn-outline" style="margin-right:8px;text-decoration:none;display:inline-flex;align-items:center;">
+          Regras e bloqueios
+        </a>
+        <button class="btn-new" (click)="openSidebar()">
+          <span>+</span> Novo
         </button>
       </div>
-
-      <!-- Time window presets (apenas no modo Dia) -->
-      <div *ngIf="viewMode() === 'DAY'" class="window-toggle" role="group" aria-label="Janela de horário">
-        <button type="button" class="window-btn" [class.active]="windowPreset() === 'default'" (click)="setWindow('default')">Padrão</button>
-        <button type="button" class="window-btn" [class.active]="windowPreset() === '12-24'" (click)="setWindow('12-24')">Meio-dia–Meia-noite</button>
-        <button type="button" class="window-btn" [class.active]="windowPreset() === '9-18'" (click)="setWindow('9-18')">09–18</button>
-        <button type="button" class="window-btn" [class.active]="windowPreset() === '0-24'" (click)="setWindow('0-24')">Todos</button>
-      </div>
-
-      <!-- New appointment -->
-      <button class="btn-new" (click)="openSidebar()">
-        <span>+</span> Novo
-      </button>
     </div>
-  </div>
 
-  <!-- ── Filters ─────────────────────────────────────────────────────── -->
-  <app-agenda-filters
-    [agendamentos]="agendamentos()"
-    [profissionais]="profissionais()"
-    [servicos]="servicos()"
-    (filtersChange)="onFiltersChange($event)"
-  ></app-agenda-filters>
+    <app-agenda-filters
+      [agendamentos]="agendamentos()"
+      [profissionais]="profissionais()"
+      [servicos]="servicos()"
+      (filtersChange)="onFiltersChange($event)"
+    ></app-agenda-filters>
+  </ng-template>
 
-  <!-- ── View ────────────────────────────────────────────────────────── -->
-  <div class="view-area">
-    @switch (viewMode()) {
-      @case ('DAY') {
+  @if (viewMode() === 'DAY') {
+    <div class="day-shell">
+      <ng-container *ngTemplateOutlet="agendaChrome"></ng-container>
+      <div class="day-board-pane">
         @if (profissionais().length === 0) {
           <section class="agenda-empty" aria-labelledby="empty-recursos-title">
             <span class="agenda-empty-icon" aria-hidden="true">&#128197;</span>
@@ -80,80 +76,84 @@
             </div>
           </section>
         } @else {
-          <app-agenda-grid
+          <app-agenda-day-view
             [agendamentos]="agendamentosForView()"
             [profissionais]="profissionais()"
             [config]="viewConfig()!"
             [workStart]="viewConfig()?.workStart"
             [workEnd]="viewConfig()?.workEnd"
             [selectedDate]="selectedDate()"
+            [slotProjections]="slotProjectionsByRecurso()"
             (slotClick)="openSidebar($event)"
             (quickAction)="onQuickAction($event)"
             (openModal)="openModal($event)"
-          ></app-agenda-grid>
+          ></app-agenda-day-view>
         }
-      }
-      @case ('TIMELINE') {
-        @if (profissionais().length === 0) {
-          <section class="agenda-empty" aria-labelledby="empty-recursos-tl-title">
-            <span class="agenda-empty-icon" aria-hidden="true">&#128197;</span>
-            <h3 id="empty-recursos-tl-title">Nenhum recurso de agenda</h3>
-            <p>
-              A timeline organiza compromissos por profissional ou recurso. Cadastre recursos no estabelecimento para usar esta vista.
-            </p>
-            <div class="agenda-empty-actions">
-              <a routerLink="/parceiros/configuracoes" class="btn-outline">Configurações</a>
-              <button type="button" class="btn-new" (click)="openSidebar()"><span>+</span> Novo</button>
-            </div>
-          </section>
-        } @else {
-          <app-agenda-timeline
-            [agendamentos]="agendamentosForView()"
-            [profissionais]="profissionais()"
-            [config]="viewConfig()!"
-            [selectedDate]="selectedDate()"
-            (slotClick)="openSidebar($event)"
-            (quickAction)="onQuickAction($event)"
-            (openModal)="openModal($event)"
-          ></app-agenda-timeline>
+      </div>
+    </div>
+  } @else {
+    <div class="agenda-mobile-scroll">
+      <ng-container *ngTemplateOutlet="agendaChrome"></ng-container>
+
+      <div class="view-area">
+        @switch (viewMode()) {
+          @case ('TIMELINE') {
+            @if (profissionais().length === 0) {
+              <section class="agenda-empty" aria-labelledby="empty-recursos-tl-title">
+                <span class="agenda-empty-icon" aria-hidden="true">&#128197;</span>
+                <h3 id="empty-recursos-tl-title">Nenhum recurso de agenda</h3>
+                <p>
+                  A timeline organiza compromissos por profissional ou recurso. Cadastre recursos no estabelecimento para usar esta vista.
+                </p>
+                <div class="agenda-empty-actions">
+                  <a routerLink="/parceiros/configuracoes" class="btn-outline">Configurações</a>
+                  <button type="button" class="btn-new" (click)="openSidebar()"><span>+</span> Novo</button>
+                </div>
+              </section>
+            } @else {
+              <app-agenda-timeline
+                [agendamentos]="agendamentosForView()"
+                [profissionais]="profissionais()"
+                [config]="viewConfig()!"
+                [selectedDate]="selectedDate()"
+                (slotClick)="openSidebar($event)"
+                (quickAction)="onQuickAction($event)"
+                (openModal)="openModal($event)"
+              ></app-agenda-timeline>
+            }
+          }
+          @case ('WEEK') {
+            <app-agenda-week
+              [agendamentos]="filteredAgendamentos()"
+              [selectedDate]="selectedDate()"
+              (quickAction)="onQuickAction($event)"
+              (openModal)="openModal($event)"
+            ></app-agenda-week>
+          }
+          @case ('MONTH') {
+            <app-agenda-month
+              [agendamentos]="filteredAgendamentos()"
+              [selectedDate]="selectedDate()"
+              (daySelected)="onDaySelected($event)"
+              (openModal)="openModal($event)"
+            ></app-agenda-month>
+          }
+          @case ('LIST') {
+            <app-agenda-list
+              [agendamentos]="filteredAgendamentos()"
+              (quickAction)="onQuickAction($event)"
+              (openModal)="openModal($event)"
+            ></app-agenda-list>
+          }
         }
-      }
-      @case ('WEEK') {
-        <app-agenda-week
-          [agendamentos]="filteredAgendamentos()"
-          [selectedDate]="selectedDate()"
-          (quickAction)="onQuickAction($event)"
-          (openModal)="openModal($event)"
-        ></app-agenda-week>
-      }
-      @case ('MONTH') {
-        <app-agenda-month
-          [agendamentos]="filteredAgendamentos()"
-          [selectedDate]="selectedDate()"
-          (daySelected)="onDaySelected($event)"
-          (openModal)="openModal($event)"
-        ></app-agenda-month>
-      }
-      @case ('LIST') {
-        <app-agenda-list
-          [agendamentos]="filteredAgendamentos()"
-          (quickAction)="onQuickAction($event)"
-          (openModal)="openModal($event)"
-        ></app-agenda-list>
-      }
-    }
-  </div>
+      </div>
+    </div>
 
-  </div>
+    <div class="agenda-scroll-compositor-fix" aria-hidden="true"></div>
+  }
 
-  <!-- WebKit: camada fixa invisível (igual stack ao sidebar-overlay) — sem isto o scroll da agenda trava. -->
-  <div class="agenda-scroll-compositor-fix" aria-hidden="true"></div>
-
-  <!-- ── FAB (mobile) ─────────────────────────────────────────────────── -->
   <button class="fab" (click)="openSidebar()" aria-label="Novo agendamento">+</button>
 
-  <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
-  <!-- Sempre montado: *ngIf destruía o overlay fixo e o WebKit deixava de rolar a .view-area ao fechar. -->
   <app-agenda-sidebar
     [class.sidebar--closed]="!sidebarOpen()"
     [drawerOpen]="sidebarOpen()"
@@ -167,7 +167,6 @@
     (close)="closeSidebar()"
   ></app-agenda-sidebar>
 
-  <!-- ── Modal ────────────────────────────────────────────────────────── -->
   <app-agenda-modal
     *ngIf="modalAgendamento()"
     [agendamento]="modalAgendamento()!"

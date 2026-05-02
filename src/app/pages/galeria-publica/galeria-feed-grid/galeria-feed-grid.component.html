@@ -37,6 +37,7 @@
     *ngFor="let post of items; trackBy: trackPostId"
     type="button"
     class="pet-card pet-card--compact"
+    [class.pet-card--guest]="!isLoggedIn"
     (click)="openPost.emit(post)"
     [attr.aria-label]="'Abrir post de ' + (post.pet?.nome || 'pet')"
   >
@@ -45,13 +46,27 @@
         [src]="resolveImage(post)"
         alt=""
         class="pet-card--img loaded"
+        [ngStyle]="!isLoggedIn ? guestFeedPhotoImgStyle : null"
         (error)="imgFallback($event.target)"
       />
+      <div
+        class="pet-card-guest-veil"
+        *ngIf="!isLoggedIn"
+        [ngStyle]="guestFeedPhotoVeilStyle"
+        aria-hidden="true"
+      ></div>
       <span class="pet-card--compact__count" *ngIf="post.imagens.length > 1" aria-hidden="true">
         +{{ post.imagens.length - 1 }}
       </span>
+      <div class="pet-card-guest-cta pet-card-guest-cta--mobile-only" *ngIf="!isLoggedIn">
+        <a
+          routerLink="/restrito/login"
+          class="pet-card-guest-cta__btn"
+          (click)="$event.stopPropagation()"
+        >Entrar para ver</a>
+      </div>
     </div>
-    <div class="pet-card--compact__footer">
+    <div class="pet-card--compact__footer" [ngStyle]="!isLoggedIn ? guestFeedFooterStyle : null">
       <div class="pet-card--compact__titleblock">
         <span class="pet-card--compact__name">{{ post.pet?.nome || 'Sem nome' }}</span>
         <span class="pet-card--compact__caption" *ngIf="post.caption">{{ post.caption }}</span>

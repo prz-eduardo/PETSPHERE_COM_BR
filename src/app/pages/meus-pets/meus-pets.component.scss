@@ -1,19 +1,11 @@
-/* Meus pets — alinhado à área do cliente */
-.pets-page.area-like-wrapper {
-  --ac-text: #e6eef8;
-  --ac-text-dim: #94a3b8;
-  --ac-surface: rgba(255, 255, 255, 0.04);
-  --ac-border: rgba(255, 255, 255, 0.1);
-  --ac-accent: #c4d600;
-  --ac-accent-ink: #1a1f00;
-  --ac-radius: 16px;
-  --ac-shadow: 0 16px 40px rgba(2, 6, 23, 0.45);
-}
+@use '../../shared/styles/cliente-shell-themes' as cliente-shell;
 
+/* Meus pets — alinhado à área do cliente (claro por padrão) */
 .pets-page.area-like-wrapper {
+  @include cliente-shell.area-like-ac-vars-light;
+
   min-height: 100vh;
-  background: radial-gradient(1200px 600px at 10% 10%, rgba(2, 6, 11, 0.55), transparent),
-    linear-gradient(180deg, #07080a 0%, #0b0e12 100%);
+  @include cliente-shell.cliente-page-bg-light;
   color: var(--ac-text);
   padding: 72px 0 40px;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -22,6 +14,14 @@
     min-height: 0;
     padding: 0 4px 12px;
     background: transparent;
+  }
+}
+
+.pets-page.area-like-wrapper--theme-dark {
+  @include cliente-shell.area-like-ac-vars-dark;
+
+  &:not(.is-modal) {
+    @include cliente-shell.cliente-page-bg-dark;
   }
 }
 
@@ -92,7 +92,7 @@
 }
 
 .btn-back {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(15, 11, 46, 0.05);
   color: var(--ac-text);
   border: 1px solid var(--ac-border);
   border-radius: 10px;
@@ -104,7 +104,14 @@
 }
 
 .btn-back:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 11, 46, 0.09);
+}
+
+.pets-page.area-like-wrapper--theme-dark .btn-back {
+  background: rgba(255, 255, 255, 0.06);
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* Estados vazio / loading */
@@ -217,7 +224,7 @@
   cursor: pointer;
   text-align: left;
   border: 1px solid var(--ac-border);
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 244, 238, 0.88) 100%);
   box-shadow: var(--ac-shadow);
   overflow: hidden;
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.2s ease;
@@ -228,6 +235,13 @@
 .pet-card:hover {
   transform: translateY(-3px);
   border-color: rgba(196, 214, 0, 0.35);
+  box-shadow: 0 20px 44px rgba(15, 11, 46, 0.12);
+}
+
+.pets-page.area-like-wrapper--theme-dark .pet-card {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+.pets-page.area-like-wrapper--theme-dark .pet-card:hover {
   box-shadow: 0 22px 48px rgba(2, 6, 23, 0.55);
 }
 
@@ -424,8 +438,12 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #0c1016;
+  background: var(--ac-surface-h);
   border-top: 1px solid var(--ac-border);
+}
+
+.pets-page.area-like-wrapper--theme-dark .pet-card__body {
+  background: #0c1016;
 }
 
 .pet-card__obs-label,
@@ -447,7 +465,7 @@
   display: block;
   font-size: 0.85rem;
   line-height: 1.45;
-  color: #cbd5e1;
+  color: var(--ac-text-dim);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -465,14 +483,25 @@
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(196, 214, 0, 0.1);
-  color: #d4e36b;
-  border: 1px solid rgba(196, 214, 0, 0.2);
+  background: rgba(196, 214, 0, 0.14);
+  color: #3d4a00;
+  border: 1px solid rgba(196, 214, 0, 0.28);
 }
 
 .pet-chip.pet-chip--trait {
-  background: rgba(56, 189, 248, 0.1);
+  background: rgba(56, 189, 248, 0.12);
+  color: #0369a1;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.pets-page.area-like-wrapper--theme-dark .pet-chip {
+  background: rgba(196, 214, 0, 0.1);
+  color: #d4e36b;
+  border-color: rgba(196, 214, 0, 0.2);
+}
+.pets-page.area-like-wrapper--theme-dark .pet-chip.pet-chip--trait {
   color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.1);
   border-color: rgba(56, 189, 248, 0.25);
 }
 
@@ -533,9 +562,9 @@
 .delete-modal {
   width: min(100%, 420px);
   border-radius: 18px;
-  border: 1px solid rgba(248, 113, 113, 0.2);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 14, 22, 0.98) 100%);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--ac-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--ps-cream-soft) 100%);
+  box-shadow: 0 24px 48px rgba(15, 11, 46, 0.14);
   padding: 22px;
   color: var(--ac-text);
 }
@@ -544,14 +573,14 @@
   margin: 0 0 10px;
   font-size: 1.2rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--ac-text);
 }
 
 .delete-modal__text {
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.55;
-  color: #cbd5e1;
+  color: var(--ac-text-dim);
 }
 
 .delete-modal__actions {
@@ -582,9 +611,31 @@
 }
 
 .delete-modal__btn--ghost {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(15, 11, 46, 0.05);
   color: var(--ac-text);
+  border-color: var(--ac-border);
+}
+.delete-modal__btn--ghost:hover:not([disabled]) {
+  background: rgba(15, 11, 46, 0.09);
+}
+
+.pets-page.area-like-wrapper--theme-dark .delete-modal {
+  border-color: rgba(248, 113, 113, 0.2);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 14, 22, 0.98) 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+.pets-page.area-like-wrapper--theme-dark .delete-modal__title {
+  color: #fff;
+}
+.pets-page.area-like-wrapper--theme-dark .delete-modal__text {
+  color: #cbd5e1;
+}
+.pets-page.area-like-wrapper--theme-dark .delete-modal__btn--ghost {
+  background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.1);
+}
+.pets-page.area-like-wrapper--theme-dark .delete-modal__btn--ghost:hover:not([disabled]) {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .delete-modal__btn--danger {
@@ -605,8 +656,12 @@
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid var(--ac-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.55);
   color: var(--ac-text-dim);
+}
+
+.pets-page.area-like-wrapper--theme-dark .pet-card__vac {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .pet-card__vac--neutral {

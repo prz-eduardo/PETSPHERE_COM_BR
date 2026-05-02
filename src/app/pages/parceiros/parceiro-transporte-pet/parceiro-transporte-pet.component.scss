@@ -39,6 +39,75 @@
   max-width: 52ch;
 }
 
+.transporte-pet-lead--tight {
+  margin-top: 0.65rem;
+  max-width: min(52ch, 100%);
+}
+
+.transporte-pet-lead--tight strong {
+  color: var(--ps-ink, #0f172a);
+}
+
+.motorista-gps-note {
+  margin: 0.65rem 0 0;
+  line-height: 1.45;
+}
+
+.motorista-gps-note a {
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.transporte-lgpd-details {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(241, 245, 249, 0.65);
+  border: 1px solid var(--ps-border, #e2e8f0);
+}
+
+.transporte-lgpd-details__summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ps-ink, #0f172a);
+  list-style: none;
+}
+
+.transporte-lgpd-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.transporte-lgpd-details__summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.transporte-lgpd-details[open] .transporte-lgpd-details__summary::before {
+  transform: rotate(90deg);
+}
+
+.transporte-lgpd-details__body {
+  margin: 0.6rem 0 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.transporte-lgpd-details__body p {
+  margin: 0 0 0.55rem;
+  line-height: 1.5;
+}
+
+.transporte-lgpd-details__body p:last-child {
+  margin-bottom: 0;
+}
+
+.transporte-lgpd-details__body a {
+  color: #0369a1;
+  font-weight: 500;
+}
+
 .muted {
   color: var(--ps-muted, #64748b);
 }
@@ -480,4 +549,71 @@
   padding: 0.45rem 0.6rem;
   border-radius: 8px;
   border: 1px solid var(--ps-border, #cbd5e1);
+}
+
+.transporte-chamar-btn {
+  margin-top: 1rem;
+}
+
+.logistica-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1000;
+}
+
+.logistica-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.logistica-modal__inner {
+  pointer-events: auto;
+  background: #fff;
+  border-radius: 14px;
+  max-width: 420px;
+  width: 100%;
+  padding: 1.25rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.logistica-modal__inner label {
+  display: block;
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ps-ink, #0f172a);
+}
+
+.logistica-modal__inner input,
+.logistica-modal__inner select {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--ps-border, #cbd5e1);
+}
+
+.logistica-modal__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.logistica-modal__adv {
+  margin-top: 0.75rem;
+  font-size: 0.88rem;
+}
+
+.logistica-modal__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
 }

@@ -14,13 +14,19 @@ import {
   ViewChild,
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
 import { FeedAdItem, FeedPostItem, typeEmoji } from '../gallery-utils';
+import {
+  GUEST_FEED_FOOTER_STYLE,
+  GUEST_FEED_PHOTO_IMG_STYLE,
+  GUEST_FEED_PHOTO_VEIL_STYLE,
+} from '../galeria-guest-visual';
 
 @Component({
   selector: 'app-galeria-feed-grid',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './galeria-feed-grid.component.html',
   styleUrls: ['./galeria-feed-grid.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +37,7 @@ export class GaleriaFeedGridComponent implements AfterViewInit, OnChanges, OnDes
   @Input() loading = false;
   @Input() loadingMore = false;
   @Input() hasMore = false;
+  @Input() isLoggedIn = true;
 
   @Output() loadMore = new EventEmitter<void>();
   @Output() openPost = new EventEmitter<FeedPostItem>();
@@ -38,6 +45,10 @@ export class GaleriaFeedGridComponent implements AfterViewInit, OnChanges, OnDes
 
   @ViewChild('sentinel', { static: false }) sentinel?: ElementRef<HTMLElement>;
   private observer?: IntersectionObserver;
+
+  readonly guestFeedPhotoImgStyle = GUEST_FEED_PHOTO_IMG_STYLE;
+  readonly guestFeedPhotoVeilStyle = GUEST_FEED_PHOTO_VEIL_STYLE;
+  readonly guestFeedFooterStyle = GUEST_FEED_FOOTER_STYLE;
 
   constructor(
     private api: ApiService,

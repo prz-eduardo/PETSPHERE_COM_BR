@@ -934,7 +934,12 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         this.isCliente = await this.store.isClienteLoggedSilent().catch(() => false);
         this.refreshDockMode();
         this.scheduleTabPillUpdate();
-        await this.loadUserProfileIfNeeded();
+        if (this.isCliente) {
+          await this.loadUserProfileIfNeeded();
+        } else {
+          this.user = null;
+          this.userFoto = null;
+        }
       } else {
         this.isCliente = false;
         this.user = null;
@@ -944,6 +949,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         this.scheduleTabPillUpdate();
       }
       this.recomputeRibbon();
+      this.cdr.markForCheck();
     });
 
     this.radialActions = this.fabRadialActionIds().map((id) => {
@@ -1012,23 +1018,28 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isCliente = false;
     this.user = null;
     this.userFoto = null;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const userStr = localStorage.getItem('cliente_me');
-      if (userStr) {
-        try {
-          const userObj = JSON.parse(userStr);
-          this.user = userObj;
-          this.userFoto = userObj?.user?.foto || userObj?.foto || null;
-        } catch {}
-      }
-    }
+    // Não ler `cliente_me` antes de validar sessão: sobra de login antigo fazia a
+    // bolinha mostrar foto mesmo deslogado; o perfil só entra via `loadUserProfileIfNeeded`.
     this.store.isClienteLoggedSilent()
       .then(async ok => {
         this.isCliente = ok;
         this.refreshDockMode();
         this.scheduleTabPillUpdate();
-        if (ok) await this.loadUserProfileIfNeeded();
+        if (ok) {
+          await this.loadUserProfileIfNeeded();
+        } else {
+          this.user = null;
+          this.userFoto = null;
+          if (!this.auth.getToken()) {
+            try {
+              if (typeof window !== 'undefined' && window.localStorage) {
+                localStorage.removeItem('cliente_me');
+              }
+            } catch { /* */ }
+          }
+        }
         this.recomputeRibbon();
+        this.cdr.markForCheck();
       })
       .catch(() => {
         this.isCliente = false;
@@ -1036,6 +1047,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         this.userFoto = null;
         this.refreshDockMode();
         this.scheduleTabPillUpdate();
+        this.cdr.markForCheck();
       });
   }
 

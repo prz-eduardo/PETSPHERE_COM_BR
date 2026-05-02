@@ -1,0 +1,84 @@
+// ==========================================================================
+// Shell da área do cliente — tokens compartilhados (claro = padrão; escuro = legado)
+// Depende de :root em _aurora-tokens.scss (--ps-*, --fp-site-surface em styles.scss)
+// ==========================================================================
+
+@mixin cliente-ac-vars-light {
+  --ac-text: var(--ps-ink);
+  --ac-text-dim: var(--ps-ink-soft);
+  --ac-surface: rgba(255, 255, 255, 0.78);
+  --ac-surface-h: rgba(247, 244, 238, 0.96);
+  --ac-border: var(--ps-glass-line-d);
+  --ac-border-h: rgba(159, 224, 0, 0.45);
+  --ac-accent: var(--ps-aurora);
+  --ac-accent-ink: #1a1f00;
+  --ac-danger: #ff4f6a;
+  --ac-radius-lg: 18px;
+  --ac-radius-md: 14px;
+  --ac-radius-sm: 10px;
+  --ac-shadow: 0 12px 32px rgba(15, 11, 46, 0.08);
+}
+
+@mixin cliente-ac-vars-dark {
+  --ac-text: #e6eef8;
+  --ac-text-dim: #94a3b8;
+  --ac-surface: rgba(255, 255, 255, 0.035);
+  --ac-surface-h: rgba(255, 255, 255, 0.07);
+  --ac-border: rgba(255, 255, 255, 0.09);
+  --ac-border-h: rgba(196, 214, 0, 0.45);
+  --ac-accent: #c4d600;
+  --ac-accent-ink: #1a1f00;
+  --ac-danger: #ff4f6a;
+  --ac-radius-lg: 18px;
+  --ac-radius-md: 14px;
+  --ac-radius-sm: 10px;
+  --ac-shadow: 0 12px 32px rgba(2, 6, 23, 0.32);
+}
+
+@mixin cliente-page-bg-light {
+  background:
+    radial-gradient(1200px 520px at 12% 0%, rgba(197, 255, 61, 0.07), transparent 55%),
+    linear-gradient(180deg, var(--ps-cream-soft) 0%, var(--fp-site-surface, var(--ps-cream-soft)) 100%);
+}
+
+@mixin cliente-page-bg-dark {
+  background:
+    radial-gradient(1200px 600px at 10% 10%, rgba(2, 6, 11, 0.6), transparent),
+    linear-gradient(180deg, #07080a 0%, #0b0e12 100%);
+}
+
+// Subpáginas estilo “area-like” (meus-agendamentos): subset de --ac-* + --ac-radius
+@mixin area-like-ac-vars-light {
+  @include cliente-ac-vars-light;
+  --ac-radius: 16px;
+  --ac-shadow: 0 16px 40px rgba(15, 11, 46, 0.1);
+}
+
+@mixin area-like-ac-vars-dark {
+  --ac-text: #e6eef8;
+  --ac-text-dim: #94a3b8;
+  --ac-surface: rgba(255, 255, 255, 0.04);
+  --ac-border: rgba(255, 255, 255, 0.1);
+  --ac-accent: #c4d600;
+  --ac-accent-ink: #1a1f00;
+  --ac-radius: 16px;
+  --ac-shadow: 0 16px 40px rgba(2, 6, 23, 0.45);
+}
+
+@mixin galeria-pet-np-vars-light {
+  --np-bg: var(--fp-site-surface, var(--ps-cream-soft));
+  --np-text: var(--ps-ink);
+  --np-text-dim: var(--ps-ink-soft);
+  --np-border: var(--ps-glass-line-d);
+  --np-accent: var(--ps-aurora);
+  --np-accent-ink: #1a1f00;
+}
+
+@mixin galeria-pet-np-vars-dark {
+  --np-bg: #0f141c;
+  --np-text: #e6eef8;
+  --np-text-dim: #94a3b8;
+  --np-border: rgba(255, 255, 255, 0.1);
+  --np-accent: #c4d600;
+  --np-accent-ink: #1a1f00;
+}

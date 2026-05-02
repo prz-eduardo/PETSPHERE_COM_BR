@@ -175,8 +175,11 @@ app-footer {
         top: 50%;
         transform: translate(-50%, -50%);
         width: min(420px, calc(100vw - 32px));
-        max-height: min(88vh, 800px);
+        /* Sem teto fixo em px: min(…, 800px) cortava o formulário no desktop (zoom / erro / fonte). */
+        max-height: min(96vh, 96dvh, calc(100dvh - 48px));
         overflow: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
         z-index: 2000040;
         background: #fff;
         border: 1px solid #e5e7eb;
@@ -204,6 +207,28 @@ app-footer {
         background: #e5e7eb;
     }
 }
+
+@media (min-width: 768px) {
+    .global-login-modal .login-popover.app-login-popover {
+        padding: 44px 22px 28px;
+        max-height: calc(100dvh - 32px);
+    }
+}
+
+@media (max-width: 767px) {
+    .global-login-modal .login-popover.app-login-popover {
+        width: min(420px, calc(100vw - 24px));
+        max-height: min(
+            94dvh,
+            calc(
+                100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - var(--ps-dock-height, 68px) -
+                    16px
+            )
+        );
+        padding: 18px 16px 22px;
+    }
+}
+
 @keyframes globalLoginOverlayFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }

@@ -70,6 +70,7 @@
           <app-notifications-bell
             *ngIf="showClienteNotifInNavbar"
             class="navbar-notifs-desktop"
+            [class.bell-light]="!isNight"
             audience="cliente"
             [fullscreenPanel]="true"></app-notifications-bell>
           <button
@@ -192,7 +193,7 @@
       aria-label="Navegação Petsphere"
     >
       <!-- Concave cutout para o FAB usando SVG mask (top do dock recortado) -->
-      <svg class="ps-dock__cutout" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true" style="border-top-left-radius: 25px; border-top-right-radius: 25px;">
+      <svg class="ps-dock__cutout" viewBox="0 0 200 30" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="psDockHairline" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stop-color="rgba(255,255,255,0.18)"/>
@@ -348,6 +349,7 @@
       #dockBell
       *ngIf="isCliente && !isAreaVetRoute"
       class="ps-dock-bell-launcher"
+      [class.bell-light]="!isNight"
       audience="cliente"
       [fullscreenPanel]="true"
       (openChange)="dockNotifFullscreenOpen = $event"

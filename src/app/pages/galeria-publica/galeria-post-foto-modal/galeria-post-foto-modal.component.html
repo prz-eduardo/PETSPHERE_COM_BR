@@ -9,11 +9,22 @@
   <div
     class="gpf-dialog"
     [class.gpf-dialog--embedded]="embedded"
+    [class.gpf-dialog--dragging]="dragActive"
     [attr.role]="embedded ? null : 'dialog'"
     [attr.aria-modal]="embedded ? null : 'true'"
     aria-labelledby="gpf-title"
     (click)="$event.stopPropagation()"
+    (dragover)="onDialogDragOver($event)"
+    (dragleave)="onDialogDragLeave($event)"
+    (drop)="onDialogDrop($event)"
   >
+    <div class="gpf-drop-overlay" *ngIf="dragActive" aria-hidden="true">
+      <div class="gpf-drop-overlay__inner">
+        <span class="gpf-drop-overlay__icon">⤓</span>
+        <span class="gpf-drop-overlay__text">Solte aqui para adicionar fotos</span>
+      </div>
+    </div>
+
     <div class="gpf-head" *ngIf="!embedded">
       <h2 id="gpf-title" class="gpf-title">Novo post na galeria</h2>
       <button
@@ -84,7 +95,10 @@
         <div class="gpf-file-row">
           <label class="gpf-file-picker" [attr.for]="fileInputId()">+ Adicionar fotos</label>
           <span class="gpf-filename gpf-filename--placeholder" *ngIf="!files.length">
-            Você pode escolher várias de uma vez
+            Você pode arrastar várias fotos aqui ou clicar acima
+          </span>
+          <span class="gpf-filename" *ngIf="files.length">
+            {{ files.length }} foto(s) selecionadas — arraste para reordenar
           </span>
         </div>
 
@@ -99,8 +113,17 @@
         />
 
         <ul class="gpf-preview-grid" *ngIf="files.length" role="list">
-          <li *ngFor="let item of files; let i = index; trackBy: trackById" class="gpf-preview-item">
-            <span class="gpf-preview-order" aria-hidden="true">{{ i + 1 }}</span>
+          <li
+            *ngFor="let item of files; let i = index; trackBy: trackById"
+            class="gpf-preview-item"
+            [class.gpf-preview-item--hover]="reorderHoverIndex === i"
+            draggable="true"
+            (dragstart)="onPreviewDragStart(i, $event)"
+            (dragover)="onPreviewDragOver(i, $event)"
+            (drop)="onPreviewDrop(i, $event)"
+            (dragend)="onPreviewDragEnd()"
+          >
+            <span class="gpf-preview-order" aria-hidden="true">{{ i + 1 }}/{{ files.length }}</span>
             <img [src]="item.url" alt="" class="gpf-preview-img" />
             <div class="gpf-preview-actions">
               <button
@@ -109,6 +132,7 @@
                 [disabled]="i === 0"
                 (click)="moveFile(i, i - 1)"
                 aria-label="Mover para a esquerda"
+                title="Mover para a esquerda"
               >‹</button>
               <button
                 type="button"
@@ -116,12 +140,14 @@
                 [disabled]="i === files.length - 1"
                 (click)="moveFile(i, i + 1)"
                 aria-label="Mover para a direita"
+                title="Mover para a direita"
               >›</button>
               <button
                 type="button"
                 class="gpf-preview-btn gpf-preview-btn--danger"
                 (click)="removeFile(i)"
                 aria-label="Remover foto"
+                title="Remover"
               >×</button>
             </div>
           </li>

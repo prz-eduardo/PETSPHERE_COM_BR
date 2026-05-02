@@ -109,7 +109,8 @@ $ps-glow-active:   0 0 14px rgba(197, 255, 61, 0.55);
   --ps-fab-size:              #{$ps-fab-size};
 
   // shadows
-  --ps-shadow-dock:   #{$ps-shadow-dock-dark};
+  --ps-shadow-dock:        #{$ps-shadow-dock-dark};
+  --ps-shadow-dock-light:  #{$ps-shadow-dock-light};
   --ps-shadow-fab:    #{$ps-shadow-fab};
   --ps-glow-active:   #{$ps-glow-active};
 }

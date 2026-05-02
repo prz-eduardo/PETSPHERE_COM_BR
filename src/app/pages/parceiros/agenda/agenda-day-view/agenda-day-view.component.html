@@ -1,0 +1,61 @@
+<div class="day-view-scroll">
+  <div class="day-wrap">
+    <div class="day-header">
+      <div class="time-gutter"></div>
+      <div class="prof-header" *ngFor="let prof of profCols()">
+        <span class="prof-name">{{ prof.nome }}</span>
+        <span class="prof-role" *ngIf="prof.especialidade">{{ prof.especialidade }}</span>
+      </div>
+    </div>
+
+    <div class="day-body" [style.height.px]="gridHeight()">
+      <div class="time-col">
+        <div
+          *ngFor="let row of displayRows()"
+          class="time-label"
+          [class.half]="row.minute === 30"
+          [class.even-hour]="row.hour % 2 === 0"
+          [style.height.px]="SLOT_HEIGHT_PX"
+        >
+          <span *ngIf="row.minute === 0">{{ row.label }}</span>
+          <span class="half-tick" *ngIf="row.minute === 30">{{ row.label }}</span>
+        </div>
+      </div>
+
+      <div class="prof-col" *ngFor="let prof of profCols()">
+        <div
+          *ngFor="let row of displayRows()"
+          class="slot-bg"
+          [ngClass]="slotBgClass(prof, row)"
+          [class.half]="row.minute === 30"
+          [class.even-hour]="row.hour % 2 === 0"
+          [style.height.px]="SLOT_HEIGHT_PX"
+          (click)="onSlotClick(prof, row)"
+          [attr.aria-label]="'Horário ' + row.label + ' — ' + prof.nome"
+          [attr.title]="cellFor(prof.id, row)?.reason?.explanation || null"
+        ></div>
+
+        <div
+          *ngFor="let a of agendamentosForProf(prof.id)"
+          class="appt-block"
+          [ngClass]="'appt-' + a.status.toLowerCase().replace('_', '-')"
+          [style.top]="topPercent(a)"
+          [style.height]="heightPercent(a)"
+        >
+          <app-agenda-card
+            [agendamento]="a"
+            [compact]="true"
+            (quickAction)="quickAction.emit($event)"
+            (openModal)="openModal.emit($event)"
+          ></app-agenda-card>
+        </div>
+      </div>
+
+      <div class="now-line" *ngIf="nowLineTop()" [style.top]="nowLineTop()">
+        <span class="now-dot"></span>
+      </div>
+    </div>
+
+    <div class="day-bottom-spacer" aria-hidden="true"></div>
+  </div>
+</div>

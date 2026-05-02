@@ -1,0 +1,139 @@
+.regras-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 3rem;
+}
+
+.head .back {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  color: var(--admin-accent, #0db8de);
+  text-decoration: none;
+}
+
+.head h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+}
+
+.sub {
+  margin: 0;
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
+
+.flash {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin: 0.75rem 0;
+}
+.flash.ok {
+  background: rgba(40, 160, 90, 0.15);
+}
+.flash.err {
+  background: rgba(180, 60, 60, 0.15);
+}
+
+.card {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--admin-border, #333);
+  border-radius: 8px;
+  background: var(--admin-surface, #1a1a1f);
+}
+
+.card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.hint {
+  font-size: 0.82rem;
+  opacity: 0.8;
+  margin: 0 0 0.75rem;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+.form-row.cols {
+  flex-direction: column;
+  align-items: stretch;
+}
+@media (min-width: 700px) {
+  .form-row.cols {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+label.block {
+  display: block;
+  margin: 0.5rem 0;
+}
+input,
+select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--admin-border, #444);
+  background: var(--admin-bg, #111);
+  color: inherit;
+}
+
+.btn-primary {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--admin-accent, #0db8de);
+  color: #0a0a0c;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #f66;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+.list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.88rem;
+}
+
+.impactos {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 200, 80, 0.08);
+  border-radius: 6px;
+}
+.impactos h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+}
+.conflict {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}

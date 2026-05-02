@@ -393,6 +393,15 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/*
+ * Agenda: já define o scrollport interno (.agenda-mobile-scroll / grade / semana).
+ * overflow-y:auto aqui + overflow interno = dois scrollports; no mobile o gesto “salta” entre eles
+ * e parece que só rola com sidebar/modal abertos (camadas fixas mudam o alvo do scroll).
+ */
+.parceiro-main > app-agenda-shell {
+  overflow: hidden;
+}
+
 /* Mobile hamburger — desktop: oculto */
 .burger-btn {
   display: none;

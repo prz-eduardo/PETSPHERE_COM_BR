@@ -7,7 +7,8 @@
 :host {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  /* 1 1 auto deixa basis = conteúdo e o host “estoura” a viewport sem gerar overflow no .agenda-mobile-scroll */
+  flex: 1 1 0%;
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -25,12 +26,40 @@
   position: relative;
 }
 
-/* Desktop: filhos participam do flex de .shell; mobile Dia/Timeline: vira scrollport único. */
+/* Desktop: filhos participam do flex de .shell; mobile Timeline/vazio: scroll único em .agenda-mobile-scroll. Modo Dia usa .day-shell. */
 .agenda-mobile-scroll {
   display: contents;
 }
 
-/* Mesmo “stack” que .sidebar-overlay (fixed + z-index alto + touch-action) — WebKit sem isto não rola .agenda-mobile-scroll. */
+/* Modo Dia: chrome fixo; só .day-board-pane recebe o restante da altura — scroll fica dentro de app-agenda-day-view */
+.day-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.day-board-pane {
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  box-sizing: border-box;
+  gap: 0;
+}
+
+.day-board-pane > app-agenda-day-view,
+.day-board-pane > section.agenda-empty {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* WebKit: layer fixa invisível — só no fluxo não-Dia; ajuda scroll de .agenda-mobile-scroll */
 .agenda-scroll-compositor-fix {
   display: none;
   position: fixed;
@@ -314,7 +343,6 @@
   gap: 0;
 
   // Every routed view child fills the remaining space
-  > app-agenda-grid,
   > app-agenda-timeline,
   > app-agenda-week,
   > app-agenda-month,
@@ -403,8 +431,12 @@ app-agenda-filters {
     padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px) + 24px);
   }
 
-  /* Dia / Timeline / vazio: scroll único em .agenda-mobile-scroll (FAB fica fora no .shell). */
-  :host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .agenda-mobile-scroll {
+  .day-board-pane {
+    padding: 8px;
+  }
+
+  /* Timeline / vazio (fluxo clássico): scroll único em .agenda-mobile-scroll. Modo Dia não usa este wrapper. */
+  :host:has(:is(app-agenda-timeline, section.agenda-empty)) .agenda-mobile-scroll {
     display: flex;
     flex-direction: column;
     flex: 1 1 0%;
@@ -414,27 +446,28 @@ app-agenda-filters {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
+    touch-action: pan-y;
     box-sizing: border-box;
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
   }
 
-  :host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .agenda-scroll-compositor-fix {
+  :host:has(:is(app-agenda-timeline, section.agenda-empty)) .agenda-scroll-compositor-fix {
     display: block;
   }
 
-  :host-context(body:has(app-navmenu .ps-dock)):host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .agenda-mobile-scroll {
+  :host-context(body:has(app-navmenu .ps-dock)):host:has(:is(app-agenda-timeline, section.agenda-empty)) .agenda-mobile-scroll {
     padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px) + 24px);
   }
 
-  :host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .view-area {
+  :host:has(:is(app-agenda-timeline, section.agenda-empty)) .view-area {
     overflow: visible;
     flex: 0 0 auto;
     padding-bottom: 8px;
   }
 
-  :host-context(body:has(app-navmenu .ps-dock)):host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .view-area {
+  :host-context(body:has(app-navmenu .ps-dock)):host:has(:is(app-agenda-timeline, section.agenda-empty)) .view-area {
     padding-bottom: 8px;
   }
 

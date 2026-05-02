@@ -1,17 +1,8 @@
+@use '../../../../shared/styles/cliente-shell-themes' as cliente-shell;
+
 /* Tokens alinhados à área do cliente (perfil / area-cliente) */
 .meus-cartoes {
-  --ac-text: #e6eef8;
-  --ac-text-dim: #94a3b8;
-  --ac-surface: rgba(255, 255, 255, 0.04);
-  --ac-surface-h: rgba(255, 255, 255, 0.07);
-  --ac-border: rgba(255, 255, 255, 0.09);
-  --ac-border-h: rgba(196, 214, 0, 0.45);
-  --ac-accent: #c4d600;
-  --ac-accent-ink: #1a1f00;
-  --ac-danger: #ff4f6a;
-  --ac-radius-md: 14px;
-  --ac-radius-sm: 10px;
-  --ac-shadow: 0 12px 32px rgba(2, 6, 23, 0.32);
+  @include cliente-shell.cliente-ac-vars-light;
 
   max-width: 720px;
   margin: 0 auto;
@@ -20,13 +11,20 @@
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
   box-sizing: border-box;
-  background: radial-gradient(1200px 600px at 10% 10%, rgba(2, 6, 11, 0.6), transparent),
-    linear-gradient(180deg, #07080a 0%, #0b0e12 100%);
+  @include cliente-shell.cliente-page-bg-light;
 
   &.is-modal {
     min-height: 0;
     padding: 0 4px 8px;
     background: transparent;
+  }
+}
+
+.meus-cartoes--theme-dark {
+  @include cliente-shell.cliente-ac-vars-dark;
+
+  &:not(.is-modal) {
+    @include cliente-shell.cliente-page-bg-dark;
   }
 }
 
@@ -71,11 +69,15 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: var(--ac-radius-md);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 244, 238, 0.9));
   border: 1px solid var(--ac-border);
   box-shadow: var(--ac-shadow);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
   backdrop-filter: blur(10px) saturate(120%);
+}
+
+.meus-cartoes--theme-dark .card-item {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
 }
 
 .card-main {
@@ -161,12 +163,16 @@
   padding: 10px 12px;
   border-radius: var(--ac-radius-sm);
   border: 1px solid var(--ac-border);
-  background: rgba(10, 16, 24, 0.45);
+  background: #fff;
   color: var(--ac-text);
   box-sizing: border-box;
   font-size: 14px;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.meus-cartoes--theme-dark .add-form input {
+  background: rgba(10, 16, 24, 0.45);
 }
 
 .add-form input:focus {
@@ -206,9 +212,13 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--ac-text);
-  background: rgba(7, 8, 10, 0.72);
+  background: rgba(255, 255, 255, 0.88);
   border-radius: var(--ac-radius-sm);
   pointer-events: none;
+}
+
+.meus-cartoes--theme-dark .mp-secure-loading {
+  background: rgba(7, 8, 10, 0.72);
 }
 
 .mp-secure-row {
@@ -231,11 +241,15 @@
   padding: 0 8px;
   border-radius: var(--ac-radius-sm);
   border: 1px solid var(--ac-border);
-  background: rgba(10, 16, 24, 0.45);
+  background: #fff;
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.meus-cartoes--theme-dark .mp-field-host {
+  background: rgba(10, 16, 24, 0.45);
 }
 
 .mp-field-host iframe {
@@ -269,7 +283,7 @@
   padding: 8px 14px;
   border-radius: var(--ac-radius-sm);
   border: 1px solid var(--ac-border);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(15, 11, 46, 0.05);
   color: var(--ac-text);
   cursor: pointer;
   font-weight: 700;
@@ -278,8 +292,15 @@
 }
 
 .btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 11, 46, 0.09);
   transform: translateY(-1px);
+}
+
+.meus-cartoes--theme-dark .btn {
+  background: rgba(255, 255, 255, 0.06);
+}
+.meus-cartoes--theme-dark .btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .btn.small {

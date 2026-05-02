@@ -15,11 +15,13 @@ import { isPlatformBrowser } from '@angular/common';
 import { Inject, PLATFORM_ID } from '@angular/core'
 import { ChangeDetectorRef } from '@angular/core'
 import { NavmenuComponent } from '../../../../navmenu/navmenu.component';
+import { AiGenerateButtonComponent } from '../../../../components/ai-generate-button/ai-generate-button.component';
 import { DomSanitizer, SafeHtml, SafeStyle } from '@angular/platform-browser';
 import { MARCA_LOGO_PATH, MARCA_NOME } from '../../../../constants/loja-public';
 import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { VetWizardSessionService } from '../../../../services/vet-wizard-session.service';
 import { filter } from 'rxjs/operators';
+import { catchError, concatMap, of } from 'rxjs';
 import {
   createEmptyExameFisico,
   exameFisicoTemConteudo,
@@ -31,6 +33,12 @@ import {
   EXAME_FISICO_SISTEMA_LABELS,
   EXAME_FISICO_TOGGLE_KEYS,
 } from './exame-fisico.model';
+import {
+  ClinicalHypothesisV2,
+  ClinicalResponseV2,
+  hasCriticalDataQuality,
+} from './clinical-response-v2.model';
+import { labelClinicalAction } from './clinical-action-codes';
 
 
 
@@ -93,7 +101,7 @@ type AcaoFinalizacao = 'finalizar_sem_cobranca' | 'gerar_cobranca_agora' | 'envi
 @Component({
   selector: 'app-gerar-receita',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgxMaskDirective,NavmenuComponent],
+  imports: [CommonModule, FormsModule, NgxMaskDirective, NavmenuComponent, AiGenerateButtonComponent],
   providers: [provideNgxMask()],
   templateUrl: './gerar-receita.component.html',
   styleUrls: ['./gerar-receita.component.scss']
@@ -224,7 +232,12 @@ isBrowser: any;
 
   analiseClinicaLoading = false;
   analiseClinicaErro: string | null = null;
-  analiseClinicaTexto: string | null = null;
+  analiseClinicaStructured: ClinicalResponseV2 | null = null;
+  /** Hipótese com painel expandido (detalhe). */
+  expandedHypothesisId: string | null = null;
+  /** Seleção explícita para montar diagnóstico/plano (Clinical Copilot — itemId estável). */
+  copilotSelected: Record<string, boolean> = {};
+  readonly copilotTiers = ['immediate', 'high', 'medium', 'low'] as const;
   showPosClinicaGateModal = false;
 
   constructor(
@@ -1287,7 +1300,9 @@ isBrowser: any;
       .subscribe({
         next: (r) => {
           this.analiseClinicaLoading = false;
-          this.analiseClinicaTexto = r && r.analysis ? String(r.analysis) : null;
+          this.analiseClinicaStructured = r?.analysisStructured ?? null;
+          this.expandedHypothesisId = null;
+          this.copilotSelected = {};
           this.cdr.detectChanges();
         },
         error: (err) => {
@@ -1303,6 +1318,9 @@ isBrowser: any;
             this.analiseClinicaErro = body.error || 'Conta parceiro vinculada ao e-mail do vet é necessária.';
           } else if (st === 400) {
             this.analiseClinicaErro = (body && body.error) || 'Preencha anamnese, exame físico ou exames antes de analisar.';
+          } else if (st === 422 && body && body.code === 'AI_INVALID_STRUCTURE') {
+            this.analiseClinicaErro =
+              (body && body.error) || 'A IA devolveu um formato inválido. Tente gerar de novo em instantes.';
           } else {
             this.analiseClinicaErro =
               (body && body.error) || (err && err.message) || 'Não foi possível gerar a análise. Tente de novo.';
@@ -1313,8 +1331,343 @@ isBrowser: any;
   }
 
   limparAnaliseClinicaAssistida(): void {
-    this.analiseClinicaTexto = null;
+    this.analiseClinicaStructured = null;
+    this.expandedHypothesisId = null;
+    this.copilotSelected = {};
     this.analiseClinicaErro = null;
+  }
+
+  get analiseClinicaBloqueadaPorDados(): boolean {
+    return hasCriticalDataQuality(this.analiseClinicaStructured?.dataQualityFlags);
+  }
+
+  labelAcaoClinica(code: string): string {
+    return labelClinicalAction(code);
+  }
+
+  urgencyLabel(u: string | undefined): string {
+    const m: Record<string, string> = {
+      critical: 'Crítica',
+      high: 'Alta',
+      medium: 'Moderada',
+      low: 'Baixa',
+    };
+    return m[String(u || '').toLowerCase()] || u || '—';
+  }
+
+  pctAssistido(n: number | undefined): string {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return '—';
+    if (x === 0) return '—';
+    return `${Math.round(x * 100)}%`;
+  }
+
+  copilotKeyDiagnosis(index: number): string {
+    return `diagnosis:${index}`;
+  }
+
+  copilotKeyTreatment(tier: string, code: string): string {
+    return `treatment:${tier}:${code}`;
+  }
+
+  copilotKeyExam(index: number): string {
+    return `exam:${index}`;
+  }
+
+  copilotKeyWarning(index: number): string {
+    return `warning:${index}`;
+  }
+
+  toggleCopilot(id: string): void {
+    this.copilotSelected = { ...this.copilotSelected, [id]: !this.copilotSelected[id] };
+    this.cdr.detectChanges();
+  }
+
+  isCopilotOn(id: string): boolean {
+    return !!this.copilotSelected[id];
+  }
+
+  getTierCodes(ac: ClinicalResponseV2, tier: 'immediate' | 'high' | 'medium' | 'low'): string[] {
+    const arr = ac.structuredPriority?.[tier];
+    return Array.isArray(arr) ? arr : [];
+  }
+
+  /**
+   * IDs com prefixo conhecidos ou id de hipótese (sem prefixo reservado).
+   */
+  parseCopilotItem(
+    itemId: string
+  ): { itemId: string; itemKind: 'hypothesis' | 'diagnosis' | 'treatment' | 'exam' | 'warning' } | null {
+    const id = String(itemId || '').trim();
+    if (!id) return null;
+    if (id.startsWith('diagnosis:')) return { itemId: id, itemKind: 'diagnosis' };
+    if (id.startsWith('treatment:')) return { itemId: id, itemKind: 'treatment' };
+    if (id.startsWith('exam:')) return { itemId: id, itemKind: 'exam' };
+    if (id.startsWith('warning:')) return { itemId: id, itemKind: 'warning' };
+    return { itemId: id, itemKind: 'hypothesis' };
+  }
+
+  buildAcceptedItemsFromSelection(): Array<{ itemId: string; itemKind: string; action: string }> {
+    const out: Array<{ itemId: string; itemKind: string; action: string }> = [];
+    for (const [id, sel] of Object.entries(this.copilotSelected)) {
+      if (!sel) continue;
+      const p = this.parseCopilotItem(id);
+      if (p) out.push({ itemId: p.itemId, itemKind: p.itemKind, action: 'accepted' });
+    }
+    return out;
+  }
+
+  buildDiagnosticoTextFromSelection(): string {
+    const ac = this.analiseClinicaStructured;
+    if (!ac) return '';
+    const blocks: string[] = [];
+    for (const [id, sel] of Object.entries(this.copilotSelected)) {
+      if (!sel) continue;
+      if (id.startsWith('diagnosis:')) {
+        const i = Number(id.slice('diagnosis:'.length));
+        const d = ac.possibleDiagnosesRanked?.[i];
+        if (d) {
+          blocks.push(
+            `Diagnóstico possível (assistido): ${d.name}\nProbabilidade estimada: ${this.pctAssistido(d.probability)}`
+          );
+        }
+      } else if (
+        !id.startsWith('treatment:') &&
+        !id.startsWith('exam:') &&
+        !id.startsWith('warning:')
+      ) {
+        const h = ac.hypotheses?.find((x) => x.id === id);
+        if (h) blocks.push(this.formatHipoteseParaTexto(h));
+      }
+    }
+    return blocks.join('\n\n---\n\n');
+  }
+
+  buildPlanoTextFromSelection(): string {
+    const ac = this.analiseClinicaStructured;
+    if (!ac) return '';
+    const lines: string[] = [];
+    for (const [id, sel] of Object.entries(this.copilotSelected)) {
+      if (!sel) continue;
+      if (id.startsWith('treatment:')) {
+        const rest = id.slice('treatment:'.length);
+        const colon = rest.indexOf(':');
+        if (colon < 0) continue;
+        const tier = rest.slice(0, colon);
+        const code = rest.slice(colon + 1);
+        lines.push(`• [${tier}] ${this.labelAcaoClinica(code)}`);
+      } else if (id.startsWith('exam:')) {
+        const i = Number(id.slice('exam:'.length));
+        const x = ac.physicalExamChecklist?.[i];
+        if (x) lines.push(`• Exame (checklist assistido): ${x}`);
+      } else if (id.startsWith('warning:')) {
+        const i = Number(id.slice('warning:'.length));
+        const w = ac.clinicalWarnings?.[i];
+        if (w) lines.push(`• Alerta assistido: ${w}`);
+      }
+    }
+    return lines.join('\n');
+  }
+
+  aplicarSelecaoAoDiagnostico(mode: 'replace' | 'append'): void {
+    if (this.analiseClinicaBloqueadaPorDados) {
+      this.toastService.info('Resolva os dados críticos antes de aplicar ao diagnóstico.', 'Copiloto');
+      return;
+    }
+    const items = this.buildAcceptedItemsFromSelection().filter(
+      (i) => i.itemKind === 'diagnosis' || i.itemKind === 'hypothesis'
+    );
+    if (!items.length) {
+      this.toastService.info('Selecione itens em “Montar registro” (diagnósticos ou hipóteses).', 'Copiloto');
+      return;
+    }
+    const text = this.buildDiagnosticoTextFromSelection();
+    if (!text.trim()) {
+      this.toastService.info('Não foi possível montar texto a partir da seleção.', 'Copiloto');
+      return;
+    }
+    this.diagnostico =
+      mode === 'append' && this.diagnostico?.trim()
+        ? `${this.diagnostico.trim()}\n\n---\n${text}`
+        : text;
+    this.persistClinicalActions(items);
+    this.toastService.success('Diagnóstico atualizado a partir da sua seleção explícita.', 'Copiloto');
+    this.cdr.detectChanges();
+  }
+
+  aplicarSelecaoAoPlano(mode: 'replace' | 'append'): void {
+    if (this.analiseClinicaBloqueadaPorDados) {
+      this.toastService.info('Resolva os dados críticos antes de aplicar ao plano.', 'Copiloto');
+      return;
+    }
+    const items = this.buildAcceptedItemsFromSelection().filter(
+      (i) => i.itemKind === 'treatment' || i.itemKind === 'exam' || i.itemKind === 'warning'
+    );
+    if (!items.length) {
+      this.toastService.info('Selecione ações, checklist ou alertas em “Montar registro”.', 'Copiloto');
+      return;
+    }
+    const text = this.buildPlanoTextFromSelection();
+    if (!text.trim()) {
+      this.toastService.info('Não foi possível montar o plano a partir da seleção.', 'Copiloto');
+      return;
+    }
+    const block = `Plano (trechos assistidos selecionados pelo veterinário):\n${text}`;
+    this.planoTerapeutico =
+      mode === 'append' && this.planoTerapeutico?.trim()
+        ? `${this.planoTerapeutico.trim()}\n\n${block}`
+        : block;
+    this.persistClinicalActions(items);
+    this.toastService.success('Plano atualizado a partir da sua seleção explícita.', 'Copiloto');
+    this.cdr.detectChanges();
+  }
+
+  private persistClinicalActions(
+    items: Array<{ itemId: string; itemKind: string; action: string }>
+  ): void {
+    const aid = this.atendimentoEmEdicaoId;
+    const token = this.getEffectiveToken();
+    if (!aid || !token || !items.length) {
+      if (items.length && !aid) {
+        this.toastService.info(
+          'Auditoria no servidor ficará disponível após existir atendimento gravado (registe a fase clínica primeiro).',
+          'Copiloto'
+        );
+      }
+      return;
+    }
+    const intentTarget =
+      items.length === 1
+        ? items[0].itemId
+        : items
+            .map((i) => i.itemId)
+            .join(',')
+            .slice(0, 480);
+    this.apiService
+      .postClinicalCopilotEvent(
+        aid,
+        {
+          eventType: 'vet_intent',
+          payload: { context: 'before_clinical_commit', target: intentTarget },
+        },
+        token
+      )
+      .pipe(
+        catchError(() => of(null)),
+        concatMap(() =>
+          this.apiService.postClinicalCopilotEvent(
+            aid,
+            { eventType: 'clinical_action', payload: { items } },
+            token
+          )
+        )
+      )
+      .subscribe({
+        error: () =>
+          this.toastService.info(
+            'Texto aplicado; falha ao registar evento de auditoria no servidor.',
+            'Copiloto'
+          ),
+      });
+  }
+
+  toggleExpandHipotese(id: string): void {
+    this.expandedHypothesisId = this.expandedHypothesisId === id ? null : id;
+  }
+
+  formatHipoteseParaTexto(h: ClinicalHypothesisV2): string {
+    const lines: string[] = [];
+    lines.push(`Hipótese (assistida): ${h.label} (confiança estimada ${this.pctAssistido(h.confidence)})`);
+    if (h.supportingFindings?.length) {
+      lines.push('Evidências: ' + h.supportingFindings.join('; '));
+    }
+    if (h.contradictions?.length) {
+      lines.push('Contradições / limitações: ' + h.contradictions.join('; '));
+    }
+    if (h.suggestedConfirmatoryTests?.length) {
+      lines.push('Testes sugeridos: ' + h.suggestedConfirmatoryTests.join('; '));
+    }
+    if (h.treatmentDirectionHint) {
+      lines.push('Direção de suporte (hint): ' + h.treatmentDirectionHint);
+    }
+    return lines.join('\n');
+  }
+
+  aplicarHipoteseAoDiagnostico(h: ClinicalHypothesisV2): void {
+    if (this.analiseClinicaBloqueadaPorDados) {
+      this.toastService.info('Resolva ou confirme os dados críticos (banner acima) antes de aplicar ao diagnóstico.', 'Qualidade dos dados');
+      return;
+    }
+    this.diagnostico = this.formatHipoteseParaTexto(h);
+    this.persistClinicalActions([{ itemId: h.id, itemKind: 'hypothesis', action: 'accepted' }]);
+    this.toastService.success('Diagnóstico preenchido a partir da hipótese selecionada.', 'IA');
+    this.cdr.detectChanges();
+  }
+
+  aplicarHipoteseAoPlano(h: ClinicalHypothesisV2): void {
+    if (this.analiseClinicaBloqueadaPorDados) {
+      this.toastService.info('Resolva ou confirme os dados críticos antes de aplicar ao plano.', 'Qualidade dos dados');
+      return;
+    }
+    const block = this.formatHipoteseParaTexto(h);
+    this.planoTerapeutico = this.planoTerapeutico?.trim()
+      ? `${this.planoTerapeutico.trim()}\n\n---\n${block}`
+      : block;
+    this.persistClinicalActions([{ itemId: h.id, itemKind: 'hypothesis', action: 'accepted' }]);
+    this.toastService.success('Plano atualizado com o bloco da hipótese.', 'IA');
+    this.cdr.detectChanges();
+  }
+
+  aplicarPrioridadeAoPlano(tier: 'immediate' | 'high' | 'medium' | 'low'): void {
+    if (this.analiseClinicaBloqueadaPorDados) {
+      this.toastService.info('Resolva os alertas críticos de dados antes de inserir ações no plano.', 'Qualidade dos dados');
+      return;
+    }
+    const ac = this.analiseClinicaStructured?.structuredPriority?.[tier];
+    if (!ac?.length) return;
+    const labels = ac.map((c) => `• ${this.labelAcaoClinica(c)}`);
+    const title = { immediate: 'Prioridade imediata', high: 'Prioridade alta', medium: 'Prioridade moderada', low: 'Rotina' }[tier];
+    const block = `${title}:\n${labels.join('\n')}`;
+    this.planoTerapeutico = this.planoTerapeutico?.trim()
+      ? `${this.planoTerapeutico.trim()}\n\n${block}`
+      : block;
+    const items = ac.map((code) => ({
+      itemId: `treatment:${tier}:${code}`,
+      itemKind: 'treatment',
+      action: 'accepted',
+    }));
+    this.persistClinicalActions(items);
+    this.toastService.success('Ações inseridas no plano terapêutico.', 'IA');
+    this.cdr.detectChanges();
+  }
+
+  inserirChecklistExameNoPlano(): void {
+    const list = this.analiseClinicaStructured?.physicalExamChecklist;
+    if (!list?.length) return;
+    const block = 'Checklist de exame físico (assistido):\n' + list.map((x, i) => `${i + 1}. ${x}`).join('\n');
+    this.planoTerapeutico = this.planoTerapeutico?.trim()
+      ? `${this.planoTerapeutico.trim()}\n\n${block}`
+      : block;
+    const items = list.map((_, i) => ({ itemId: `exam:${i}`, itemKind: 'exam', action: 'accepted' }));
+    this.persistClinicalActions(items);
+    this.toastService.success('Checklist adicionado ao plano.', 'IA');
+    this.cdr.detectChanges();
+  }
+
+  trackByHypothesisId(_i: number, h: ClinicalHypothesisV2): string {
+    return h?.id || String(_i);
+  }
+
+  formatStableDataKey(k: string): string {
+    return String(k || '').replace(/_/g, ' ');
+  }
+
+  dataQualitySeverityClass(sev: string | undefined): string {
+    const s = String(sev || '').toLowerCase();
+    if (s === 'critical') return 'clinical-v2-flag--critical';
+    if (s === 'high') return 'clinical-v2-flag--high';
+    if (s === 'medium') return 'clinical-v2-flag--medium';
+    return 'clinical-v2-flag--low';
   }
 
   exameToggleVal(key: ExameFisicoToggleKey): ExameFisicoToggle {

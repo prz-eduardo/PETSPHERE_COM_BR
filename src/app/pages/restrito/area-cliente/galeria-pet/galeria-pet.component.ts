@@ -1,12 +1,13 @@
 import {
   Component,
-  Inject,
-  PLATFORM_ID,
-  Input,
-  Output,
   EventEmitter,
-  OnInit,
+  HostListener,
+  Inject,
+  Input,
   OnChanges,
+  OnInit,
+  Output,
+  PLATFORM_ID,
   SimpleChanges,
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
@@ -22,6 +23,7 @@ import {
   isPublicFeedEligible,
   normalizePost,
 } from '../../../galeria-publica/gallery-utils';
+import { GaleriaPostFotoModalComponent } from '../../../galeria-publica/galeria-post-foto-modal/galeria-post-foto-modal.component';
 
 interface PetGalleryGroup {
   pet_id: string;
@@ -29,10 +31,15 @@ interface PetGalleryGroup {
   posts: FeedPostItem[];
 }
 
+interface ImageActionMenu {
+  postId: number;
+  imagemId: number;
+}
+
 @Component({
   selector: 'app-galeria-pet',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, GaleriaPostFotoModalComponent],
   templateUrl: './galeria-pet.component.html',
   styleUrls: ['./galeria-pet.component.scss'],
 })
@@ -51,12 +58,27 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
 
   loading = false;
 
+  /** Modal de criação de post (overlay local — não usa internalHost). */
+  postModalOpen = false;
+  pendingDropFiles: File[] | null = null;
+
+  /** Drag-over global na própria galeria (mostra overlay "Solte para criar"). */
+  globalDragActive = false;
+  private globalDragCounter = 0;
+
   /** Modal de edição de post. */
   editingPost: FeedPostItem | null = null;
   editDraft: { caption: string; galeria_publica: boolean } = { caption: '', galeria_publica: true };
   savingPost = false;
   deletingPost = false;
   workingImagemId: number | null = null;
+
+  /** Drag-and-drop para reorder de imagens dentro do editor. */
+  private editorDragFromIdx: number | null = null;
+  editorDragHoverIdx: number | null = null;
+
+  /** Kebab menu aberto (uma imagem por vez). */
+  openImageMenu: ImageActionMenu | null = null;
 
   constructor(
     private api: ApiService,
@@ -148,6 +170,14 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
     });
   }
 
+  /** Usado pelos chips de pet: mostra contagem de posts independente do filtro de visibilidade. */
+  postsCountForPet(petId: string | number | null | undefined): number {
+    if (!petId) return 0;
+    const id = String(petId);
+    const g = this.groups.find((x) => x.pet_id === id);
+    return g ? g.posts.length : 0;
+  }
+
   // ---------------------------------------------------------------------------
   // Carregamento de posts
   // ---------------------------------------------------------------------------
@@ -205,12 +235,77 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
   }
 
   // ---------------------------------------------------------------------------
-  // Ações sobre posts
+  // Modal de novo post (overlay local — não troca de view)
   // ---------------------------------------------------------------------------
 
-  openNovoPost(): void {
-    this.clienteAreaModal.open('postar-foto');
+  openNovoPost(prefilledFiles: File[] | null = null): void {
+    this.pendingDropFiles = prefilledFiles && prefilledFiles.length ? prefilledFiles : null;
+    this.postModalOpen = true;
   }
+
+  onPostModalClose(): void {
+    this.postModalOpen = false;
+    this.pendingDropFiles = null;
+  }
+
+  onPostModalPosted(): void {
+    this.postModalOpen = false;
+    this.pendingDropFiles = null;
+    this.loadPosts();
+    this.refreshPetsFromServer();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drag global na página inteira → abre modal com arquivos pré-carregados
+  // ---------------------------------------------------------------------------
+
+  @HostListener('window:dragenter', ['$event'])
+  onWindowDragEnter(ev: DragEvent): void {
+    if (!this.hasFilesPayload(ev)) return;
+    ev.preventDefault();
+    this.globalDragCounter++;
+    this.globalDragActive = true;
+  }
+
+  @HostListener('window:dragover', ['$event'])
+  onWindowDragOver(ev: DragEvent): void {
+    if (!this.hasFilesPayload(ev)) return;
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+  }
+
+  @HostListener('window:dragleave', ['$event'])
+  onWindowDragLeave(ev: DragEvent): void {
+    if (!this.hasFilesPayload(ev)) return;
+    this.globalDragCounter = Math.max(0, this.globalDragCounter - 1);
+    if (this.globalDragCounter === 0) this.globalDragActive = false;
+  }
+
+  @HostListener('window:drop', ['$event'])
+  onWindowDrop(ev: DragEvent): void {
+    if (!this.hasFilesPayload(ev)) return;
+    ev.preventDefault();
+    this.globalDragCounter = 0;
+    this.globalDragActive = false;
+    // Se modal já está aberto, ele assume o drop. (HostListener do modal disputa primeiro,
+    // mas como estamos no window scope, vamos só abrir se não tiver modal aberto.)
+    if (this.postModalOpen) return;
+    const files = ev.dataTransfer?.files ? Array.from(ev.dataTransfer.files) : [];
+    if (files.length) this.openNovoPost(files);
+  }
+
+  private hasFilesPayload(ev: DragEvent): boolean {
+    const types = ev.dataTransfer?.types;
+    if (!types) return false;
+    for (let i = 0; i < types.length; i++) {
+      if (types[i] === 'Files') return true;
+    }
+    return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Editor de post — abrir/fechar e ações
+  // ---------------------------------------------------------------------------
 
   openPostEditor(post: FeedPostItem): void {
     if (!post?.id) return;
@@ -219,11 +314,13 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
       caption: post.caption || '',
       galeria_publica: !!post.galeria_publica,
     };
+    this.openImageMenu = null;
   }
 
   closePostEditor(): void {
     if (this.savingPost || this.deletingPost) return;
     this.editingPost = null;
+    this.openImageMenu = null;
   }
 
   savePostEdits(): void {
@@ -303,6 +400,7 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
   removePostImage(post: FeedPostItem, imagemId: number): void {
     const tk = this.token;
     if (!post || !tk || !imagemId) return;
+    this.openImageMenu = null;
     if (post.imagens.length <= 1) {
       if (typeof window !== 'undefined' && !window.confirm('Esta é a última foto do post. Remover irá excluir o post inteiro. Continuar?')) {
         return;
@@ -335,6 +433,7 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
   setImageAsPetCover(post: FeedPostItem, imagemId: number): void {
     const tk = this.token;
     if (!post || !tk || !imagemId) return;
+    this.openImageMenu = null;
     this.workingImagemId = imagemId;
     this.api
       .setPostImageAsPetCover(post.pet_id, post.id, { imagem_id: imagemId }, tk)
@@ -354,6 +453,7 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
   setPostCover(post: FeedPostItem, imagemId: number): void {
     const tk = this.token;
     if (!post || !tk || !imagemId) return;
+    this.openImageMenu = null;
     this.workingImagemId = imagemId;
     this.api.patchPost(post.pet_id, post.id, { cover_imagem_id: imagemId }, tk).subscribe({
       next: (updated) => {
@@ -394,6 +494,69 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
   }
 
   // ---------------------------------------------------------------------------
+  // Drag & Drop dentro do editor (HTML5 nativo)
+  // ---------------------------------------------------------------------------
+
+  onEditorDragStart(idx: number, ev: DragEvent): void {
+    this.editorDragFromIdx = idx;
+    if (ev.dataTransfer) {
+      ev.dataTransfer.effectAllowed = 'move';
+      try { ev.dataTransfer.setData('text/plain', String(idx)); } catch { /* noop */ }
+    }
+  }
+
+  onEditorDragOver(idx: number, ev: DragEvent): void {
+    if (this.editorDragFromIdx === null) return;
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+    this.editorDragHoverIdx = idx;
+  }
+
+  onEditorDrop(idx: number, ev: DragEvent): void {
+    if (this.editorDragFromIdx === null || !this.editingPost) return;
+    ev.preventDefault();
+    const from = this.editorDragFromIdx;
+    this.editorDragFromIdx = null;
+    this.editorDragHoverIdx = null;
+    if (from !== idx) this.movePostImage(this.editingPost, from, idx);
+  }
+
+  onEditorDragEnd(): void {
+    this.editorDragFromIdx = null;
+    this.editorDragHoverIdx = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Kebab menu por imagem
+  // ---------------------------------------------------------------------------
+
+  toggleImageMenu(post: FeedPostItem, imagemId: number, ev?: Event): void {
+    if (ev) ev.stopPropagation();
+    if (
+      this.openImageMenu &&
+      this.openImageMenu.postId === post.id &&
+      this.openImageMenu.imagemId === imagemId
+    ) {
+      this.openImageMenu = null;
+      return;
+    }
+    this.openImageMenu = { postId: post.id, imagemId };
+  }
+
+  isImageMenuOpen(post: FeedPostItem, imagemId: number): boolean {
+    return !!(
+      this.openImageMenu &&
+      this.openImageMenu.postId === post.id &&
+      this.openImageMenu.imagemId === imagemId
+    );
+  }
+
+  @HostListener('document:click')
+  onDocClick(): void {
+    if (this.openImageMenu) this.openImageMenu = null;
+  }
+
+  // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
@@ -427,6 +590,17 @@ export class GaleriaPetComponent implements OnInit, OnChanges {
       return 'pending';
     }
     return this.isPostPublic(post) ? 'public' : 'hidden';
+  }
+
+  /** Verifica se uma imagem do post é a capa atual do pet (badge "Capa do pet"). */
+  isPetCoverImage(post: FeedPostItem, imagemId: number): boolean {
+    const pet = (this.pets || []).find((p) => String(p.id || p._id) === String(post.pet_id));
+    if (!pet || !imagemId) return false;
+    const img = post.imagens.find((x) => x.id === imagemId);
+    if (!img?.url) return false;
+    const petPhoto = String(pet?.photoURL || pet?.foto || pet?.photo_url || '').trim();
+    if (!petPhoto) return false;
+    return petPhoto === img.url;
   }
 
   private replacePostInGroups(post: FeedPostItem): void {

@@ -95,11 +95,52 @@ export class PetPerfilPublicoComponent implements OnInit {
         }
         this.loading = false;
         this._loadComentarios();
+        // Fallback: se o backend não devolver thumbs (ex.: SQL com DISTINCT+ORDER BY inválido),
+        // monta a grade a partir dos mesmos posts públicos usados na listagem por pet.
+        if (!this.galeriaFotos.length) {
+          this.hydrateGaleriaFromPublicPosts();
+        }
       },
       error: (e) => {
         this.error = e?.error?.error || 'Perfil não disponível.';
         this.loading = false;
       }
+    });
+  }
+
+  /** Preenche `galeriaFotos` via GET /pets/:id/posts quando `galeria_fotos` do perfil veio vazio. */
+  private hydrateGaleriaFromPublicPosts(): void {
+    const pid = this.petId;
+    if (!pid) return;
+    this.api.listPostsByPet(pid, { page: 1, pageSize: 150 }, this.token || undefined).subscribe({
+      next: (res) => {
+        if (this.petId !== pid) return;
+        const rawItems = res?.items || [];
+        if (!rawItems.length) return;
+        const seenUrl = new Set<string>();
+        const out: Array<{ id: number; url: string; legenda?: string | null; post_id?: number }> = [];
+        for (const raw of rawItems) {
+          const post = normalizePost(raw);
+          if (!post.ativo || !post.galeria_publica) continue;
+          for (const img of post.imagens) {
+            const k = String(img.url || '')
+              .trim()
+              .toLowerCase();
+            if (!k || seenUrl.has(k)) continue;
+            seenUrl.add(k);
+            out.push({
+              id: img.id,
+              url: img.url,
+              legenda: post.caption || null,
+              post_id: post.id,
+            });
+          }
+        }
+        if (out.length) this.galeriaFotos = out;
+      },
+      error: () => {
+        /* silencioso: perfil já carregou; só faltam thumbs */
+      },
     });
   }
 

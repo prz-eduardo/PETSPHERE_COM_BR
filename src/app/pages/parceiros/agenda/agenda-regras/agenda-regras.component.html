@@ -1,0 +1,73 @@
+<div class="regras-page">
+  <header class="head">
+    <a routerLink="/parceiros/agenda" class="back">← Agenda</a>
+    <h1>Horários e bloqueios</h1>
+    <p class="sub">Disponibilidade semanal e bloqueios usam o motor de agenda — novos agendamentos respeitam estas regras.</p>
+  </header>
+
+  <p class="flash ok" *ngIf="msg()">{{ msg() }}</p>
+  <p class="flash err" *ngIf="err()">{{ err() }}</p>
+
+  <section class="card">
+    <h2>Disponibilidade semanal</h2>
+    <p class="hint">Dia 0 = domingo … 6 = sábado. Vazio em “Recurso” = horário do estabelecimento (todos os recursos).</p>
+    <div class="form-row">
+      <label>Dia <input type="number" min="0" max="6" [(ngModel)]="diaSemana" /></label>
+      <label>Início <input type="time" [(ngModel)]="horaInicio" /></label>
+      <label>Fim <input type="time" [(ngModel)]="horaFim" /></label>
+      <label>Recurso (opcional)
+        <select [(ngModel)]="recDisp">
+          <option [ngValue]="null">Todos</option>
+          <option *ngFor="let r of recursos()" [ngValue]="r.id">{{ r.nome }}</option>
+        </select>
+      </label>
+      <button type="button" class="btn-primary" (click)="addDisponibilidade()">Adicionar</button>
+    </div>
+    <ul class="list">
+      <li *ngFor="let d of disponibilidades()">
+        <span>#{{ $any(d).id }}</span>
+        <span>dia {{ $any(d).dia_semana }}</span>
+        <span>{{ $any(d).hora_inicio }}–{{ $any(d).hora_fim }}</span>
+        <span *ngIf="$any(d).recurso_id">recurso {{ $any(d).recurso_id }}</span>
+        <span *ngIf="!$any(d).recurso_id">estabelecimento</span>
+        <button type="button" class="btn-text" (click)="removeDisp($any(d).id)">Remover</button>
+      </li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Bloqueios</h2>
+    <p class="hint">Bloqueios impedem novos agendamentos na faixa. Compromissos já criados permanecem (conflito operacional “soft”).</p>
+    <div class="form-row cols">
+      <label>Início <input type="datetime-local" [(ngModel)]="bloqInicio" /></label>
+      <label>Fim <input type="datetime-local" [(ngModel)]="bloqFim" /></label>
+      <label>Recurso (opcional)
+        <select [(ngModel)]="recBloq">
+          <option [ngValue]="null">Toda a agenda</option>
+          <option *ngFor="let r of recursos()" [ngValue]="r.id">{{ r.nome }}</option>
+        </select>
+      </label>
+    </div>
+    <label class="block">Motivo <input type="text" [(ngModel)]="bloqMotivo" placeholder="Ex.: Treinamento, feriado interno" /></label>
+    <button type="button" class="btn-primary" (click)="addBloqueio()">Criar bloqueio</button>
+
+    <div class="impactos" *ngIf="lastImpactos().length">
+      <h3>Impactos (agendamentos existentes na faixa)</h3>
+      <p class="conflict" *ngIf="lastConflict() === 'soft'">Estado: <strong>soft</strong> — revise ou reagende manualmente.</p>
+      <ul>
+        <li *ngFor="let i of lastImpactos()">
+          #{{ $any(i).id }} — {{ $any(i).cliente_nome_snapshot || 'Cliente' }} — {{ $any(i).data_hora_inicio }}
+        </li>
+      </ul>
+    </div>
+
+    <ul class="list bloqueios">
+      <li *ngFor="let b of bloqueios()">
+        <span>#{{ $any(b).id }}</span>
+        <span>{{ $any(b).data_inicio }} → {{ $any(b).data_fim }}</span>
+        <span>{{ $any(b).motivo || '—' }}</span>
+        <button type="button" class="btn-text" (click)="removeBloq($any(b).id)">Remover</button>
+      </li>
+    </ul>
+  </section>
+</div>

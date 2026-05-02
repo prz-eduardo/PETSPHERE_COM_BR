@@ -2,6 +2,7 @@ import { environment } from '../../environments/environment';
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, catchError, throwError } from 'rxjs';
+import type { ClinicalResponseV2 } from '../pages/restrito/area-vet/gerar-receita/clinical-response-v2.model';
 
 export interface Ativo {
   id: string;
@@ -716,7 +717,7 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/atendimentos/${encodeURIComponent(String(atendimentoId))}`, { headers });
   }
 
-  /** IA — análise clínica assistida (Gemini; créditos ia_analise_clinica_assistida). */
+  /** IA — motor de decisão clínica assistida v2 (JSON; créditos ia_analise_clinica_assistida). */
   postAnaliseClinicaAssistida(
     body: {
       casePayload: Record<string, unknown>;
@@ -725,10 +726,36 @@ export class ApiService {
       idempotencyKey?: string;
     },
     token?: string
-  ): Observable<{ ok: boolean; analysis: string; charge?: unknown }> {
+  ): Observable<{
+    ok: boolean;
+    analysisStructured: ClinicalResponseV2;
+    charge?: unknown;
+    audit?: { eventId: string; timestamp: string };
+  }> {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
-    return this.http.post<{ ok: boolean; analysis: string; charge?: unknown }>(
-      `${this.baseUrl}/atendimentos/ia/analise-clinica-assistida`,
+    return this.http.post<{
+      ok: boolean;
+      analysisStructured: ClinicalResponseV2;
+      charge?: unknown;
+      audit?: { eventId: string; timestamp: string };
+    }>(`${this.baseUrl}/atendimentos/ia/analise-clinica-assistida`, body, { headers });
+  }
+
+  /**
+   * Auditoria Clinical Copilot — eventos explícitos (clinical_action | vet_intent).
+   * ai_event e system_action são só servidor.
+   */
+  postClinicalCopilotEvent(
+    atendimentoId: number | string,
+    body: {
+      eventType: 'clinical_action' | 'vet_intent';
+      payload: Record<string, unknown>;
+    },
+    token?: string
+  ): Observable<{ ok: boolean; eventId: string; timestamp: string }> {
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined as any;
+    return this.http.post<{ ok: boolean; eventId: string; timestamp: string }>(
+      `${this.baseUrl}/atendimentos/${encodeURIComponent(String(atendimentoId))}/clinical-copilot-events`,
       body,
       { headers }
     );
@@ -1007,7 +1034,7 @@ export class ApiService {
     );
   }
 
-  /** Cotação pública Transporte Pet (requer loja_slug). */
+  /** Cotação pública Transporte Pet (requer loja_slug; `operacao` = intenção marketplace|estabelecimento). */
   publicTransportePetQuote(lojaSlug: string, params: Record<string, string | number | undefined>) {
     const q: Record<string, string> = { loja_slug: lojaSlug };
     for (const [k, v] of Object.entries(params)) {
@@ -1027,30 +1054,130 @@ export class ApiService {
     }>(`${this.baseUrl}/public/transporte-pet/quote`, { params: q });
   }
 
+  /** Posições de motoristas da rede global (mapa público — sem frota privada). */
+  getPublicTransportePetGlobalMotoristasMap() {
+    return this.http.get<{
+      motoristas: Array<{ id: number; lat: number; lng: number; ultima_posicao_em?: string }>;
+    }>(`${this.baseUrl}/public/transporte-pet/global-motoristas/map`);
+  }
+
+  listClientePets(token: string) {
+    return this.http.get<{
+      pets: Array<{ id: number; nome: string; apelido?: string; photoURL?: string; porte?: string }>;
+    }>(`${this.baseUrl}/clientes/me/pets`, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
   createClienteTransportePetCorrida(
     token: string,
     body: Record<string, unknown> & { loja_slug: string }
   ) {
-    return this.http.post<{ corrida: Record<string, unknown> }>(
-      `${this.baseUrl}/clientes/me/transporte-pet/corridas`,
-      body,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }
-
-  checkoutClienteTransportePetCorrida(token: string, corridaId: number, lojaSlug: string) {
-    return this.http.post<{ preference_id?: string; payment_url?: string | null; amount?: number }>(
-      `${this.baseUrl}/clientes/me/transporte-pet/corridas/${encodeURIComponent(String(corridaId))}/checkout`,
-      { loja_slug: lojaSlug },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-  }
-
-  listClienteTransportePetCorridas(token: string, lojaSlug: string) {
-    return this.http.get<{ corridas: unknown[] }>(`${this.baseUrl}/clientes/me/transporte-pet/corridas`, {
-      params: { loja_slug: lojaSlug },
+    return this.http.post<{
+      corrida: Record<string, unknown>;
+      logistica_request_id?: number;
+      logistica_request?: Record<string, unknown>;
+    }>(`${this.baseUrl}/clientes/me/transporte-pet/corridas`, body, {
       headers: { Authorization: `Bearer ${token}` },
     });
+  }
+
+  createParceiroTransportePetLogisticaRequest(
+    headers: { Authorization: string },
+    body: Record<string, unknown>
+  ) {
+    return this.http.post<{
+      corrida: Record<string, unknown>;
+      logistica_request?: Record<string, unknown>;
+      logistica_request_id?: number;
+    }>(`${this.baseUrl}/parceiro/transporte-pet/logistica-requests`, body, { headers });
+  }
+
+  checkoutClienteTransportePetCorrida(
+    token: string,
+    corridaId: number,
+    lojaSlug: string,
+    operacao: 'marketplace' | 'estabelecimento'
+  ) {
+    return this.http.post<{ preference_id?: string; payment_url?: string | null; amount?: number }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/corridas/${encodeURIComponent(String(corridaId))}/checkout`,
+      { loja_slug: lojaSlug, operacao },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  listClienteTransportePetCorridas(
+    token: string,
+    lojaSlug: string,
+    operacao?: 'marketplace' | 'estabelecimento'
+  ) {
+    const params: Record<string, string> = { loja_slug: lojaSlug };
+    if (operacao) params['operacao'] = operacao;
+    return this.http.get<{ corridas: unknown[] }>(`${this.baseUrl}/clientes/me/transporte-pet/corridas`, {
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  enrollClienteTransportePetGlobalMotorista(
+    token: string,
+    body?: { tier?: string; documento_cnh_url?: string }
+  ) {
+    return this.http.post<{ motorista_global: Record<string, unknown> }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/enroll`,
+      body || {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  getClienteTransportePetGlobalMotoristaMe(token: string) {
+    return this.http.get<{ motorista_global: Record<string, unknown> }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/me`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  setClienteTransportePetGlobalMotoristaOnline(token: string, online: boolean) {
+    return this.http.post<{ motorista_global: Record<string, unknown> }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/me/online`,
+      { online },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  setClienteTransportePetGlobalMotoristaLocation(token: string, lat: number, lng: number) {
+    return this.http.post<{ ok: boolean }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/me/location`,
+      { lat, lng },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  listClienteTransportePetGlobalMotoristaCorridasAbertas(token: string, limit?: number) {
+    const params: Record<string, string> = {};
+    if (limit != null) params['limit'] = String(limit);
+    return this.http.get<{ corridas: unknown[] }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/corridas/abertas`,
+      { params, headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  acceptClienteTransportePetGlobalCorrida(token: string, corridaId: number) {
+    return this.http.post<{ corrida: unknown }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/corridas/${encodeURIComponent(String(corridaId))}/accept`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
+
+  advanceClienteTransportePetGlobalCorridaStatus(
+    token: string,
+    corridaId: number,
+    action: 'start_pickup' | 'picked_up' | 'complete'
+  ) {
+    return this.http.post<{ corrida: unknown }>(
+      `${this.baseUrl}/clientes/me/transporte-pet/global-motorista/corridas/${encodeURIComponent(String(corridaId))}/status`,
+      { action },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
   }
 
   listParceiroTransportePetCorridas(headers: { Authorization: string }, status?: string) {
@@ -1266,7 +1393,8 @@ export class ApiService {
 
   /**
    * Cria um post na galeria. `formData` aceita múltiplos arquivos no campo `foto`
-   * e os campos opcionais `caption`, `pet_ids` (JSON), `primary_pet_id`, `galeria_publica`.
+   * e os campos opcionais `caption`, `pet_ids` (JSON, primeiro id é o pet principal),
+   * e `galeria_publica` ('1'|'0').
    */
   createPost(clienteId: number, formData: FormData, token: string) {
     return this.http.post<PostDto>(`${this.baseUrl}/clientes/${clienteId}/posts`, formData, {

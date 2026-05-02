@@ -39,6 +39,9 @@ import { FeedAdItem, FeedPostItem, normalizePost } from './gallery-utils';
 export class GaleriaPublicaComponent implements OnInit, OnDestroy {
   readonly marcaNome = MARCA_NOME;
 
+  /** Visitantes veem o feed com conteúdo borrado até entrarem na conta. */
+  loggedIn = false;
+
   feedState: GaleriaFeedState;
   lightboxPost: FeedPostItem | null = null;
   postFotoModalOpen = false;
@@ -73,11 +76,13 @@ export class GaleriaPublicaComponent implements OnInit, OnDestroy {
     this.subs.add(this.feed.state$.subscribe((s) => (this.feedState = s)));
     if (!isPlatformBrowser(this.platformId)) return;
 
+    this.loggedIn = !!this.auth.getToken();
     this.bootstrapFeed();
 
     this.subs.add(
-      this.auth.isLoggedIn$.subscribe((loggedIn) => {
-        if (!loggedIn || !this.auth.getToken()) {
+      this.auth.isLoggedIn$.subscribe((isIn) => {
+        this.loggedIn = !!(isIn && this.auth.getToken());
+        if (!isIn || !this.auth.getToken()) {
           this.resetCtaContext();
         } else if (this.ctaAccordionOpen) {
           void this.loadCtaContext(true);

@@ -1,0 +1,59 @@
+<main class="plp-shell" id="topo">
+  <header class="plp-hero" aria-labelledby="dirigir-hero-title">
+    <div class="hero-orbs" aria-hidden="true">
+      <span class="orb orb-aurora"></span>
+      <span class="orb orb-violet"></span>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-kicker">
+        <i class="fa-solid fa-road" aria-hidden="true"></i>
+        Dirija na rede {{ marca }}
+      </span>
+      <h1 id="dirigir-hero-title" class="hero-title">
+        Ganhe com <span class="hero-accent">transporte pet</span> na sua região
+      </h1>
+      <p class="hero-lead">
+        A rede {{ marca }} conecta tutores a motoristas parceiros. Você usa seu veículo com segurança, aceita corridas pelo painel
+        e recebe conforme as regras do seu vínculo (operador ou estabelecimento).
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/mapa" [queryParams]="{ service: 'transporte' }" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+          Ver transporte no mapa
+        </a>
+        <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-building" aria-hidden="true"></i>
+          Tenho uma operação / frota
+        </a>
+      </div>
+      <ul class="hero-trust" aria-label="Por que participar">
+        <li>
+          <span class="trust-ic"><i class="fa-solid fa-wallet" aria-hidden="true"></i></span>
+          <span><strong>Renda por corrida</strong> — foco em quem quer trabalhar com mobilidade pet, não só preencher formulário.</span>
+        </li>
+        <li>
+          <span class="trust-ic"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+          <span><strong>Pagamento pelo app</strong> — menos atrito para o tutor e fluxo organizado para quem dirige.</span>
+        </li>
+        <li>
+          <span class="trust-ic"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
+          <span><strong>Próximos passos</strong> — documentação e cadastro como motorista seguem as regras do operador da sua região.</span>
+        </li>
+      </ul>
+    </div>
+  </header>
+
+  <section class="plp-section">
+    <div class="plp-section-inner">
+      <h2>Quero ganhar com transporte pet</h2>
+      <p class="plp-lead">
+        Se você já é motorista parceiro, acesse o painel da sua loja. Se representa uma frota ou quer operar com a rede, comece pelo
+        cadastro de parceiro — nossa equipe orienta a configuração de transporte e tarifas.
+      </p>
+      <div class="hero-actions" style="margin-top: 1rem">
+        <a routerLink="/restrito/login" class="btn btn-primary btn-lg">Entrar no painel</a>
+        <a routerLink="/parceiro/planos" class="btn btn-ghost btn-lg">Ver planos</a>
+      </div>
+    </div>
+  </section>
+</main>

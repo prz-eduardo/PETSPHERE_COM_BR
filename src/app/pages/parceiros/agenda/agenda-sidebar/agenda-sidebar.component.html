@@ -1,4 +1,9 @@
-<div class="sidebar-overlay" (click)="close.emit()"></div>
+<div
+  class="sidebar-overlay"
+  (click)="close.emit()"
+  (wheel)="$event.preventDefault()"
+  (touchmove)="$event.preventDefault()"
+></div>
 
 <div class="sidebar">
   <header class="sidebar-header">

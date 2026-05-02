@@ -10,7 +10,11 @@
 
 <ng-template #lightboxBody>
   <ng-container *ngIf="post as p">
-  <div class="pet-lightbox" [class.pet-lightbox--inline]="inlineMode" [attr.aria-label]="'Post de ' + (p.pet?.nome || 'pet')">
+  <div
+    class="pet-lightbox"
+    [class.pet-lightbox--inline]="inlineMode"
+    [attr.aria-label]="'Post de ' + (p.pet?.nome || 'pet')"
+  >
     <div
       class="lightbox-media"
       (pointerdown)="onMediaPointerDown($event)"
@@ -20,7 +24,19 @@
     >
       <button class="lightbox-close" *ngIf="!inlineMode" type="button" aria-label="Fechar" (click)="onClose()">×</button>
       <button type="button" class="lb-nav lb-prev" *ngIf="hasMultipleImages" (click)="prevSlide($event)" aria-label="Foto anterior">‹</button>
-      <img class="lightbox-main-img" [src]="resolveImage()" alt="Foto do post" (error)="onImgError($event)" />
+      <img
+        class="lightbox-main-img"
+        [src]="resolveImage()"
+        alt="Foto do post"
+        [ngStyle]="!isLogged() ? guestLightboxImgStyle : null"
+        (error)="onImgError($event)"
+      />
+      <div
+        class="lightbox-guest-media-veil"
+        *ngIf="!isLogged()"
+        [ngStyle]="guestLightboxVeilStyle"
+        aria-hidden="true"
+      ></div>
       <button type="button" class="lb-nav lb-next" *ngIf="hasMultipleImages" (click)="nextSlide($event)" aria-label="Foto seguinte">›</button>
       <div class="lb-dots" *ngIf="hasMultipleImages && dots.length > 1">
         <button
@@ -33,34 +49,49 @@
         ></button>
       </div>
 
-      <section class="reactions-section reactions-section--overlay">
-        <div class="reactions-summary" *ngIf="totalReactions() > 0">
-          <div class="reaction-stack">
-            <span class="stacked-emoji" *ngFor="let r of topReactions(); let i = index; trackBy: trackReaction" [style.--i]="i">
-              {{ r.emoji }}
+      <ng-container *ngIf="isLogged(); else guestMediaReactionsHud">
+        <section class="reactions-section reactions-section--overlay">
+          <div class="reactions-summary" *ngIf="totalReactions() > 0">
+            <div class="reaction-stack">
+              <span class="stacked-emoji" *ngFor="let r of topReactions(); let i = index; trackBy: trackReaction" [style.--i]="i">
+                {{ r.emoji }}
+              </span>
+            </div>
+            <span class="reaction-total-label">
+              {{ totalReactions() }} {{ totalReactions() === 1 ? 'reação' : 'reações' }}
             </span>
           </div>
-          <span class="reaction-total-label">
-            {{ totalReactions() }} {{ totalReactions() === 1 ? 'reação' : 'reações' }}
-          </span>
-        </div>
-        <div class="reactions-bar">
-          <button
-            *ngFor="let r of reactionTypes; trackBy: trackReaction"
-            type="button"
-            class="reaction-chip"
-            [class.active]="currentReaction === r.tipo"
-            (click)="onSelectReaction(r.tipo)"
-            [attr.aria-label]="r.label"
-          >
-            <span class="emoji">{{ r.emoji }}</span>
-            <span class="count">{{ reactionCount(r.tipo) }}</span>
-          </button>
-        </div>
-      </section>
+          <div class="reactions-bar">
+            <button
+              *ngFor="let r of reactionTypes; trackBy: trackReaction"
+              type="button"
+              class="reaction-chip"
+              [class.active]="currentReaction === r.tipo"
+              (click)="onSelectReaction(r.tipo)"
+              [attr.aria-label]="r.label"
+            >
+              <span class="emoji">{{ r.emoji }}</span>
+              <span class="count">{{ reactionCount(r.tipo) }}</span>
+            </button>
+          </div>
+        </section>
+      </ng-container>
+      <ng-template #guestMediaReactionsHud>
+        <section
+          class="reactions-section reactions-section--overlay reactions-section--guest-hud"
+          *ngIf="showGuestMediaEngagementHud()"
+          aria-label="Resumo de engajamento do post"
+        >
+          <p class="reactions-guest-hud__text">{{ guestEngagementSummaryLine() }}</p>
+        </section>
+      </ng-template>
     </div>
 
     <aside class="lightbox-side">
+      <div class="lightbox-guest-side-summary" *ngIf="!isLogged()" role="status">
+        <p class="lightbox-guest-side-summary__text">{{ guestEngagementSummaryLine() }}</p>
+      </div>
+      <div class="lightbox-side-inner" [ngStyle]="!isLogged() ? guestLightboxSideInnerStyle : null">
       <header class="pet-header">
         <div class="pet-title-row">
           <a
@@ -85,7 +116,7 @@
           <span *ngIf="p.pet?.raca" class="chip">{{ p.pet?.raca }}</span>
           <span *ngIf="p.pet?.especie" class="chip">{{ p.pet?.especie }}</span>
         </div>
-        <div class="pet-tutor" *ngIf="p.tutor?.nome">
+        <div class="pet-tutor" *ngIf="isLogged() && p.tutor?.nome">
           <img *ngIf="p.tutor?.foto" [src]="resolveTutorPhotoUrl()" alt="Tutor" class="tutor-avatar" (error)="onImgError($event)" />
           <span class="tutor-label">por</span>
           <span class="tutor-name">{{ p.tutor?.nome }}</span>
@@ -111,7 +142,7 @@
         <p>{{ p.caption }}</p>
       </section>
 
-      <section class="comments-section">
+      <section class="comments-section" *ngIf="isLogged()">
         <button
           type="button"
           class="comments-toggle"
@@ -124,7 +155,7 @@
         </button>
 
         <div class="comments-panel" id="pet-comments-body" *ngIf="commentsExpanded">
-          <form class="comment-form" *ngIf="isLogged(); else needLogin" (submit)="$event.preventDefault(); enviarComentario()">
+          <form class="comment-form" (submit)="$event.preventDefault(); enviarComentario()">
             <textarea
               [(ngModel)]="novoComentario"
               name="comentario"
@@ -144,9 +175,6 @@
               </button>
             </div>
           </form>
-          <ng-template #needLogin>
-            <div class="comment-login-cta">Faça login para deixar um comentário.</div>
-          </ng-template>
 
           <div class="comments-list" *ngIf="!loadingComentarios">
             <div *ngIf="comentariosError" class="comments-error">{{ comentariosError }}</div>
@@ -173,6 +201,36 @@
           <div class="comments-loading" *ngIf="loadingComentarios">Carregando comentários…</div>
         </div>
       </section>
+      </div>
+
+      <section class="comments-section comments-section--guest-outer" *ngIf="!isLogged()">
+        <button
+          type="button"
+          class="comments-toggle"
+          (click)="toggleComments()"
+          [attr.aria-expanded]="commentsExpanded"
+          aria-controls="pet-comments-body-guest"
+        >
+          <span>Comentários</span>
+          <span class="comments-count">{{ p.engagement.comentarios }}</span>
+        </button>
+
+        <div class="comments-panel" id="pet-comments-body-guest" *ngIf="commentsExpanded">
+          <div class="comments-guest-panel">
+            <p *ngIf="(p.engagement?.comentarios ?? 0) > 0" class="comments-guest-panel__hint">
+              {{ p.engagement.comentarios }}
+              {{ p.engagement.comentarios === 1 ? 'comentário neste post' : 'comentários neste post' }}.
+              O conteúdo das mensagens aparece após o login.
+            </p>
+            <p *ngIf="(p.engagement?.comentarios ?? 0) === 0" class="comments-guest-panel__hint">Nenhum comentário ainda neste post.</p>
+            <a routerLink="/restrito/login" class="comments-guest-panel__link">Entrar ou criar conta</a>
+          </div>
+        </div>
+      </section>
+      <div class="lightbox-guest-login-bar" *ngIf="!isLogged()">
+        <p class="lightbox-guest-login-bar__text">Faça login para ver foto, detalhes do pet e o texto dos comentários.</p>
+        <a routerLink="/restrito/login" class="lightbox-guest-login-bar__btn">Entrar ou criar conta</a>
+      </div>
     </aside>
   </div>
   </ng-container>

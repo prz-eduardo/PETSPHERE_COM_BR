@@ -9,13 +9,13 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
   Agendamento, AgendaConfig, AgendaFiltros, AgendaSavePayload, AgendaStatus,
-  PartnerType, ParceiroServico, Profissional, Recurso, Servico, SlotInfo, ViewMode,
+  PartnerType, ParceiroServico, Profissional, Recurso, Servico, SlotInfo, SlotProjectionCell, ViewMode,
 } from '../../../../types/agenda.types';
 import { ParceiroAuthService } from '../../../../services/parceiro-auth.service';
 import { AgendaConfigService } from '../services/agenda-config.service';
 import { AgendaApiService } from '../services/agenda-api.service';
 import { AgendaFiltersComponent } from '../agenda-filters/agenda-filters.component';
-import { AgendaGridComponent } from '../agenda-grid/agenda-grid.component';
+import { AgendaDayViewComponent } from '../agenda-day-view/agenda-day-view.component';
 import { AgendaTimelineComponent } from '../agenda-timeline/agenda-timeline.component';
 import { AgendaWeekComponent } from '../agenda-week/agenda-week.component';
 import { AgendaMonthComponent } from '../agenda-month/agenda-month.component';
@@ -38,7 +38,7 @@ import {
     RouterLink,
     AgendaConvitesDadosComponent,
     AgendaFiltersComponent,
-    AgendaGridComponent,
+    AgendaDayViewComponent,
     AgendaTimelineComponent,
     AgendaWeekComponent,
     AgendaMonthComponent,
@@ -66,6 +66,8 @@ export class AgendaShellComponent implements OnInit {
   servicos = signal<Servico[]>([]);
   recursos = signal<Recurso[]>([]);
   loading = signal(false);
+  /** Grade do dia: projeção do motor por recurso (string id). */
+  slotProjectionsByRecurso = signal<Record<string, SlotProjectionCell[]>>({});
 
   // Day view window presets
   windowPreset = signal<'default' | '12-24' | '9-18' | '0-24' | 'custom'>('default');
@@ -292,11 +294,46 @@ export class AgendaShellComponent implements OnInit {
         mapParceiroAgendamentoRow(row, recursoById, defServ)
       );
       this.rawAgendamentos.set(mapped);
+      await this.loadSlotProjectionsForDay();
     } catch (err) {
       console.error('Agenda: falha ao carregar API', err);
       this.rawAgendamentos.set([]);
       this.profissionais.set([]);
+      this.slotProjectionsByRecurso.set({});
     }
+  }
+
+  private async loadSlotProjectionsForDay(): Promise<void> {
+    if (this.viewMode() !== 'DAY') {
+      this.slotProjectionsByRecurso.set({});
+      return;
+    }
+    const dateStr = this.formatLocalYmd(this.selectedDate());
+    const profs = this.profissionais();
+    if (!profs.length) {
+      this.slotProjectionsByRecurso.set({});
+      return;
+    }
+    const f = this.filters();
+    const servicoId =
+      f.servicoId && /^[0-9]+$/.test(String(f.servicoId)) ? Number(f.servicoId) : undefined;
+    const map: Record<string, SlotProjectionCell[]> = {};
+    await Promise.all(
+      profs.map(async (p) => {
+        try {
+          const dto = await this.api.getSlotsDisponiveis({
+            recurso_id: Number(p.id),
+            data: dateStr,
+            step_minutos: 30,
+            servico_id: servicoId,
+          });
+          map[p.id] = dto.slots || [];
+        } catch {
+          map[p.id] = [];
+        }
+      })
+    );
+    this.slotProjectionsByRecurso.set(map);
   }
 
   /** No mobile, foco no botão ‹ › “segura” o gesto de scroll até sair do foco. */
@@ -355,6 +392,7 @@ export class AgendaShellComponent implements OnInit {
   // ── Filters ─────────────────────────────────────────────────────────────
   onFiltersChange(f: AgendaFiltros): void {
     this.filters.set(f);
+    void this.loadSlotProjectionsForDay();
   }
 
   openSidebar(slot?: SlotInfo): void {
@@ -363,6 +401,14 @@ export class AgendaShellComponent implements OnInit {
   }
 
   closeSidebar(): void {
+    try {
+      const a = document.activeElement as HTMLElement | null;
+      if (a?.closest?.('app-agenda-sidebar')) {
+        a.blur();
+      }
+    } catch {
+      /* ignore */
+    }
     this.sidebarOpen.set(false);
     this.sidebarSlot.set(null);
   }

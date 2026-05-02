@@ -20,6 +20,7 @@
 }
 
 .gpf-dialog {
+  position: relative;
   width: 100%;
   max-width: 420px;
   max-height: min(90vh, 640px);
@@ -29,6 +30,61 @@
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--fp-border, #e8e0d0);
   padding: 20px 20px 16px;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.gpf-dialog--dragging {
+  border-color: rgba(201, 160, 0, 0.7);
+  box-shadow: 0 24px 60px rgba(201, 160, 0, 0.22);
+}
+
+.gpf-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(255, 251, 215, 0.92);
+  border: 2px dashed rgba(201, 160, 0, 0.7);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: gpfDropFade 0.15s ease;
+}
+
+.gpf-drop-overlay__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #5b4d00;
+  text-align: center;
+}
+
+.gpf-drop-overlay__icon {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.gpf-drop-overlay__text {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.gpf-dialog--embedded .gpf-drop-overlay {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(196, 214, 0, 0.85);
+  border-radius: 14px;
+}
+
+.gpf-dialog--embedded .gpf-drop-overlay__inner {
+  color: #f0f6cf;
+}
+
+@keyframes gpfDropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .gpf-dialog--embedded {
@@ -365,6 +421,20 @@
   overflow: hidden;
   background: #0f172a;
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.18s ease, outline-color 0.15s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.gpf-preview-item:active {
+  cursor: grabbing;
+}
+
+.gpf-preview-item--hover {
+  transform: scale(1.04);
+  outline-color: rgba(201, 160, 0, 0.85);
+  box-shadow: 0 12px 24px rgba(201, 160, 0, 0.28);
 }
 
 .gpf-preview-img {

@@ -18,6 +18,11 @@ import { AuthService } from '../../../services/auth.service';
 import { ToastService } from '../../../services/toast.service';
 import { MARCA_NOME } from '../../../constants/loja-public';
 import { FeedPostItem, typeEmoji } from '../gallery-utils';
+import {
+  GUEST_LIGHTBOX_IMG_STYLE,
+  GUEST_LIGHTBOX_MEDIA_VEIL_STYLE,
+  GUEST_LIGHTBOX_SIDE_INNER_STYLE,
+} from '../galeria-guest-visual';
 
 @Component({
   selector: 'app-pet-lightbox',
@@ -55,6 +60,10 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
   private pointerStartY: number | null = null;
   private pointerId: number | null = null;
   private readonly swipeThresholdPx = 52;
+
+  readonly guestLightboxImgStyle = GUEST_LIGHTBOX_IMG_STYLE;
+  readonly guestLightboxVeilStyle = GUEST_LIGHTBOX_MEDIA_VEIL_STYLE;
+  readonly guestLightboxSideInnerStyle = GUEST_LIGHTBOX_SIDE_INNER_STYLE;
 
   private escHandler = (ev: KeyboardEvent) => {
     if (ev.key === 'Escape') this.onClose();
@@ -226,6 +235,18 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     this.comentariosError = null;
     const token = this.auth.getToken() || undefined;
     try {
+      if (!token) {
+        const eng = (await firstValueFrom(
+          this.api.getPostEngajamento(postId, undefined)
+        )) as PostEngagement;
+        this.applyEngagement(eng);
+        this.comentarios = [];
+        if (this.post && eng?.comentarios != null) {
+          this.post.engagement.comentarios = Number(eng.comentarios);
+        }
+        this.emitChange();
+        return;
+      }
       const [eng, com] = await Promise.all([
         firstValueFrom(this.api.getPostEngajamento(postId, token)) as Promise<PostEngagement>,
         firstValueFrom(this.api.getPostComentarios(postId, { page: 1, pageSize: 50 })) as Promise<any>,
@@ -482,6 +503,27 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
 
   speciesEmoji(tipo?: string | null): string {
     return typeEmoji(tipo);
+  }
+
+  /** Resumo só com números (visitante): reações e quantidade de comentários, sem texto dos comentários. */
+  guestEngagementSummaryLine(): string {
+    const p = this.post;
+    if (!p) return '';
+    const r = Number(p.engagement?.total ?? 0);
+    const c = Number(p.engagement?.comentarios ?? 0);
+    const parts: string[] = [];
+    if (r > 0) parts.push(`${r} ${r === 1 ? 'reação' : 'reações'}`);
+    if (c > 0) parts.push(`${c} ${c === 1 ? 'comentário' : 'comentários'}`);
+    if (!parts.length) return 'Nenhuma reação nem comentário ainda neste post.';
+    return parts.join(' · ');
+  }
+
+  showGuestMediaEngagementHud(): boolean {
+    const p = this.post;
+    if (!p || this.isLogged()) return false;
+    const r = Number(p.engagement?.total ?? 0);
+    const c = Number(p.engagement?.comentarios ?? 0);
+    return r > 0 || c > 0;
   }
 
   onImgError(ev: Event): void {

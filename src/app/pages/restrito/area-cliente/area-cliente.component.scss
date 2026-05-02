@@ -3,7 +3,10 @@
    - Estado logado: hero com avatar + grid de ações (ícone, título, descrição)
    - Estado deslogado: hero persuasivo com CTA primário e secundário
    - Logout: ação destacada (danger ghost)
+   - Tema: claro por padrão; `.area-cliente-wrapper--theme-dark` preserva o visual escuro legado
    ========================================================================== */
+
+@use '../../../shared/styles/cliente-shell-themes' as cliente-shell;
 
 :host {
   display: block;
@@ -15,22 +18,12 @@
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  align-self: stretch;
+  width: 100%;
 }
 
 .area-cliente-wrapper {
-  --ac-text:        #e6eef8;
-  --ac-text-dim:    #94a3b8;
-  --ac-surface:     rgba(255,255,255,0.035);
-  --ac-surface-h:   rgba(255,255,255,0.07);
-  --ac-border:      rgba(255,255,255,0.09);
-  --ac-border-h:    rgba(196,214,0,0.45);
-  --ac-accent:      #c4d600;    // lime (cor da marca)
-  --ac-accent-ink:  #1a1f00;
-  --ac-danger:      #ff4f6a;
-  --ac-radius-lg:   18px;
-  --ac-radius-md:   14px;
-  --ac-radius-sm:   10px;
-  --ac-shadow:      0 12px 32px rgba(2,6,23,0.32);
+  @include cliente-shell.cliente-ac-vars-light;
 
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--ac-text);
@@ -39,8 +32,7 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
-  background: radial-gradient(1200px 600px at 10% 10%, rgba(2,6,11,0.6), transparent),
-              linear-gradient(180deg, #07080a 0%, #0b0e12 100%);
+  @include cliente-shell.cliente-page-bg-light;
 
   /* Quando dentro do modal (navmenu), tirar o background e altura mínima, e reduzir padding */
   &.is-modal {
@@ -52,6 +44,48 @@
     overflow: auto;
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* Legado escuro — usar quando existir toggle de tema (ex.: data-ps-cliente-theme no host) */
+.area-cliente-wrapper--theme-dark {
+  @include cliente-shell.cliente-ac-vars-dark;
+
+  &:not(.is-modal) {
+    @include cliente-shell.cliente-page-bg-dark;
+  }
+}
+
+.area-cliente-wrapper--theme-dark .cliente-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+    radial-gradient(600px 140px at 0% 0%, rgba(196, 214, 0, 0.12), transparent 60%);
+}
+
+.area-cliente-wrapper--theme-dark .login-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    radial-gradient(500px 180px at 50% 0%, rgba(196, 214, 0, 0.10), transparent 70%);
+}
+
+.area-cliente-wrapper--theme-dark .modal-content {
+  background: linear-gradient(180deg, rgba(18, 22, 32, 0.92), rgba(10, 14, 22, 0.94));
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+}
+
+.area-cliente-wrapper--theme-dark .internal-back button.btn.btn-sec {
+  background: rgba(255, 255, 255, 0.06);
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.area-cliente-wrapper--theme-dark .action-card:hover {
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.28);
+}
+
+.area-cliente-wrapper--theme-dark .action-card .action-icon {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* ---------- Título textual (usado em subviews / estado inicial) ---------- */
@@ -82,13 +116,14 @@
   margin-bottom: 8px;
 }
 
-/* Boas-vindas no modal: top alinhado (evita “corte” inferior com overflow + centro vertical); respiro e safe-area */
+/* Boas-vindas no modal: preencher altura do cliente-modal-inner (flex); min-content deixava só a altura do hero e o login ficava com scroll/corte */
 .area-cliente-wrapper.is-modal.is-guest-welcome {
   justify-content: flex-start;
   align-items: stretch;
   gap: 0;
   flex: 1 1 auto;
-  min-height: min-content;
+  min-height: 0;
+  align-self: stretch;
   padding: 14px 16px calc(28px + env(safe-area-inset-bottom, 0px));
   overflow: visible;
   box-sizing: border-box;
@@ -136,8 +171,8 @@
   padding: 18px 20px;
   border-radius: var(--ac-radius-lg);
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
-    radial-gradient(600px 140px at 0% 0%, rgba(196,214,0,0.12), transparent 60%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(247, 244, 238, 0.72)),
+    radial-gradient(600px 140px at 0% 0%, rgba(197, 255, 61, 0.14), transparent 60%);
   border: 1px solid var(--ac-border);
   box-shadow: var(--ac-shadow);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
@@ -213,8 +248,8 @@
   padding: 36px 24px 32px;
   border-radius: var(--ac-radius-lg);
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)),
-    radial-gradient(500px 180px at 50% 0%, rgba(196,214,0,0.10), transparent 70%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 244, 238, 0.78)),
+    radial-gradient(500px 180px at 50% 0%, rgba(197, 255, 61, 0.12), transparent 70%);
   border: 1px solid var(--ac-border);
   box-shadow: var(--ac-shadow);
 
@@ -304,7 +339,7 @@
   button.btn.btn-sec {
     padding: 10px 16px;
     border-radius: 12px;
-    background: rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.78);
     color: var(--ac-text);
     border: 1px solid var(--ac-border);
     font-weight: 700;
@@ -314,7 +349,7 @@
     gap: 8px;
     transition: transform .12s ease, background .2s ease, border-color .2s ease;
     &:before { content: '←'; display: inline-block; font-weight: 800; }
-    &:hover { background: rgba(255,255,255,0.1); border-color: var(--ac-border-h); }
+    &:hover { background: #fff; border-color: var(--ac-border-h); }
     &:active { transform: translateY(1px); }
   }
 }
@@ -377,9 +412,14 @@
   justify-content: space-between;
   gap: 10px;
   padding: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--ac-border);
   border-radius: 10px;
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.area-cliente-wrapper--theme-dark .consent-item {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .consent-main {
@@ -408,19 +448,35 @@
 }
 
 .consent-actions .btn-accept {
-  background: rgba(134, 239, 172, 0.2);
-  border-color: rgba(134, 239, 172, 0.45);
-  color: #bbf7d0;
+  background: rgba(134, 239, 172, 0.35);
+  border-color: rgba(22, 101, 52, 0.35);
+  color: #166534;
 }
 
 .consent-actions .btn-reject {
-  background: rgba(252, 165, 165, 0.14);
-  border-color: rgba(252, 165, 165, 0.4);
-  color: #fecaca;
+  background: rgba(252, 165, 165, 0.35);
+  border-color: rgba(185, 28, 28, 0.35);
+  color: #b91c1c;
 }
 
 .consent-actions .btn-chat {
   text-decoration: none;
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(29, 78, 216, 0.35);
+  color: #1d4ed8;
+}
+
+.area-cliente-wrapper--theme-dark .consent-actions .btn-accept {
+  background: rgba(134, 239, 172, 0.2);
+  border-color: rgba(134, 239, 172, 0.45);
+  color: #bbf7d0;
+}
+.area-cliente-wrapper--theme-dark .consent-actions .btn-reject {
+  background: rgba(252, 165, 165, 0.14);
+  border-color: rgba(252, 165, 165, 0.4);
+  color: #fecaca;
+}
+.area-cliente-wrapper--theme-dark .consent-actions .btn-chat {
   background: rgba(56, 189, 248, 0.2);
   border-color: rgba(56, 189, 248, 0.45);
   color: #e0f2fe;
@@ -452,7 +508,7 @@
     background: var(--ac-surface-h);
     border-color: var(--ac-border-h);
     transform: translateY(-2px);
-    box-shadow: 0 14px 28px rgba(2,6,23,0.28);
+    box-shadow: 0 14px 28px rgba(15, 11, 46, 0.1);
     .action-arrow { transform: translateX(2px); color: var(--ac-accent); }
   }
 
@@ -466,8 +522,8 @@
     display: grid;
     place-items: center;
     color: var(--ac-text);
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15, 11, 46, 0.045);
+    border: 1px solid var(--ac-border);
     transition: transform .2s ease;
 
     &--violet { color: #c4b5fd; background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.32); }
@@ -589,9 +645,9 @@
   width: min(92vw, 480px);
   max-width: calc(100% - 24px);
   height: fit-content;
-  max-height: min(84vh, 100dvh - 48px);
+  max-height: min(94vh, 94dvh, calc(100dvh - 40px));
   margin: auto;
-  background: linear-gradient(180deg, rgba(18,22,32,0.92), rgba(10,14,22,0.94));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 244, 238, 0.96));
   border: 1px solid var(--ac-border);
   -webkit-backdrop-filter: blur(14px) saturate(130%);
   backdrop-filter: blur(14px) saturate(130%);
@@ -599,8 +655,19 @@
   border-radius: 18px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 30px 60px rgba(0,0,0,0.45);
+  box-shadow: 0 24px 48px rgba(15, 11, 46, 0.12);
   color: var(--ac-text);
+}
+
+@media (max-width: 767px) {
+  .modal-content {
+    max-height: min(
+      92dvh,
+      calc(
+        100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - var(--ps-dock-height, 68px) - 28px
+      )
+    );
+  }
 }
 
 /*
@@ -621,11 +688,23 @@
   transform: translate(-50%, -50%);
   width: min(92%, 480px);
   max-width: calc(100% - 24px);
-  max-height: calc(100% - 32px);
+  /* Não usar só % do wrapper: em boas-vindas o host é só a altura do hero e o login ficava com scroll */
+  max-height: min(
+    94dvh,
+    calc(
+      100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - var(--ps-dock-height, 68px) - 96px
+    )
+  );
   height: auto;
   margin: 0;
   padding: 22px 22px calc(22px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 768px) {
+  .area-cliente-wrapper.is-modal .modal-content {
+    max-height: calc(100dvh - 96px);
+  }
 }
 
 /* Corpo do modal de confirmação de logout */
@@ -695,10 +774,21 @@
 
 .modal-content .btn-cancel,
 .modal-content .btn.btn-sec {
-  background: rgba(255,255,255,0.06);
+  background: rgba(15, 11, 46, 0.05);
   color: var(--ac-text);
   border-color: var(--ac-border);
-  &:hover { background: rgba(255,255,255,0.1); border-color: var(--ac-border-h); }
+  &:hover {
+    background: rgba(15, 11, 46, 0.09);
+    border-color: var(--ac-border-h);
+  }
+}
+
+.area-cliente-wrapper--theme-dark .modal-content .btn-cancel,
+.area-cliente-wrapper--theme-dark .modal-content .btn.btn-sec {
+  background: rgba(255, 255, 255, 0.06);
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
 }
 
 /* Legacy login-card (fallback do estado carregando) */

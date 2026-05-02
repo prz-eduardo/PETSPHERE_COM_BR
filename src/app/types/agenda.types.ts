@@ -98,9 +98,39 @@ export interface ParceiroServico {
   parceiro_id: number;
   nome: string;
   duracao_minutos: number;
+  buffer_antes_minutos?: number;
+  buffer_depois_minutos?: number;
   preco: number;
   ativo: number | boolean;
   created_at?: string;
+}
+
+/** Projeção de grade — única fonte de verdade operacional (GET /parceiro/agenda/slots-disponiveis). */
+export type SlotProjectionStatus = 'livre' | 'bloqueado' | 'fora_janela' | 'ocupado';
+
+export interface SlotReason {
+  type: string;
+  source_event_id: string | null;
+  explanation: string;
+}
+
+export interface SlotProjectionCell {
+  inicio: string;
+  fim: string;
+  status: SlotProjectionStatus;
+  clickable: boolean;
+  reason: SlotReason | null;
+}
+
+export interface SlotProjectionDTO {
+  engine_run_id: string;
+  rules_hash: string;
+  step_minutos: number;
+  duracao_minutos: number;
+  agenda_id: number;
+  recurso_id: number;
+  data: string;
+  slots: SlotProjectionCell[];
 }
 
 export interface PetResumido {

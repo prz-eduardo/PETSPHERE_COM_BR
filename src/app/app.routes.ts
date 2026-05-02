@@ -103,6 +103,13 @@ export const routes: Routes = [
       data: { title: 'Transporte animal PetSphere' },
     },
     {
+      path: 'dirigir-petsphere',
+      canActivate: [tenantBlockPetsphereMarketingGuard],
+      loadComponent: () =>
+        import('./pages/dirigir-petsphere/dirigir-petsphere.component').then((m) => m.DirigirPetsphereComponent),
+      data: { title: 'Dirija na rede PetSphere' },
+    },
+    {
       path: 'parceiro/passeadores',
       canActivate: [tenantBlockPetsphereMarketingGuard],
       loadComponent: () =>
@@ -291,6 +298,12 @@ export const routes: Routes = [
         path: 'painel',
         loadComponent: () => import('./pages/parceiros/parceiro-painel/parceiro-painel.component').then(m => m.ParceiroPainelComponent),
         data: { title: 'Painel do Parceiro' },
+      },
+      {
+        path: 'agenda/regras',
+        loadComponent: () =>
+          import('./pages/parceiros/agenda/agenda-regras/agenda-regras.component').then(m => m.AgendaRegrasComponent),
+        data: { title: 'Regras da agenda' },
       },
       {
         path: 'agenda',

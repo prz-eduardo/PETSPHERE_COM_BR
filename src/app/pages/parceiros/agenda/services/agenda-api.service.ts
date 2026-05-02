@@ -9,6 +9,7 @@ import {
   PermissaoRecurso,
   AgendaStatus,
   ParceiroServico,
+  SlotProjectionDTO,
 } from '../../../../types/agenda.types';
 import { ParceiroAuthService } from '../../../../services/parceiro-auth.service';
 import { environment } from '../../../../../environments/environment';
@@ -104,6 +105,104 @@ export class AgendaApiService {
         `${API_BASE}/parceiro/recursos/${id}`,
         { headers: this.getHeaders() }
       )
+    );
+  }
+
+  // ===========================================================================
+  // AGENDA — motor (projeção + regras)
+  // ===========================================================================
+
+  async getSlotsDisponiveis(q: {
+    recurso_id: number;
+    data: string;
+    agenda_id?: number;
+    step_minutos?: number;
+    duracao_minutos?: number;
+    servico_id?: number;
+  }): Promise<SlotProjectionDTO> {
+    let params = new HttpParams()
+      .set('recurso_id', String(q.recurso_id))
+      .set('data', q.data);
+    if (q.agenda_id != null) params = params.set('agenda_id', String(q.agenda_id));
+    if (q.step_minutos != null) params = params.set('step_minutos', String(q.step_minutos));
+    if (q.duracao_minutos != null) params = params.set('duracao_minutos', String(q.duracao_minutos));
+    if (q.servico_id != null) params = params.set('servico_id', String(q.servico_id));
+    return await lastValueFrom(
+      this.http.get<SlotProjectionDTO>(`${API_BASE}/parceiro/agenda/slots-disponiveis`, {
+        headers: this.getHeaders(),
+        params,
+      })
+    );
+  }
+
+  async listDisponibilidades(agenda_id?: number): Promise<unknown[]> {
+    let params = new HttpParams();
+    if (agenda_id != null) params = params.set('agenda_id', String(agenda_id));
+    const r = await lastValueFrom(
+      this.http.get<{ disponibilidades: unknown[] }>(`${API_BASE}/parceiro/agenda/disponibilidades`, {
+        headers: this.getHeaders(),
+        params,
+      })
+    );
+    return r.disponibilidades || [];
+  }
+
+  async createDisponibilidade(body: {
+    agenda_id?: number;
+    dia_semana: number;
+    hora_inicio: string;
+    hora_fim: string;
+    recurso_id?: number | null;
+  }): Promise<unknown> {
+    const r = await lastValueFrom(
+      this.http.post<{ disponibilidade: unknown }>(`${API_BASE}/parceiro/agenda/disponibilidades`, body, {
+        headers: this.getHeaders(),
+      })
+    );
+    return r.disponibilidade;
+  }
+
+  async deleteDisponibilidade(id: number): Promise<void> {
+    await lastValueFrom(
+      this.http.delete(`${API_BASE}/parceiro/agenda/disponibilidades/${id}`, {
+        headers: this.getHeaders(),
+      })
+    );
+  }
+
+  async listBloqueios(q?: { agenda_id?: number; data_inicio?: string; data_fim?: string }): Promise<unknown[]> {
+    let params = new HttpParams();
+    if (q?.agenda_id != null) params = params.set('agenda_id', String(q.agenda_id));
+    if (q?.data_inicio) params = params.set('data_inicio', q.data_inicio);
+    if (q?.data_fim) params = params.set('data_fim', q.data_fim);
+    const r = await lastValueFrom(
+      this.http.get<{ bloqueios: unknown[] }>(`${API_BASE}/parceiro/agenda/bloqueios`, {
+        headers: this.getHeaders(),
+        params,
+      })
+    );
+    return r.bloqueios || [];
+  }
+
+  async createBloqueio(body: {
+    agenda_id?: number;
+    data_inicio: string;
+    data_fim: string;
+    motivo?: string | null;
+    recurso_id?: number | null;
+  }): Promise<{ bloqueio: unknown; impactos: unknown[]; conflict_state: string }> {
+    return await lastValueFrom(
+      this.http.post<{ bloqueio: unknown; impactos: unknown[]; conflict_state: string }>(
+        `${API_BASE}/parceiro/agenda/bloqueios`,
+        body,
+        { headers: this.getHeaders() }
+      )
+    );
+  }
+
+  async deleteBloqueio(id: number): Promise<void> {
+    await lastValueFrom(
+      this.http.delete(`${API_BASE}/parceiro/agenda/bloqueios/${id}`, { headers: this.getHeaders() })
     );
   }
 

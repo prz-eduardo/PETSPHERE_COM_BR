@@ -11,69 +11,59 @@
   overflow: hidden;
 }
 
-.grid-scroll {
+/* Único scrollport do modo Dia — sempre, inclusive mobile */
+.day-view-scroll {
   flex: 1 1 0%;
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--admin-radius-lg);
   border: 1px solid var(--admin-border);
   background: var(--admin-surface);
+  box-sizing: border-box;
 
   @media (max-width: 767px) {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :host-context(body:has(app-navmenu .ps-dock)) & {
+    @media (max-width: 767px) {
+      padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px) + 12px);
+    }
   }
 }
 
-/* Mobile: conteúdo flui; scroll único em .agenda-mobile-scroll (shell). */
-@media (max-width: 768px) {
-  :host {
-    flex: 0 0 auto;
-    min-height: min-content;
-    overflow: visible;
-  }
-
-  .grid-scroll {
-    flex: 0 0 auto;
-    overflow: visible;
-    padding-bottom: 0;
-    -webkit-overflow-scrolling: auto;
-  }
-
-  .time-col,
-  .time-gutter {
-    position: relative;
-    left: auto;
-  }
-}
-
-.grid-wrap {
+.day-wrap {
   display: flex;
   flex-direction: column;
   min-width: 520px;
 }
 
-.grid-bottom-spacer {
+.day-bottom-spacer {
   flex: 0 0 auto;
   height: 10px;
+
+  @media (max-width: 768px) {
+    height: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
-// ── Header ────────────────────────────────────────────────────────────────
-
-.grid-header {
+.day-header {
   display: flex;
   position: sticky;
   top: 0;
   z-index: 10;
   background: var(--admin-surface);
   border-bottom: 2px solid var(--admin-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--admin-shadow-sm);
 }
 
-/* Sticky dentro de overflow:auto + repaint dos cards costuma travar scroll no Safari/iOS. */
 @media (max-width: 768px) {
-  .grid-header {
+  .day-header {
     position: relative;
     top: auto;
   }
@@ -100,7 +90,9 @@
   border-right: 1px solid var(--admin-border);
   background: var(--admin-surface-2);
 
-  &:last-child { border-right: none; }
+  &:last-child {
+    border-right: none;
+  }
 }
 
 .prof-name {
@@ -115,15 +107,11 @@
   margin-top: 2px;
 }
 
-// ── Body ──────────────────────────────────────────────────────────────────
-
-.grid-body {
+.day-body {
   display: flex;
   position: relative;
   flex: 0 0 auto;
 }
-
-// ── Time column ────────────────────────────────────────────────────────────
 
 .time-col {
   position: sticky;
@@ -144,7 +132,6 @@
   border-bottom: 1px solid var(--admin-border);
   position: relative;
 
-  // Full-hour label (minute === 0)
   > span:not(.half-tick) {
     font-size: 11px;
     font-weight: var(--admin-font-weight-medium);
@@ -154,7 +141,6 @@
     line-height: 1;
   }
 
-  // Half-tick label (minute === 30)
   .half-tick {
     font-size: 9px;
     color: var(--admin-muted);
@@ -164,24 +150,19 @@
     opacity: 0.6;
   }
 
-  // First label: no negative translateY so it stays inside the box
   &:first-child > span:not(.half-tick) {
     transform: none;
     padding-top: 3px;
   }
 
-  // Half-hour rows: dashed lighter border
   &.half {
     border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
   }
 
-  // Even-hour background tint (helps visual alignment across columns)
   &.even-hour {
     background: rgba(255, 255, 255, 0.012);
   }
 }
-
-// ── Profissional column ────────────────────────────────────────────────────
 
 .prof-col {
   flex: 1;
@@ -189,7 +170,9 @@
   position: relative;
   border-right: 1px solid var(--admin-border);
 
-  &:last-child { border-right: none; }
+  &:last-child {
+    border-right: none;
+  }
 }
 
 .slot-bg {
@@ -198,12 +181,10 @@
   cursor: pointer;
   transition: background 0.1s;
 
-  // Even-hour rows: subtle alternating background
   &.even-hour {
     background: rgba(255, 255, 255, 0.014);
   }
 
-  // Half-hour rows: dashed lighter line, no alternating background extra
   &.half {
     border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
   }
@@ -211,9 +192,29 @@
   &:hover {
     background: rgba(13, 184, 222, 0.07) !important;
   }
-}
 
-// ── Appointment blocks ─────────────────────────────────────────────────────
+  &.slot-server-bloqueado,
+  &.slot-server-fora_janela,
+  &.slot-server-ocupado {
+    cursor: not-allowed;
+  }
+
+  &.slot-server-bloqueado {
+    background: rgba(180, 70, 70, 0.14) !important;
+  }
+
+  &.slot-server-fora_janela {
+    background: rgba(120, 120, 120, 0.1) !important;
+  }
+
+  &.slot-server-ocupado {
+    background: rgba(70, 100, 160, 0.12) !important;
+  }
+
+  &.slot-server-livre:hover {
+    background: rgba(13, 184, 222, 0.09) !important;
+  }
+}
 
 .appt-block {
   position: absolute;
@@ -229,7 +230,6 @@
     height: 100%;
   }
 
-  // Status-specific wrappers
   &.appt-cancelado {
     opacity: 0.45;
   }
@@ -238,8 +238,6 @@
     opacity: 0.7;
   }
 }
-
-// ── Now line ──────────────────────────────────────────────────────────────
 
 .now-line {
   position: absolute;
@@ -263,14 +261,33 @@
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
 
-// ── Mobile ─────────────────────────────────────────────────────────────────
-
 @media (max-width: 768px) {
-  .grid-wrap { min-width: 400px; }
-  .time-gutter, .time-col { width: 44px; }
-  .now-line { left: 44px; }
-  .time-label > span:not(.half-tick) { font-size: 9px; }
-  .time-label .half-tick { font-size: 8px; }
-  .prof-col { min-width: 100px; }
-  .grid-bottom-spacer { height: calc(120px + env(safe-area-inset-bottom, 0px)); }
+  .day-wrap {
+    min-width: 400px;
+  }
+
+  .time-gutter,
+  .time-col {
+    width: 44px;
+  }
+
+  .now-line {
+    left: 44px;
+  }
+
+  .time-label > span:not(.half-tick) {
+    font-size: 9px;
+  }
+
+  .time-label .half-tick {
+    font-size: 8px;
+  }
+
+  .prof-col {
+    min-width: 100px;
+  }
+
+  .day-bottom-spacer {
+    height: calc(120px + env(safe-area-inset-bottom, 0px));
+  }
 }
