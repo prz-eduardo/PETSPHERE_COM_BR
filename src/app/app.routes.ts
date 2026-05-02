@@ -272,6 +272,20 @@ export const routes: Routes = [
   },
   { path: 'galeria', component: GaleriaPublicaComponent },
   {
+    path: 'institucional-loja/blog/:slug',
+    loadComponent: () =>
+      import('./pages/loja-publica/parceiro-blog-post-publico/parceiro-blog-post-publico.component').then(
+        (m) => m.ParceiroBlogPostPublicoComponent,
+      ),
+  },
+  {
+    path: 'institucional-loja/blog',
+    loadComponent: () =>
+      import('./pages/loja-publica/parceiro-blog-publico/parceiro-blog-publico.component').then(
+        (m) => m.ParceiroBlogPublicoComponent,
+      ),
+  },
+  {
     path: 'institucional-loja',
     loadComponent: () =>
       import('./pages/loja-publica/parceiro-institucional/parceiro-institucional.component').then(

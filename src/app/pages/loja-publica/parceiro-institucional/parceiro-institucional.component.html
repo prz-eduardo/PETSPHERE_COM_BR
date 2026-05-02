@@ -11,14 +11,14 @@
       @if (section.tipo === 'hero') {
         <section
           class="pi-hero"
-          [style.background-image]="section.imagens?.[0]?.url ? 'url(' + section.imagens[0].url + ')' : null">
+          [style.background-image]="section.imagens.length ? 'url(' + section.imagens[0].url + ')' : null">
           <div class="pi-hero__overlay">
             <div class="pi-hero__inner">
               <h1 class="pi-hero__title">{{ section.titulo }}</h1>
               @if (section.subtitulo) {
                 <p class="pi-hero__sub">{{ section.subtitulo }}</p>
               }
-              @if (section.config?.['cta_texto']) {
+              @if (section.config['cta_texto']) {
                 <a
                   class="pi-hero__cta"
                   [href]="section.config['cta_url'] || '#'"
@@ -68,7 +68,7 @@
         <section class="pi-section pi-whatsapp">
           @if (section.titulo) { <h2 class="pi-section__title">{{ section.titulo }}</h2> }
           @if (section.subtitulo) { <p class="pi-whatsapp__sub">{{ section.subtitulo }}</p> }
-          @if (section.config?.['telefone']) {
+          @if (section.config['telefone']) {
             <a
               class="pi-whatsapp__btn"
               [href]="whatsappLink(section)"
