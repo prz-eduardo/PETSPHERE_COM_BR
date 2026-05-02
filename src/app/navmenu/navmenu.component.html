@@ -433,9 +433,9 @@
         [attr.aria-label]="action.label"
       >
         <span class="ps-radial__icon">
-          <ps-icon [name]="action.icon" variant="filled" [size]="22"></ps-icon>
+          <ps-icon [name]="action.icon" variant="filled" [size]="24"></ps-icon>
         </span>
-        <span class="ps-radial__label">{{ action.label }}</span>
+        <span class="ps-radial__label">{{ action.radialLabel || action.label }}</span>
       </button>
     </div>
   </ng-container>

@@ -6,6 +6,7 @@
     "kyc:models": "node ./libs/petsphere-kyc-sdk/scripts/copy-models.cjs",
     "postinstall": "node ./libs/petsphere-kyc-sdk/scripts/copy-models.cjs",
     "start": "ng serve",
+    "sync:prerender-routes": "node ./scripts/sync-prerender-routes.mjs",
     "build": "ng build",
     "build:cap": "ng build && npx cap sync",
     "cap:sync": "npx cap sync",

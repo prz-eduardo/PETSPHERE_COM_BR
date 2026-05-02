@@ -32,6 +32,8 @@ export interface NavMainItem {
 export interface QuickAction {
   id: DockActionId;
   label: string;
+  /** Texto curto só no menu radial (FAB long-press) — evita reticências; o sheet continua com `label`. */
+  radialLabel?: string;
   caption?: string;
   link: string;
   icon: PsIconName;
@@ -428,11 +430,11 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       icon: 'calendar',
       tone: 'aqua',
     },
-    'buscar-vet':   { id: 'buscar-vet',   label: 'Buscar vet',      caption: 'Veterinários próximos',     link: '/mapa', icon: 'stethoscope', tone: 'aqua' },
-    'transporte-pet': { id: 'transporte-pet', label: 'Transporte pet', caption: 'Pedir corrida no mapa', link: '/mapa?service=transporte', icon: 'map', tone: 'aqua' },
+    'buscar-vet':   { id: 'buscar-vet',   label: 'Buscar vet', radialLabel: 'Veterinários', caption: 'Veterinários próximos',     link: '/mapa', icon: 'stethoscope', tone: 'aqua' },
+    'transporte-pet': { id: 'transporte-pet', label: 'Transporte pet', radialLabel: 'Transporte', caption: 'Pedir corrida no mapa', link: '/mapa?service=transporte', icon: 'map', tone: 'aqua' },
     'comprar':      { id: 'comprar',      label: 'Comprar',         caption: 'Loja Petsphere',            link: '/loja', icon: 'shop', tone: 'aurora' },
     'notificacoes': { id: 'notificacoes', label: 'Notificações',    caption: 'Avisos e atualizações',     link: '#',     icon: 'bell', tone: 'aurora' },
-    'hospedagem':   { id: 'hospedagem',   label: 'Hospedagem',      caption: 'Hotéis pet near you',       link: '/mapa?service=hospedagem', icon: 'bed', tone: 'aurora' },
+    'hospedagem':   { id: 'hospedagem',   label: 'Hospedagem', radialLabel: 'Hotel pet', caption: 'Hotéis pet near you',       link: '/mapa?service=hospedagem', icon: 'bed', tone: 'aurora' },
     'meus-pets':    { id: 'meus-pets',    label: 'Meus pets',       caption: 'Cadastros e carteirinhas',  link: '/meus-pets', icon: 'paw', tone: 'aurora' },
     'galeria':      { id: 'galeria',      label: 'Galeria pet',     caption: 'Comunidade Petsphere',      link: '/galeria', icon: 'sparkle', tone: 'aurora' },
     'vet-pacientes': { id: 'vet-pacientes', label: 'Pacientes',    caption: 'Carteira clínica',          link: '/pacientes', icon: 'paw', tone: 'aqua' },
