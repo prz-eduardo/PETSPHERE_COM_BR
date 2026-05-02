@@ -579,7 +579,7 @@
           <section class="section">
             <h3>
               Pets
-              @if (data.pets?.length) {
+              @if (data.pets.length) {
                 <span class="section__count">{{ data.pets.length }}</span>
               }
             </h3>
@@ -587,7 +587,7 @@
               <p class="muted">
                 Escopo atual nao inclui dados dos pets.
               </p>
-            } @else if (!data.pets?.length) {
+            } @else if (!data.pets.length) {
               <p class="muted">Nenhum pet cadastrado.</p>
             } @else {
               <ul class="pets">
