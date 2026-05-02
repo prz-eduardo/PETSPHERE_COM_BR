@@ -464,6 +464,21 @@ export interface PagedPacientesResponse {
   totalPages: number;
 }
 
+export interface PacienteTrait {
+  catalogo_id: number;
+  nome: string;
+  categoria?: string;
+}
+
+export interface PacienteTimelineEvento {
+  tipo: 'receita' | 'vacina' | 'observacao' | string;
+  data_evento: string;
+  titulo: string;
+  descricao?: string | null;
+  badge?: string | null;
+  ref_id?: number;
+}
+
 export interface PacienteDetail {
   pet: {
     id: number;
@@ -502,8 +517,12 @@ export interface PacienteDetail {
     primeiro_atendimento?: string;
     ultimo_atendimento?: string;
   };
+  pet_traits?: PacienteTrait[];
   ativos_mais_usados: TopAtivoUso[]; // top 10
   ultimas_receitas: Receita[]; // até 5 últimas com itens
+  vacinas_registros?: PetVacinaRow[];
+  vacinas_cronograma?: PetVacinaCronogramaItem[];
+  timeline_eventos?: PacienteTimelineEvento[];
 }
 
 @Injectable({
