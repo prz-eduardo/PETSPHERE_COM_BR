@@ -1,0 +1,42 @@
+<div class="month-wrap">
+  <div class="week-head">
+    <div class="week-head-cell" *ngFor="let label of weekLabels">{{ label }}</div>
+  </div>
+
+  <div class="month-grid">
+    <div
+      class="day-cell"
+      *ngFor="let cell of cells"
+      [class.outside]="!cell.inMonth"
+      [class.today]="cell.isToday"
+      [class.selected]="cell.isSelected"
+    >
+      <button class="day-head" type="button" (click)="daySelected.emit(cell.date)">
+        <span class="day-num">{{ cell.date.getDate() }}</span>
+        <span class="day-count" *ngIf="cell.agendamentos.length > 0">{{ cell.agendamentos.length }}</span>
+      </button>
+
+      <div class="day-events" *ngIf="cell.agendamentos.length > 0; else emptyState">
+        <button
+          type="button"
+          class="event-pill"
+          *ngFor="let a of topItems(cell)"
+          [ngClass]="eventStatusClass(a)"
+          [title]="eventLabel(a)"
+          (click)="openModal.emit(asString(a.id))"
+        >
+          <span class="event-time">{{ formatTime(a.inicio) }}</span>
+          <span class="event-title">{{ eventLabel(a) }}</span>
+        </button>
+
+        <div class="event-overflow" *ngIf="overflowCount(cell) > 0">
+          +{{ overflowCount(cell) }} mais
+        </div>
+      </div>
+
+      <ng-template #emptyState>
+        <div class="day-empty">-</div>
+      </ng-template>
+    </div>
+  </div>
+</div>

@@ -1,16 +1,30 @@
-<div class="inv">
-  <header class="inv-head">
-    <h1>POS / Balcão</h1>
-    <p class="lead">
-      Busque por nome, SKU ou código de barras (leitor USB + Enter). É necessário ter o
-      <a routerLink="/parceiros/caixa">caixa aberto</a> para finalizar vendas.
-    </p>
-    <nav class="inv-nav">
+<div class="inv inv-wizard">
+  <header class="inv-wizard-header">
+    <div class="inv-wizard-title">
+      <h1>POS / Balcão</h1>
+      <p class="inv-wizard-subtitle">
+        Passo {{ posStep() + 1 }} de {{ posSteps.length }} — {{ posSteps[posStep()].label }}
+      </p>
+    </div>
+    <nav class="inv-nav" aria-label="Atalhos do parceiro">
       <a routerLink="/parceiros/caixa">Caixa</a>
       <a routerLink="/parceiros/petshop-online">Petshop online</a>
       <a routerLink="/parceiros/catalogo-produto">Novo produto (assistente)</a>
     </nav>
   </header>
+
+  <p class="lead" *ngIf="posStep() === 0">
+    Busque por nome, SKU ou aponte o leitor USB e pressione Enter. É necessário ter o
+    <a routerLink="/parceiros/caixa">caixa aberto</a> para finalizar vendas.
+  </p>
+  <p class="lead" *ngIf="posStep() === 1">
+    Revise quantidades ou continue <strong>escaneando</strong> abaixo para incluir mais itens. Finalize com caixa aberto em
+    <a routerLink="/parceiros/caixa">Caixa</a>.
+  </p>
+  <p class="lead" *ngIf="posStep() === 2">
+    Escolha a forma de pagamento. Ainda pode <strong>escanear</strong> itens abaixo antes de confirmar. Caixa:
+    <a routerLink="/parceiros/caixa">abrir turno</a>.
+  </p>
 
   <div *ngIf="!caixaAberto()" class="inv-alert" role="status">
     <strong>Caixa fechado.</strong> Abra um turno em <a routerLink="/parceiros/caixa">Caixa</a> para registrar vendas aqui.
@@ -19,87 +33,175 @@
     Caixa aberto (turno #{{ sc.id }}).
   </div>
 
-  <div class="inv-search">
-    <label class="sr-only" for="inv-q">Buscar</label>
-    <input
-      id="inv-q"
-      type="search"
-      [(ngModel)]="searchTerm"
-      (keydown.enter)="onBuscaEnter()"
-      placeholder="Nome, SKU ou código de barras…"
-      appBarcodeScanTarget
-      class="inv-input"
-    />
-    <button type="button" class="btn-secondary" (click)="reload()">Atualizar lista</button>
-  </div>
+  <section class="inv-card inv-card--compact" aria-label="Etapas da venda">
+    <nav class="inv-stepper" aria-label="Progresso da venda">
+      <ol class="inv-stepper-list">
+        <li
+          *ngFor="let s of posSteps; let i = index"
+          class="inv-stepper-item"
+          [class.active]="posStep() === i"
+          [class.done]="i < posStep()"
+        >
+          <button
+            type="button"
+            class="inv-stepper-btn"
+            (click)="goToStep(i)"
+            [disabled]="stepperBtnDisabled(i)"
+            [attr.aria-current]="posStep() === i ? 'step' : null"
+          >
+            <span class="inv-stepper-bubble">
+              <span *ngIf="i >= posStep()" class="inv-stepper-num">{{ i + 1 }}</span>
+              <span *ngIf="i < posStep()" class="inv-stepper-check" aria-hidden="true">✓</span>
+            </span>
+            <span class="inv-stepper-label">{{ s.label }}</span>
+          </button>
+        </li>
+      </ol>
+      <div class="inv-stepper-progress" aria-hidden="true">
+        <div class="inv-stepper-progress-bar" [style.width.%]="stepperProgressPct()"></div>
+      </div>
+    </nav>
+  </section>
 
   <div *ngIf="loading()" class="muted">Carregando…</div>
 
-  <div class="inv-layout" *ngIf="!loading()">
-    <section class="inv-list">
-      <h2>Produtos ({{ filtered().length }})</h2>
-      <ul>
-        <li *ngFor="let p of filtered()" class="inv-row" (click)="addToCart(p)">
-          <div class="inv-row-main">
-            <span class="inv-thumb" *ngIf="p.imagem_thumb as img">
-              <img [src]="img" alt="" />
-            </span>
-            <div>
-              <strong>{{ p.nome }}</strong>
-              <div class="meta">
-                <span>R$ {{ p.preco | number : '1.2-2' }}</span>
-                <span *ngIf="p.codigo_barras" class="pill">EAN {{ p.codigo_barras }}</span>
-                <span *ngIf="p.sku" class="pill">SKU {{ p.sku }}</span>
-                <span class="pill" [class.on]="p.vitrine_ativo === 1" [class.off]="p.vitrine_ativo !== 1">
-                  {{ p.vitrine_ativo === 1 ? 'Na vitrine' : 'Só estoque' }}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="inv-row-actions" (click)="$event.stopPropagation()">
-            <button type="button" class="btn-ghost" (click)="irEditar(p)">Editar</button>
-            <button *ngIf="auth.isMaster()" type="button" class="btn-ghost" (click)="toggleVitrine(p, $event)">
-              {{ p.vitrine_ativo === 1 ? 'Ocultar da loja' : 'Mostrar na loja' }}
-            </button>
-            <button type="button" class="btn-primary" (click)="addToCart(p)">+ Carrinho</button>
-          </div>
-        </li>
-      </ul>
+  <main class="inv-wizard-main" *ngIf="!loading()">
+    <section *ngIf="posStep() <= 2" class="inv-card inv-card--compact" aria-label="Leitura e busca">
+      <label class="inv-scan-label" for="inv-scan">Nome, SKU ou código de barras</label>
+      <div class="inv-search">
+        <input
+          #scanInput
+          id="inv-scan"
+          type="search"
+          [(ngModel)]="searchTerm"
+          (keydown.enter)="onBuscaEnter()"
+          placeholder="Digite ou escaneie e pressione Enter…"
+          appBarcodeScanTarget
+          [barcodeInputMode]="'search'"
+          autocomplete="off"
+        />
+        <button *ngIf="posStep() === 0" type="button" class="btn-secondary" (click)="reload()">Atualizar lista</button>
+      </div>
+      <p class="inv-scan-hint muted">{{ scanHintForStep() }}</p>
     </section>
 
-    <aside class="inv-cart">
-      <h2>Carrinho</h2>
-      <ul *ngIf="cartLines().length; else emptyCart">
+    <!-- Passo 1: produtos -->
+    <section *ngIf="posStep() === 0" class="inv-step-panel" aria-labelledby="pos-step-produtos-title">
+      <h2 id="pos-step-produtos-title" class="sr-only">Selecionar produtos</h2>
+
+      <div class="inv-list-wrap">
+        <h3 class="inv-step-heading">Produtos ({{ filtered().length }})</h3>
+        <ul class="inv-list">
+          <li *ngFor="let p of filtered()" class="inv-row" (click)="addToCart(p)">
+            <div class="inv-row-main">
+              <span class="inv-thumb" *ngIf="p.imagem_thumb as img">
+                <img [src]="img" alt="" />
+              </span>
+              <div>
+                <strong>{{ p.nome }}</strong>
+                <div class="meta">
+                  <span>R$ {{ p.preco | number : '1.2-2' }}</span>
+                  <span *ngIf="p.codigo_barras" class="pill">EAN {{ p.codigo_barras }}</span>
+                  <span *ngIf="p.sku" class="pill">SKU {{ p.sku }}</span>
+                  <span class="pill" [class.on]="p.vitrine_ativo === 1" [class.off]="p.vitrine_ativo !== 1">
+                    {{ p.vitrine_ativo === 1 ? 'Na vitrine' : 'Só estoque' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="inv-row-actions" (click)="$event.stopPropagation()">
+              <button type="button" class="btn-ghost" (click)="irEditar(p)">Editar</button>
+              <button *ngIf="auth.isMaster()" type="button" class="btn-ghost" (click)="toggleVitrine(p, $event)">
+                {{ p.vitrine_ativo === 1 ? 'Ocultar da loja' : 'Mostrar na loja' }}
+              </button>
+              <button type="button" class="btn-primary" (click)="addToCart(p)">+ Carrinho</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <footer class="inv-wizard-actions">
+        <p class="inv-wizard-actions-hint muted" *ngIf="cartLines().length">
+          {{ cartUnitsTotal() }} unidade(s) no carrinho
+        </p>
+        <p class="inv-wizard-actions-hint muted" *ngIf="!cartLines().length">Adicione itens para continuar.</p>
+        <button type="button" class="btn-primary inv-wizard-actions-primary" [disabled]="!cartLines().length" (click)="nextStep()">
+          Continuar para o carrinho
+        </button>
+      </footer>
+    </section>
+
+    <!-- Passo 2: carrinho -->
+    <section *ngIf="posStep() === 1" class="inv-step-panel" aria-labelledby="pos-step-carrinho-title">
+      <h2 id="pos-step-carrinho-title" class="inv-step-heading">Carrinho</h2>
+      <ul *ngIf="cartLines().length; else emptyCartStep" class="inv-cart-list inv-card inv-card--compact">
         <li *ngFor="let l of cartLines()" class="cart-line">
           <div class="cart-line-info">
             <span class="cart-name">{{ l.nome }}</span>
             <span class="cart-sub">{{ l.preco | currency : 'BRL' }} × {{ l.qty }}</span>
           </div>
           <div class="cart-line-actions">
-            <button type="button" class="btn-ghost" (click)="bumpQty(l, -1)" aria-label="Menos um">−</button>
-            <button type="button" class="btn-ghost" (click)="bumpQty(l, 1)" aria-label="Mais um">+</button>
-            <button type="button" class="btn-ghost" (click)="removeLine(l)" aria-label="Remover">✕</button>
+            <button type="button" class="inv-qty-btn" (click)="bumpQty(l, -1)" aria-label="Menos um">−</button>
+            <button type="button" class="inv-qty-btn" (click)="bumpQty(l, 1)" aria-label="Mais um">+</button>
+            <button type="button" class="inv-qty-btn inv-qty-btn--danger" (click)="removeLine(l)" aria-label="Remover">✕</button>
           </div>
           <span class="cart-line-total">{{ l.preco * l.qty | currency : 'BRL' }}</span>
         </li>
       </ul>
-      <ng-template #emptyCart>
-        <p class="muted">Clique num produto ou em “+ Carrinho”. Com leitor, Enter no campo de busca adiciona por código.</p>
+      <ng-template #emptyCartStep>
+        <p class="muted">Nenhum item. Volte aos produtos para adicionar.</p>
       </ng-template>
       <div class="cart-total" *ngIf="cartLines().length">
         <strong>Total</strong>
         <strong>{{ cartTotal() | currency : 'BRL' }}</strong>
       </div>
+
+      <footer class="inv-wizard-actions inv-wizard-actions--split">
+        <button type="button" class="btn-secondary" (click)="prevStep()">Voltar</button>
+        <div class="inv-wizard-actions-right">
+          <button type="button" class="btn-link" *ngIf="cartLines().length" (click)="clearCart()">Limpar carrinho</button>
+          <button type="button" class="btn-primary" [disabled]="!cartLines().length" (click)="nextStep()">Ir ao pagamento</button>
+        </div>
+      </footer>
+    </section>
+
+    <!-- Passo 3: pagamento -->
+    <section *ngIf="posStep() === 2" class="inv-step-panel" aria-labelledby="pos-step-pagamento-title">
+      <h2 id="pos-step-pagamento-title" class="inv-step-heading">Pagamento</h2>
+      <div class="inv-pay-summary" *ngIf="cartLines().length">
+        <p class="inv-pay-total-line">
+          <span>Total</span>
+          <strong>{{ cartTotal() | currency : 'BRL' }}</strong>
+        </p>
+        <ul class="inv-pay-lines">
+          <li *ngFor="let l of cartLines()">{{ l.nome }} — {{ l.qty }}× {{ l.preco | currency : 'BRL' }}</li>
+        </ul>
+      </div>
+
       <div class="checkout" *ngIf="cartLines().length">
         <label class="checkout-label">
           <span>Forma de pagamento</span>
-          <select [(ngModel)]="formaPagamento" class="inv-input inv-input--full">
+          <select [(ngModel)]="formaPagamento" (ngModelChange)="onFormaPagamentoChange()" class="inv-input--full">
             <option value="dinheiro">Dinheiro</option>
             <option value="pix">Pix</option>
             <option value="cartao">Cartão</option>
             <option value="outro">Outro</option>
           </select>
         </label>
+
+        <div *ngIf="formaPagamento === 'cartao'" class="inv-pinpad" role="region" aria-label="Maquininha">
+          <div class="inv-pinpad-head">
+            <h3 class="inv-pinpad-title">Maquininha / TEF</h3>
+            <span class="inv-pinpad-badge">{{ pinpadStatusLabel() }}</span>
+          </div>
+          <ol class="inv-pinpad-list">
+            <li>Confira o valor <strong>{{ cartTotal() | currency : 'BRL' }}</strong> no visor do terminal físico.</li>
+            <li>Conclua a cobrança na maquininha e aguarde a aprovação.</li>
+            <li>Depois, use <strong>Confirmar venda</strong> aqui para registrar no caixa (integração automática com o PIN pad virá em uma próxima versão).</li>
+          </ol>
+          <p class="inv-pinpad-foot">Modo de integração: {{ pinpadIntegrationModeLabel() }}.</p>
+        </div>
+
         <button
           type="button"
           class="btn-primary checkout-btn"
@@ -109,7 +211,10 @@
           {{ checkoutBusy() ? 'Processando…' : 'Confirmar venda' }}
         </button>
       </div>
-      <button type="button" class="btn-link" *ngIf="cartLines().length" (click)="clearCart()">Limpar carrinho</button>
-    </aside>
-  </div>
+
+      <footer class="inv-wizard-actions">
+        <button type="button" class="btn-secondary" (click)="prevStep()">Voltar ao carrinho</button>
+      </footer>
+    </section>
+  </main>
 </div>

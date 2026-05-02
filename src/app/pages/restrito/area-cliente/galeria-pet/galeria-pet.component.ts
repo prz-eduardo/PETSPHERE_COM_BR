@@ -10,6 +10,7 @@ type GaleriaItem = {
   pet_id: string;
   pet_nome: string;
   url: string;
+  ativo?: number | boolean | string | null;
   colecao_id?: number | null;
   legenda?: string | null;
   galeria_publica?: number | boolean | string | null;
@@ -42,6 +43,7 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
 
   selectedPetIds: string[] = [];
   activeCollectionTabId = 'all';
+  visibilityFilter: 'all' | 'public' | 'hidden' = 'all';
 
   // Gallery state
   galeriaItens: GaleriaItem[] = [];
@@ -105,7 +107,33 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   get visibleGaleriaItens(): GaleriaItem[] {
-    return this.galeriaItens.filter((item) => this.itemMatchesActiveTab(item));
+    return this.galeriaItens.filter((item) => this.itemMatchesActiveTab(item) && this.itemMatchesVisibilityFilter(item));
+  }
+
+  get totalFotosSalvas(): number {
+    return this.galeriaItens.length;
+  }
+
+  get totalFotosPublicas(): number {
+    return this.galeriaItens.filter((item) => this.isPublicFeedEligible(item)).length;
+  }
+
+  get totalFotosOcultas(): number {
+    return this.galeriaItens.filter((item) => !this.isPublicFeedEligible(item)).length;
+  }
+
+  get totalCardsPublicosEstimados(): number {
+    const visibles = this.galeriaItens.filter((item) => this.isPublicFeedEligible(item));
+    const collections = new Set<string>();
+    let avulsas = 0;
+    for (const item of visibles) {
+      if (item.colecao_id != null) {
+        collections.add(`${item.pet_id}:${Number(item.colecao_id)}`);
+      } else {
+        avulsas += 1;
+      }
+    }
+    return avulsas + collections.size;
   }
 
   get uploadTargetPetId(): string | null {
@@ -173,6 +201,7 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
           pet_id: petId,
           pet_nome: petNome,
           url: x.url,
+          ativo: x.ativo ?? 1,
           colecao_id: x.colecao_id != null ? Number(x.colecao_id) : null,
           legenda: x.legenda ?? null,
           galeria_publica: x.galeria_publica ?? 1,
@@ -276,11 +305,50 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   galleryItemStatus(item: { colecao_id?: number | null; galeria_publica?: number | boolean | string | null }): string {
-    const visivel = !(item.galeria_publica === false || item.galeria_publica === 0 || item.galeria_publica === '0');
-    if (item.colecao_id && visivel) return 'Pública em coleção';
-    if (item.colecao_id && !visivel) return 'Privada em coleção';
-    if (visivel) return 'Pública no feed';
-    return 'Privada';
+    const galItem = item as GaleriaItem;
+    const pet = this.getPetById(galItem.pet_id);
+    const fotoAtiva = this.isTruthyFlag(galItem.ativo);
+    const fotoPublica = this.isTruthyFlag(galItem.galeria_publica);
+    const petPublico = this.isTruthyFlag(pet?.exibir_galeria_publica ?? 1);
+    const petAprovado = this.isApprovedFlag(pet?.aprovado_por_admin);
+
+    if (!fotoAtiva) return 'Oculta: foto inativa';
+    if (!petPublico) return 'Oculta: pet fora da galeria pública';
+    if (!petAprovado) return 'Aguardando aprovação da equipe';
+    if (!fotoPublica) return item.colecao_id ? 'Oculta em coleção' : 'Oculta no feed';
+    if (item.colecao_id) return 'Pública em coleção';
+    return 'Pública no feed';
+  }
+
+  galleryItemStatusTone(item: GaleriaItem): 'public' | 'hidden' | 'pending' {
+    const pet = this.getPetById(item.pet_id);
+    const fotoAtiva = this.isTruthyFlag(item.ativo);
+    const fotoPublica = this.isTruthyFlag(item.galeria_publica);
+    const petPublico = this.isTruthyFlag(pet?.exibir_galeria_publica ?? 1);
+    const petAprovado = this.isApprovedFlag(pet?.aprovado_por_admin);
+
+    if (!petAprovado) return 'pending';
+    if (!fotoAtiva || !fotoPublica || !petPublico) return 'hidden';
+    return 'public';
+  }
+
+  toggleGalleryItemVisibility(item: GaleriaItem, ev?: Event) {
+    if (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+    if (!item?.pet_id || !item?.id || !this.token) return;
+    const current = this.isTruthyFlag(item.galeria_publica);
+    const next = current ? 0 : 1;
+    this.api.patchPetImagem(item.pet_id, item.id, { galeria_publica: next }, this.token).subscribe({
+      next: (res: any) => {
+        item.galeria_publica = (res as any)?.imagem?.galeria_publica ?? next;
+        this.toast.success(next ? 'Foto marcada como pública.' : 'Foto ocultada do feed público.');
+      },
+      error: (err: any) => {
+        this.toast.error(err?.error?.error || 'Falha ao alterar visibilidade da foto', 'Erro');
+      }
+    });
   }
 
   saveGalleryItemSettings() {
@@ -450,6 +518,44 @@ export class GaleriaPetComponent implements OnInit, OnDestroy, OnChanges {
     const tab = this.collectionTabs.find((x) => x.id === this.activeCollectionTabId && x.kind === 'collection');
     if (!tab || !tab.pet_id || tab.colecao_id == null) return true;
     return item.pet_id === tab.pet_id && Number(item.colecao_id) === Number(tab.colecao_id);
+  }
+
+  setVisibilityFilter(filter: 'all' | 'public' | 'hidden') {
+    this.visibilityFilter = filter;
+  }
+
+  isVisibilityFilterActive(filter: 'all' | 'public' | 'hidden'): boolean {
+    return this.visibilityFilter === filter;
+  }
+
+  private itemMatchesVisibilityFilter(item: GaleriaItem): boolean {
+    if (this.visibilityFilter === 'all') return true;
+    const isPublic = this.isPublicFeedEligible(item);
+    return this.visibilityFilter === 'public' ? isPublic : !isPublic;
+  }
+
+  private isPublicFeedEligible(item: GaleriaItem): boolean {
+    const pet = this.getPetById(item.pet_id);
+    const fotoAtiva = this.isTruthyFlag(item.ativo);
+    const fotoPublica = this.isTruthyFlag(item.galeria_publica);
+    const petPublico = this.isTruthyFlag(pet?.exibir_galeria_publica ?? 1);
+    const petAprovado = this.isApprovedFlag(pet?.aprovado_por_admin);
+    return fotoAtiva && fotoPublica && petPublico && petAprovado;
+  }
+
+  private getPetById(petId: string): any | null {
+    if (!petId) return null;
+    const id = String(petId);
+    const list = Array.isArray(this.pets) ? this.pets : [];
+    return list.find((p) => String(p.id || p._id) === id) || null;
+  }
+
+  private isTruthyFlag(raw: any): boolean {
+    return !(raw === false || raw === 0 || raw === '0');
+  }
+
+  private isApprovedFlag(raw: any): boolean {
+    return !(raw === 0 || raw === '0' || raw === false);
   }
 
   selectCollectionTab(tabId: string) {

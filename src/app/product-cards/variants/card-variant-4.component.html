@@ -7,6 +7,7 @@
     </span>
     <div class="hero" [style.aspectRatio]="imageAspect">
       <img [src]="displayImage" [alt]="product.name" loading="lazy" decoding="async" />
+      <span class="partner-fulfillment-pill" *ngIf="product.vendidoParceiroExterno" title="Entregue e vendido pelo parceiro fornecedor (não por esta loja).">Parceiro</span>
     </div>
   </div>
   <div class="body">

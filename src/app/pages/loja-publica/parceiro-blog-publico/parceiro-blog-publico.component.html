@@ -1,0 +1,36 @@
+<div class="pb-page">
+  <header class="pb-header">
+    <a class="pb-back" routerLink="/institucional-loja">← Institucional</a>
+    <h1 class="pb-header__title">Blog</h1>
+  </header>
+
+  @if (loading()) {
+    <div class="pb-loading">Carregando posts…</div>
+  } @else if (posts().length === 0) {
+    <div class="pb-empty">Nenhum post publicado ainda.</div>
+  } @else {
+    <div class="pb-grid">
+      @for (post of posts(); track post.id) {
+        <a class="pb-card" [routerLink]="['/institucional-loja/blog', post.slug]">
+          @if (post.imagem_capa) {
+            <img class="pb-card__cover" [src]="post.imagem_capa" [alt]="post.titulo" loading="lazy" />
+          } @else {
+            <div class="pb-card__cover pb-card__cover--empty">📰</div>
+          }
+          <div class="pb-card__body">
+            <p class="pb-card__title">{{ post.titulo }}</p>
+            <span class="pb-card__date">{{ post.publicado_em | date: 'dd/MM/yyyy' }}</span>
+          </div>
+        </a>
+      }
+    </div>
+
+    @if (totalPages() > 1) {
+      <div class="pb-pagination">
+        <button [disabled]="page() === 1" (click)="goPage(page() - 1)">‹</button>
+        <span>{{ page() }} / {{ totalPages() }}</span>
+        <button [disabled]="page() === totalPages()" (click)="goPage(page() + 1)">›</button>
+      </div>
+    }
+  }
+</div>

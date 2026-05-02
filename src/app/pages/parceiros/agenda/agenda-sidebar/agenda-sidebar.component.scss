@@ -1,5 +1,23 @@
 @use '../../../../shared/styles/admin-tokens' as *;
 
+/* Fechado: overlay continua no DOM (fixo) mas invisível — destruir o *ngIf quebrava scroll na agenda (WebKit). */
+:host.sidebar--closed {
+  pointer-events: none;
+}
+
+:host.sidebar--closed .sidebar-overlay {
+  opacity: 0;
+  pointer-events: none;
+  /* NÃO usar z-index negativo: no iOS/WebKit o overlay deixa de participar do mesmo plano
+     que com o drawer aberto e o scroll da agenda “morre”. Manter o mesmo z-index 200 da regra base. */
+  touch-action: auto;
+}
+
+:host.sidebar--closed .sidebar {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .sidebar-overlay {
   position: fixed;
   inset: 0;

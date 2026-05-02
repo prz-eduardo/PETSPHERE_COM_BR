@@ -139,6 +139,7 @@
             <div class="field">
               <label for="barrasProduto" class="field-label">Código de barras</label>
               <input id="barrasProduto" type="text" formControlName="codigoBarras" placeholder="EAN/GTIN" class="input" appBarcodeScanTarget
+                     [barcodeInputMode]="'numeric'"
                      (keydown.enter)="$event.preventDefault()">
             </div>
           </div>

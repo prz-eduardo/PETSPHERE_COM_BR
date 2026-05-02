@@ -109,7 +109,11 @@ export class AgendaGridComponent {
     effect(() => {
       this.timeSlots();
       this.selectedDate();
-      queueMicrotask(() => this.scrollToInitial());
+      this.agendamentos();
+      /* Dois frames: após a API pintar os cards, o WebKit às vezes “congela” o scrollport até o layout fechar. */
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => this.scrollToInitial());
+      });
     });
   }
 
@@ -138,11 +142,35 @@ export class AgendaGridComponent {
     this.slotClick.emit({ hora, profissionalId: prof.id });
   }
 
+  /** Scrollport: `.agenda-mobile-scroll` (mobile) → `.view-area` → `.grid-scroll` (desktop). */
+  private getScrollPort(): HTMLElement {
+    const host = this.el.nativeElement;
+    const inner = host.querySelector('.grid-scroll') as HTMLElement | null;
+    try {
+      const scrollSurface = host.closest('.agenda-mobile-scroll') as HTMLElement | null;
+      if (scrollSurface && inner) {
+        const cs = getComputedStyle(scrollSurface);
+        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
+          return scrollSurface;
+        }
+      }
+      const viewArea = host.closest('.view-area') as HTMLElement | null;
+      if (inner && viewArea) {
+        const cs = getComputedStyle(viewArea);
+        if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
+          return viewArea;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return inner ?? host;
+  }
+
   private scrollToInitial(): void {
     try {
       const host = this.el.nativeElement;
-      const scroller =
-        (host.querySelector('.grid-scroll') as HTMLElement | null) ?? host;
+      const scroller = this.getScrollPort();
       const gridBody = host.querySelector('.grid-body') as HTMLElement | null;
       if (!gridBody) return;
 
@@ -151,29 +179,25 @@ export class AgendaGridComponent {
 
       const startMin = this.effectiveWorkStart() * 60;
       const now = new Date();
-      let offsetMin = 0;
-
       const sd = this.selectedDate();
-      if (now.toDateString() === sd.toDateString()) {
-        const nowMin = now.getHours() * 60 + now.getMinutes();
-        const off = nowMin - startMin;
-        if (off < 0) offsetMin = 0;
-        else if (off > total) offsetMin = total;
-        else offsetMin = off;
-      } else {
-        offsetMin = 0;
-      }
-
-      if (offsetMin <= 0) {
-        scroller.scrollTo({ top: 0, behavior: 'smooth' });
+      // Outros dias: volta ao topo para não herdar scrollTop do dia anterior (altura da grelha muda).
+      if (now.toDateString() !== sd.toDateString()) {
+        scroller.scrollTop = 0;
         return;
       }
 
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const off = nowMin - startMin;
+      const offsetMin = off < 0 ? 0 : off > total ? total : off;
+
       const gh = this.gridHeight();
       const bodyHeight = gridBody.clientHeight || gh;
-      const pixelOffset = gridBody.offsetTop + (offsetMin / total) * bodyHeight;
+      const bodyRect = gridBody.getBoundingClientRect();
+      const scrRect = scroller.getBoundingClientRect();
+      const bodyTopInScroller = bodyRect.top - scrRect.top + scroller.scrollTop;
+      const pixelOffset = bodyTopInScroller + (offsetMin / total) * bodyHeight;
       const preferred = Math.max(0, pixelOffset - scroller.clientHeight * 0.18);
-      scroller.scrollTo({ top: preferred, behavior: 'smooth' });
+      scroller.scrollTo({ top: preferred, behavior: 'auto' });
     } catch {
       // ignore scroll errors
     }

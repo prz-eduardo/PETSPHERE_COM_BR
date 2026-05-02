@@ -4,7 +4,7 @@ import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 /** Bump quando a política de cookies/privacidade mudar, para reexibir o aviso. */
-export const COOKIE_CONSENT_POLICY_VERSION = 1;
+export const COOKIE_CONSENT_POLICY_VERSION = 2;
 
 export const LS_COOKIE_CONSENT_KEY = 'fp_cookie_consent_v1';
 

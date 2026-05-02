@@ -18,6 +18,70 @@
     <p class="muted" *ngIf="detalhe.cliente_nome">Tutor: {{ detalhe.cliente_nome }}</p>
   </section>
 
+  <!-- Carteirinha de vacinação -->
+  <section class="ia-card ia-vacinas" *ngIf="!loading && !erro && detalhe">
+    <h2 class="ia-vacinas__title"><i class="fa fa-syringe"></i> Carteirinha de vacinação</h2>
+
+    <div *ngIf="carregandoVacinas" class="muted">Carregando vacinas…</div>
+    <div *ngIf="vacinaErro" class="ia-danger">{{ vacinaErro }}</div>
+
+    <!-- Cronograma inteligente -->
+    <div *ngIf="!carregandoVacinas && vacinasCronograma.length" class="ia-vacinas__cronograma">
+      <h3>Cronograma</h3>
+      <ul class="ia-vacinas__lista">
+        <li *ngFor="let v of vacinasCronograma" [ngClass]="'ia-vacinas__item ia-vacinas__item--' + v.status">
+          <span class="ia-vacinas__nome">{{ v.nome }}</span>
+          <span class="ia-vacinas__badge">{{ v.status }}</span>
+          <span class="ia-vacinas__data" *ngIf="v.proxima_reforco">
+            Próximo reforço: {{ v.proxima_reforco | date:'dd/MM/yyyy' }}
+          </span>
+          <span class="ia-vacinas__data" *ngIf="v.ultima_aplicacao && !v.proxima_reforco">
+            Última: {{ v.ultima_aplicacao | date:'dd/MM/yyyy' }}
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Registros com validação -->
+    <div *ngIf="!carregandoVacinas && vacinasList.length" class="ia-vacinas__registros">
+      <h3>Registros</h3>
+      <table class="ia-vacinas__table">
+        <thead>
+          <tr>
+            <th>Vacina</th>
+            <th>Data</th>
+            <th>Origem</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let v of vacinasList">
+            <td>{{ v.catalogo_nome || v.nome }}</td>
+            <td>{{ v.data_aplicacao | date:'dd/MM/yyyy' }}</td>
+            <td>{{ v.origem_registro || '—' }}</td>
+            <td>
+              <span [ngClass]="{
+                'badge badge--success': v.status_validacao === 'validada',
+                'badge badge--danger': v.status_validacao === 'rejeitada',
+                'badge badge--muted': !v.status_validacao || v.status_validacao === 'pendente'
+              }">{{ v.status_validacao || 'pendente' }}</span>
+            </td>
+            <td *ngIf="v.status_validacao !== 'validada'">
+              <button class="btn-sm btn-success" (click)="validarVacina(v.id, 'validada')">Validar</button>
+              <button class="btn-sm btn-danger" (click)="validarVacina(v.id, 'rejeitada')">Rejeitar</button>
+            </td>
+            <td *ngIf="v.status_validacao === 'validada'">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!carregandoVacinas && !vacinasCronograma.length && !vacinasList.length" class="muted">
+      Nenhuma vacina registrada para este paciente.
+    </div>
+  </section>
+
   <ol class="ia-steps">
     <li *ngFor="let s of steps; let i = index"><span>{{ i + 1 }}</span> {{ s }}</li>
   </ol>

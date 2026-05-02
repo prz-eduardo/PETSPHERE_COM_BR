@@ -1,0 +1,129 @@
+<ng-container *ngIf="tenant.isTenantLoja(); else noTenant">
+
+  @if (loadingSections()) {
+    <div class="pi-loading">Carregando…</div>
+  } @else if (sections().length > 0) {
+
+    <!-- === DYNAMIC SECTIONS === -->
+    @for (section of sections(); track section.id) {
+
+      <!-- HERO -->
+      @if (section.tipo === 'hero') {
+        <section
+          class="pi-hero"
+          [style.background-image]="section.imagens?.[0]?.url ? 'url(' + section.imagens[0].url + ')' : null">
+          <div class="pi-hero__overlay">
+            <div class="pi-hero__inner">
+              <h1 class="pi-hero__title">{{ section.titulo }}</h1>
+              @if (section.subtitulo) {
+                <p class="pi-hero__sub">{{ section.subtitulo }}</p>
+              }
+              @if (section.config?.['cta_texto']) {
+                <a
+                  class="pi-hero__cta"
+                  [href]="section.config['cta_url'] || '#'"
+                  target="_blank"
+                  rel="noopener">
+                  {{ section.config['cta_texto'] }}
+                </a>
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+      <!-- TEXTO -->
+      @if (section.tipo === 'texto') {
+        <section class="pi-section pi-texto">
+          @if (section.titulo) { <h2 class="pi-section__title">{{ section.titulo }}</h2> }
+          <div class="pi-texto__content ql-content" [innerHTML]="safeHtml(section.conteudo)"></div>
+        </section>
+      }
+
+      <!-- GALERIA -->
+      @if (section.tipo === 'galeria') {
+        <section class="pi-section pi-galeria">
+          @if (section.titulo) { <h2 class="pi-section__title">{{ section.titulo }}</h2> }
+          <div class="pi-galeria__grid">
+            @for (img of section.imagens; track img.url) {
+              <figure class="pi-galeria__item">
+                <img [src]="img.url" [alt]="img.alt || titulo()" loading="lazy" />
+                @if (img.legenda) { <figcaption>{{ img.legenda }}</figcaption> }
+              </figure>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- SERVIÇOS -->
+      @if (section.tipo === 'servicos') {
+        <section class="pi-section pi-servicos">
+          @if (section.titulo) { <h2 class="pi-section__title">{{ section.titulo }}</h2> }
+          <div class="pi-servicos__content ql-content" [innerHTML]="safeHtml(section.conteudo)"></div>
+        </section>
+      }
+
+      <!-- WHATSAPP -->
+      @if (section.tipo === 'whatsapp') {
+        <section class="pi-section pi-whatsapp">
+          @if (section.titulo) { <h2 class="pi-section__title">{{ section.titulo }}</h2> }
+          @if (section.subtitulo) { <p class="pi-whatsapp__sub">{{ section.subtitulo }}</p> }
+          @if (section.config?.['telefone']) {
+            <a
+              class="pi-whatsapp__btn"
+              [href]="whatsappLink(section)"
+              target="_blank"
+              rel="noopener nofollow">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.554 4.106 1.523 5.836L.057 23.882l6.22-1.633A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.796 9.796 0 0 1-4.997-1.37l-.356-.214-3.697.97.987-3.608-.233-.372A9.795 9.795 0 0 1 2.182 12C2.182 6.566 6.566 2.182 12 2.182S21.818 6.566 21.818 12 17.434 21.818 12 21.818z"/>
+              </svg>
+              {{ section.config['cta_texto'] || 'Fale no WhatsApp' }}
+            </a>
+          }
+        </section>
+      }
+    }
+
+    <!-- === BLOG PREVIEW === -->
+    @if (hasBlog()) {
+      <section class="pi-section pi-blog-preview">
+        <h2 class="pi-section__title">Blog</h2>
+        <div class="pi-blog-preview__grid">
+          @for (post of blogPosts(); track post.id) {
+            <a class="pi-blog-card" [routerLink]="['/institucional-loja/blog', post.slug]">
+              @if (post.imagem_capa) {
+                <img class="pi-blog-card__cover" [src]="post.imagem_capa" [alt]="post.titulo" loading="lazy" />
+              } @else {
+                <div class="pi-blog-card__cover pi-blog-card__cover--empty">📰</div>
+              }
+              <div class="pi-blog-card__body">
+                <p class="pi-blog-card__title">{{ post.titulo }}</p>
+                <span class="pi-blog-card__date">{{ post.publicado_em | date: 'dd/MM/yyyy' }}</span>
+              </div>
+            </a>
+          }
+        </div>
+        <a class="pi-blog-more" routerLink="/institucional-loja/blog">Ver todos os posts →</a>
+      </section>
+    }
+
+  } @else {
+
+    <!-- === FALLBACK LEGACY === -->
+    <div class="pi-legacy">
+      <h1>{{ titulo() }}</h1>
+      @if (legacyCorpo()) {
+        <div class="pi-legacy__body">{{ legacyCorpo() }}</div>
+      } @else {
+        <p class="pi-legacy__empty">Nenhuma informação disponível no momento.</p>
+      }
+    </div>
+
+  }
+
+</ng-container>
+
+<ng-template #noTenant>
+  <p class="pi-no-tenant">Página disponível apenas na vitrine do parceiro.</p>
+</ng-template>

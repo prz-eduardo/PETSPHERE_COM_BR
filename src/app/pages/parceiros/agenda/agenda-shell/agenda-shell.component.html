@@ -1,5 +1,7 @@
 <div class="shell">
 
+  <!-- Mobile Dia/Timeline: um scrollport (evita nested + WebKit); FAB fica fora deste bloco. -->
+  <div class="agenda-mobile-scroll">
   <app-agenda-convites-dados></app-agenda-convites-dados>
 
   <!-- ── Toolbar ─────────────────────────────────────────────────────── -->
@@ -120,10 +122,17 @@
         <app-agenda-week
           [agendamentos]="filteredAgendamentos()"
           [selectedDate]="selectedDate()"
-          (daySelected)="onDaySelected($event)"
           (quickAction)="onQuickAction($event)"
           (openModal)="openModal($event)"
         ></app-agenda-week>
+      }
+      @case ('MONTH') {
+        <app-agenda-month
+          [agendamentos]="filteredAgendamentos()"
+          [selectedDate]="selectedDate()"
+          (daySelected)="onDaySelected($event)"
+          (openModal)="openModal($event)"
+        ></app-agenda-month>
       }
       @case ('LIST') {
         <app-agenda-list
@@ -135,12 +144,19 @@
     }
   </div>
 
+  </div>
+
+  <!-- WebKit: camada fixa invisível (igual stack ao sidebar-overlay) — sem isto o scroll da agenda trava. -->
+  <div class="agenda-scroll-compositor-fix" aria-hidden="true"></div>
+
   <!-- ── FAB (mobile) ─────────────────────────────────────────────────── -->
   <button class="fab" (click)="openSidebar()" aria-label="Novo agendamento">+</button>
 
   <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+  <!-- Sempre montado: *ngIf destruía o overlay fixo e o WebKit deixava de rolar a .view-area ao fechar. -->
   <app-agenda-sidebar
-    *ngIf="sidebarOpen()"
+    [class.sidebar--closed]="!sidebarOpen()"
+    [drawerOpen]="sidebarOpen()"
     [slot]="sidebarSlot()"
     [profissionais]="profissionais()"
     [servicos]="servicos()"

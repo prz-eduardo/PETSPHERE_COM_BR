@@ -1,0 +1,29 @@
+@if (loading()) {
+  <div class="bpp-loading">Carregando…</div>
+} @else if (notFound() || !post()) {
+  <div class="bpp-not-found">
+    <p>Post não encontrado.</p>
+    <a routerLink="/institucional-loja/blog">← Voltar ao blog</a>
+  </div>
+} @else {
+  <article class="bpp-article">
+    @if (post()!.imagem_capa) {
+      <div class="bpp-hero">
+        <img [src]="post()!.imagem_capa!" [alt]="post()!.titulo" />
+      </div>
+    }
+    <div class="bpp-body">
+      <nav class="bpp-nav">
+        <a routerLink="/institucional-loja">Institucional</a>
+        <span>›</span>
+        <a routerLink="/institucional-loja/blog">Blog</a>
+        <span>›</span>
+        <span>{{ post()!.titulo }}</span>
+      </nav>
+      <h1 class="bpp-title">{{ post()!.titulo }}</h1>
+      <p class="bpp-date">{{ post()!.publicado_em | date: 'dd/MM/yyyy' }}</p>
+      <div class="bpp-content ql-content" [innerHTML]="safeHtml(post()!.conteudo)"></div>
+      <a class="bpp-back" routerLink="/institucional-loja/blog">← Voltar ao blog</a>
+    </div>
+  </article>
+}

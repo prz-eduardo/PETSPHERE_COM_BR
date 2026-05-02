@@ -38,6 +38,8 @@ import { getTime } from '../utils/date-helpers';
   styleUrls: ['./agenda-sidebar.component.scss'],
 })
 export class AgendaSidebarComponent implements OnInit, OnChanges {
+  /** Quando false, o painel fica invisível mas o componente (e o overlay fixo) permanecem no DOM — evita bug de scroll no Safari após fechar. */
+  @Input() drawerOpen = false;
   @Input() slot: SlotInfo | null = null;
   @Input() profissionais: Profissional[] = [];
   @Input() servicos: Servico[] = [];
@@ -171,11 +173,29 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
     if (changes['catalogPets']) {
       this.allPetsCatalog.set(this.catalogPets || []);
     }
+
+    const dr = changes['drawerOpen'];
+    if (dr && !dr.firstChange) {
+      if (dr.currentValue === true && dr.previousValue === false) {
+        this.syncFormFromInputs();
+      }
+      if (dr.currentValue === false && dr.previousValue === true) {
+        this.clearPendingDiscoveryTimers();
+      }
+    }
+
+    if (changes['slot'] && this.drawerOpen && changes['slot'].currentValue !== changes['slot'].previousValue) {
+      this.syncFormFromInputs();
+    }
   }
 
   ngOnInit(): void {
     this.allPetsCatalog.set(this.catalogPets || []);
+    this.syncFormFromInputs();
+  }
 
+  /** Mesma lógica que existia no ngOnInit (antes o *ngIf recriava o componente a cada abertura). */
+  private syncFormFromInputs(): void {
     if (this.slot) {
       const d = this.slot.hora;
       this.dateStr.set(d.toISOString().substring(0, 10));
@@ -196,6 +216,17 @@ export class AgendaSidebarComponent implements OnInit, OnChanges {
 
     if (this.profissionais.length && !this.selectedProfId()) {
       this.selectedProfId.set(this.profissionais[0].id);
+    }
+  }
+
+  private clearPendingDiscoveryTimers(): void {
+    if (this.discoveryTimer) {
+      clearTimeout(this.discoveryTimer);
+      this.discoveryTimer = null;
+    }
+    if (this.petDiscoveryTimer) {
+      clearTimeout(this.petDiscoveryTimer);
+      this.petDiscoveryTimer = null;
     }
   }
 

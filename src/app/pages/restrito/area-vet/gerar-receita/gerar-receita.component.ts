@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
-import { ApiService, AlergiaLookup, CriarAtendimentoPayload } from '../../../../services/api.service';
+import { ApiService, AlergiaLookup, CriarAtendimentoPayload, PetVacinaCronogramaItem } from '../../../../services/api.service';
 import { AuthService } from '../../../../services/auth.service';
 import { ParceiroAuthService } from '../../../../services/parceiro-auth.service';
 import { ToastService } from '../../../../services/toast.service';
@@ -205,6 +205,10 @@ isBrowser: any;
   petSavePlan: 'novo' | 'editar' | null = null;
   // Exibe o modal de decisão apenas uma vez por sessão de edição/seleção
   private petEditPromptShown = false;
+
+  // Vacinas
+  vacinasCronograma: PetVacinaCronogramaItem[] = [];
+  carregandoVacinas = false;
   showFinalizacaoModal = false;
   salvandoAtendimento = false;
   tipoExecucao: TipoExecucao = 'presencial';
@@ -673,6 +677,39 @@ isBrowser: any;
     this.petEditPromptShown = false;
     // Resetar plano pendente ao trocar de pet
     this.petSavePlan = null;
+    // Carregar cronograma de vacinas
+    this.loadVacinasCronograma();
+  }
+
+  loadVacinasCronograma(): void {
+    if (!this.clienteIdSelecionado || !this.petSelecionado?.id) return;
+    if (!isPlatformBrowser(this.platformId)) return;
+    const token = this.getEffectiveToken();
+    if (!token) return;
+    this.carregandoVacinas = true;
+    this.vacinasCronograma = [];
+    this.apiService
+      .getPetVacinasCronograma(
+        this.clienteIdSelecionado,
+        this.petSelecionado.id,
+        token,
+        this.petSelecionado.especie
+      )
+      .subscribe({
+        next: (r) => {
+          this.vacinasCronograma = r?.itens ?? [];
+          this.carregandoVacinas = false;
+        },
+        error: () => { this.carregandoVacinas = false; },
+      });
+  }
+
+  get vacinasAtrasadas(): PetVacinaCronogramaItem[] {
+    return this.vacinasCronograma.filter(v => v.status === 'atrasada');
+  }
+
+  get vacinasProximas(): PetVacinaCronogramaItem[] {
+    return this.vacinasCronograma.filter(v => v.status === 'proxima');
   }
 
   async loadAtivos() {

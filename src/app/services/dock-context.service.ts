@@ -33,6 +33,8 @@ export type DockActionId =
   /** Landings B2B (domínio principal) */
   | 'lp-veterinarios'
   | 'lp-hotel-creche'
+  | 'lp-transporte-animal'
+  | 'lp-passeadores'
   | 'lp-adestramentos'
   | 'prestador-login'
   /** Atalhos FAB — modo veterinário (dock profissional) */
@@ -46,7 +48,9 @@ export type DockActionId =
   | 'parceiro-agenda'
   | 'parceiro-equipe'
   /** Cadastro público Prestador (/parceiro/cadastrar) */
-  | 'parceiro-cadastro';
+  | 'parceiro-cadastro'
+  /** Permite ids dinâmicos do catálogo do painel parceiro (FAB personalizado). */
+  | (string & {});
 
 const FREQ_KEY = 'ps_dock_action_freq_v1';
 /** sessionStorage: última lente escolhida na pill Tutores | Profissionais (só no browser). */

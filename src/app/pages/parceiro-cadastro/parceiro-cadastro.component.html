@@ -265,7 +265,10 @@
 
         <label class="terms">
           <input type="checkbox" formControlName="aceitoTermos" />
-          Li e concordo com os termos de uso e a política de privacidade.
+          Li e concordo com os
+          <a routerLink="/termos-de-uso" target="_blank" rel="noopener noreferrer">termos de uso</a>
+          e a
+          <a routerLink="/politica-de-privacidade" target="_blank" rel="noopener noreferrer">política de privacidade</a>.
         </label>
         <small class="err-msg" *ngIf="hasErrorSenha('aceitoTermos','required')">
           É necessário aceitar os termos.

@@ -186,6 +186,21 @@
         <span class="bridge__tag bridge__tag--type">{{ session()!.tipoAtendimento }}</span>
       </div>
 
+      <!-- Alertas de vacinas -->
+      <div class="vacinas-alerta" *ngIf="vacinasAtrasadas.length || vacinasProximas.length">
+        <div class="vacinas-alerta__title">
+          <i class="fa fa-syringe"></i> Situação vacinal — {{ petSelecionado?.nome }}
+        </div>
+        <div class="vacinas-alerta__grupo" *ngIf="vacinasAtrasadas.length">
+          <span class="badge badge--danger">Atrasada</span>
+          <span *ngFor="let v of vacinasAtrasadas" class="vacinas-alerta__item">{{ v.nome }}</span>
+        </div>
+        <div class="vacinas-alerta__grupo" *ngIf="vacinasProximas.length">
+          <span class="badge badge--warning">Próxima</span>
+          <span *ngFor="let v of vacinasProximas" class="vacinas-alerta__item">{{ v.nome }}</span>
+        </div>
+      </div>
+
       <div class="wizard__actions wizard__actions--row">
         <a [routerLink]="gerarReceitaLink.split('?')[0]" [queryParams]="{ wizardReturn: 1 }" class="btn-primary">
           <i class="fa fa-stethoscope"></i> Abrir Consulta &amp; Receita

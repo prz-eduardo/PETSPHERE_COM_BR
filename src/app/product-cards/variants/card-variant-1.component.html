@@ -5,6 +5,7 @@
       <span class="saas-pill__dot" aria-hidden="true"></span>
       Solução PetSphere
     </span>
+    <span class="partner-fulfillment-pill" *ngIf="product.vendidoParceiroExterno" title="Entregue e vendido pelo parceiro fornecedor (não por esta loja).">Parceiro</span>
     <ng-container *ngIf="product.permiteCheckout !== false">
       <div class="price">{{ priceNow | currency:'BRL' }}</div>
       <button class="buy" type="button" (click)="onAddClick($event)">Comprar</button>

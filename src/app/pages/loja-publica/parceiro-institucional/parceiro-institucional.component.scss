@@ -1,0 +1,192 @@
+:host { display: block; }
+
+.pi-loading {
+  padding: 60px 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+.pi-no-tenant {
+  padding: 60px 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 15px;
+}
+
+/* ── HERO ── */
+.pi-hero {
+  position: relative;
+  min-height: 420px;
+  background: #1e293b center/cover no-repeat;
+  display: flex;
+  align-items: center;
+
+  &__overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,.55), rgba(0,0,0,.3));
+    display: flex; align-items: center;
+  }
+
+  &__inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    color: #fff;
+  }
+
+  &__title {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0 0 14px;
+  }
+
+  &__sub {
+    font-size: clamp(16px, 2.5vw, 22px);
+    opacity: .9;
+    margin: 0 0 28px;
+  }
+
+  &__cta {
+    display: inline-block;
+    padding: 14px 30px;
+    background: #6366f1;
+    color: #fff;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background .15s;
+    &:hover { background: #4f46e5; }
+  }
+}
+
+/* ── Generic section wrapper ── */
+.pi-section {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px;
+
+  &__title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 24px;
+  }
+}
+
+/* ── TEXTO / SERVIÇOS ── */
+.pi-texto__content,
+.pi-servicos__content {
+  line-height: 1.75;
+  color: #334155;
+  font-size: 16px;
+
+  /* quill output */
+  h2, h3, h4 { margin: 24px 0 10px; font-weight: 700; }
+  p { margin: 0 0 14px; }
+  ul, ol { padding-left: 24px; margin: 0 0 14px; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+  a { color: #6366f1; text-decoration: underline; }
+  blockquote { border-left: 4px solid #6366f1; padding-left: 16px; margin: 16px 0; color: #64748b; font-style: italic; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 14px; }
+}
+
+/* ── GALERIA ── */
+.pi-galeria__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.pi-galeria__item {
+  margin: 0;
+  img {
+    width: 100%; height: 180px; object-fit: cover;
+    border-radius: 10px;
+    transition: transform .2s;
+    &:hover { transform: scale(1.03); }
+  }
+  figcaption { font-size: 13px; color: #64748b; margin-top: 6px; text-align: center; }
+}
+
+/* ── WHATSAPP ── */
+.pi-whatsapp {
+  text-align: center;
+  background: #f0fdf4;
+  border-radius: 16px;
+  max-width: 860px;
+  margin: 24px auto;
+
+  &__sub { color: #475569; font-size: 16px; margin: 0 0 20px; }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 30px;
+    background: #25D366;
+    color: #fff;
+    border-radius: 40px;
+    font-size: 17px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background .15s;
+    &:hover { background: #128C7E; }
+  }
+}
+
+/* ── BLOG PREVIEW ── */
+.pi-blog-preview__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.pi-blog-card {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow .2s, transform .15s;
+  background: #fff;
+  &:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); transform: translateY(-2px); }
+
+  &__cover {
+    width: 100%; height: 160px; object-fit: cover;
+    &--empty {
+      width: 100%; height: 160px; background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+    }
+  }
+
+  &__body { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  &__title { font-size: 15px; font-weight: 600; color: #1e293b; margin: 0; }
+  &__date { font-size: 12px; color: #94a3b8; }
+}
+
+.pi-blog-more {
+  display: inline-block;
+  color: #6366f1;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+/* ── LEGACY FALLBACK ── */
+.pi-legacy {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 48px 24px;
+
+  h1 { font-size: 26px; margin: 0 0 20px; }
+  &__body { line-height: 1.7; color: #334155; white-space: pre-wrap; font-size: 16px; }
+  &__empty { color: #94a3b8; font-size: 15px; }
+}

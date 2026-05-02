@@ -5,7 +5,10 @@
       <div
         class="day-header"
         [class.today]="day.isToday"
-        (click)="daySelected.emit(day.date)"
+        [class.expanded]="isDayExpanded(day)"
+        (click)="toggleDay(day, $event)"
+        (keydown.enter)="toggleDay(day, $event)"
+        (keydown.space)="$event.preventDefault(); toggleDay(day, $event)"
         role="button"
         tabindex="0"
       >
@@ -16,8 +19,11 @@
         </span>
       </div>
 
-      <!-- Cards -->
-      <div class="day-body">
+      <!-- Cards (no mobile: oculto até expandir o dia) -->
+      <div
+        class="day-body"
+        [class.day-body--collapsed-mobile]="!isDayExpanded(day)"
+      >
         <ng-container *ngFor="let a of day.agendamentos">
           <div
             class="mini-card"

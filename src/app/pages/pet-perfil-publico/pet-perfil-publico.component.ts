@@ -6,11 +6,12 @@ import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { MARCA_NOME } from '../../constants/loja-public';
+import { PetLightboxComponent } from '../galeria-publica/pet-lightbox/pet-lightbox.component';
 
 @Component({
   selector: 'app-pet-perfil-publico',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, PetLightboxComponent],
   templateUrl: './pet-perfil-publico.component.html',
   styleUrls: ['./pet-perfil-publico.component.scss']
 })
@@ -18,6 +19,10 @@ export class PetPerfilPublicoComponent implements OnInit {
   readonly marca = MARCA_NOME;
   petId: number | null = null;
   data: any = null;
+  /** Fotos públicas da galeria em que o pet aparece (API perfil-publico). */
+  galeriaFotos: Array<{ id: number; url: string; legenda?: string | null }> = [];
+  /** Objeto sintético para o lightbox de uma foto da galeria (reações/comentários por foto). */
+  fotoLightboxPet: any = null;
   loading = true;
   error: string | null = null;
   comentarios: any[] = [];
@@ -63,9 +68,24 @@ export class PetPerfilPublicoComponent implements OnInit {
     this.loading = true;
     this.error = null;
     this.data = null;
+    this.galeriaFotos = [];
+    this.closeFotoLightbox();
     this.api.getPetPerfilPublico(this.petId, this.token || undefined).subscribe({
       next: (res) => {
         this.data = res;
+        const raw = Array.isArray(res?.galeria_fotos)
+          ? res.galeria_fotos.filter((x: any) => x && x.id != null && x.url)
+          : [];
+        const seenUrl = new Set<string>();
+        this.galeriaFotos = [];
+        for (const x of raw) {
+          const k = String(x.url || '')
+            .trim()
+            .toLowerCase();
+          if (!k || seenUrl.has(k)) continue;
+          seenUrl.add(k);
+          this.galeriaFotos.push(x);
+        }
         this.loading = false;
         this._loadComentarios();
       },
@@ -90,6 +110,41 @@ export class PetPerfilPublicoComponent implements OnInit {
 
   get tutorFotoUrl(): string {
     return this.api.resolveMediaUrl(this.pet?.tutor_foto);
+  }
+
+  resolveGaleriaFotoUrl(url: string | null | undefined): string {
+    return this.api.resolveMediaUrl(url);
+  }
+
+  openGaleriaFoto(f: { id: number; url: string }) {
+    const p = this.pet;
+    if (!p || !this.petId) return;
+    this.fotoLightboxPet = {
+      kind: 'photo',
+      pet_imagem_id: f.id,
+      pet_id: this.petId,
+      nome: p.nome,
+      foto: f.url,
+      galeria_urls: [f.url],
+      fotos: [],
+      likes: 0,
+      userReactionTipo: null,
+      reactionTotals: { love: 0, haha: 0, sad: 0, angry: 0 },
+      total_comentarios: 0,
+      minha_reacao: null,
+      especie: p.especie,
+      raca: p.raca,
+      idade: p.idade,
+      sexo: p.sexo,
+      pesoKg: p.pesoKg,
+      observacoes: p.observacoes,
+      tutor_nome: p.tutor_nome,
+      tutor_foto: p.tutor_foto
+    };
+  }
+
+  closeFotoLightbox(): void {
+    this.fotoLightboxPet = null;
   }
 
   get charCount(): number {
@@ -228,4 +283,5 @@ export class PetPerfilPublicoComponent implements OnInit {
 
   trackReaction = (_: number, r: any) => r?.tipo ?? _;
   trackComentario = (_: number, c: any) => c?.id ?? _;
+  trackGaleriaFoto = (_: number, f: any) => f?.id ?? _;
 }

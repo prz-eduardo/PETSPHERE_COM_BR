@@ -16,6 +16,7 @@
   overflow: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--admin-radius-lg);
   border: 1px solid var(--admin-border);
   background: var(--admin-surface-2);
@@ -185,4 +186,17 @@
 @media (max-width: 768px) {
   .row-label { width: 100px; }
   .row-label-spacer { width: 100px; }
+
+  :host {
+    flex: 0 0 auto;
+    min-height: min-content;
+    height: auto;
+    overflow: visible;
+  }
+
+  .timeline-scroll {
+    flex: 0 0 auto;
+    overflow: visible;
+    -webkit-overflow-scrolling: auto;
+  }
 }

@@ -16,6 +16,7 @@ import { PsIconComponent, PsIconName } from '../shared/icons/ps-icon.component';
 import { TenantLojaService } from '../services/tenant-loja.service';
 import { ParceirosMobileShellService } from '../services/parceiros-mobile-shell.service';
 import { ParceiroAuthService } from '../services/parceiro-auth.service';
+import { ParceiroNavPrefsService, ParceiroNavCatalogItem } from '../services/parceiro-nav-prefs.service';
 import { NotificationsBellComponent } from '../shared/notifications-bell/notifications-bell.component';
 
 export interface NavMainItem {
@@ -239,6 +240,22 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         psIcon: 'bed',
       },
       {
+        id: 'lp-transporte-tab',
+        label: 'Transporte animal',
+        shortLabel: 'Transporte',
+        link: '/parceiro/transporte-animal',
+        icon: 'fas fa-fw fa-truck',
+        psIcon: 'map',
+      },
+      {
+        id: 'lp-passeadores-tab',
+        label: 'Passeadores',
+        shortLabel: 'Passeio',
+        link: '/parceiro/passeadores',
+        icon: 'fas fa-fw fa-person-walking',
+        psIcon: 'calendar',
+      },
+      {
         id: 'lp-adestramentos-tab',
         label: 'Adestramentos',
         shortLabel: 'Adestramentos',
@@ -339,17 +356,21 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         ];
       }
 
-      // Logado — painel (dentro de /parceiros/*): Painel · Agenda · (FAB) · Equipe · Sair
+      // Logado — painel (dentro de /parceiros/*): 3 atalhos personalizáveis + Sair fixo
       if (this.isPartnerPainelRoute) {
-        return [
-          painelItem,
-          agendaItem,
-          {
-            id: 'colab', label: 'Equipe', shortLabel: 'Equipe',
-            link: '/parceiros/colaboradores', icon: 'fas fa-fw fa-users', psIcon: 'person',
-          },
-          logoutItem,
-        ];
+        const slots = this.parceiroNavPrefs.getCurrentDockSlots();
+        const items = slots
+          .map((id) => this.parceiroNavPrefs.getById(id))
+          .filter((x): x is ParceiroNavCatalogItem => !!x)
+          .map<NavMainItem>((c) => ({
+            id: c.id,
+            label: c.label,
+            shortLabel: c.shortLabel || c.label,
+            link: c.link,
+            icon: c.faIcon,
+            psIcon: c.psIcon,
+          }));
+        return [...items, logoutItem];
       }
       // Logado — institucional (fora de /parceiros/*): Painel · Planos · (FAB) · Agenda · Sair
       return [
@@ -395,7 +416,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ─── Quick actions catalog (FAB sheet + radial) ─────────────────────────────
-  readonly quickActionCatalog: Record<DockActionId, QuickAction> = {
+  readonly quickActionCatalog: Partial<Record<DockActionId, QuickAction>> = {
     'agendar':      { id: 'agendar',      label: 'Agendar',         caption: 'Consulta com vet',          link: '/mapa?service=consulta', icon: 'calendar', tone: 'aqua' },
     'telemedicina': { id: 'telemedicina', label: 'Telemedicina',    caption: 'Consulta online agora',     link: '/area-cliente?view=telemedicina', icon: 'video', tone: 'aqua' },
     'meus-agendamentos': {
@@ -447,6 +468,22 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       icon: 'bed',
       tone: 'aurora',
     },
+    'lp-transporte-animal': {
+      id: 'lp-transporte-animal',
+      label: 'Transporte animal',
+      caption: 'Corridas e logística pet',
+      link: '/parceiro/transporte-animal',
+      icon: 'map',
+      tone: 'neutral',
+    },
+    'lp-passeadores': {
+      id: 'lp-passeadores',
+      label: 'Passeadores',
+      caption: 'Rotas e tracking ao vivo',
+      link: '/parceiro/passeadores',
+      icon: 'calendar',
+      tone: 'neutral',
+    },
     'lp-adestramentos': {
       id: 'lp-adestramentos',
       label: 'Adestramentos',
@@ -492,32 +529,55 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
         {
           sectionLabel: null,
           actions: ids.map((id) => ({
-            ...c[id],
-            link: this.vetClinicalHref(c[id].link),
+            ...c[id]!,
+            link: this.vetClinicalHref(c[id]!.link),
           })),
         },
       ];
     }
     if (this.dockMode === 'parceiro') {
       const tenantSf = this.tenantLoja.isTenantLoja();
-      const ids: DockActionId[] = !this.parceiroAuth.isLoggedIn()
-        ? tenantSf
+      if (!this.parceiroAuth.isLoggedIn()) {
+        const ids: DockActionId[] = tenantSf
           ? ['comprar', 'prestador-login']
           : [
               'sobre-nos',
               'planos-parceiro',
               'lp-veterinarios',
               'lp-hotel-creche',
+              'lp-transporte-animal',
+              'lp-passeadores',
               'lp-adestramentos',
               'parceiro-cadastro',
               'comprar',
               'prestador-login',
-            ]
-        : ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar', 'buscar-vet'];
-      return [{
-        sectionLabel: null,
-        actions: ids.map((id) => this.mapParceiroQuickActionCopy(id, { ...c[id] })),
-      }];
+            ];
+        return [{
+          sectionLabel: null,
+          actions: ids.map((id) => this.mapParceiroQuickActionCopy(id, { ...c[id]! })),
+        }];
+      }
+      /** Só dentro do shell `/parceiros/*` o FAB é personalizável; institucional mantém atalhos fixos. */
+      if (!this.isPartnerPainelRoute) {
+        const fixedIds: DockActionId[] = ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar', 'buscar-vet'];
+        return [{
+          sectionLabel: null,
+          actions: fixedIds.map((id) => this.mapParceiroQuickActionCopy(id, { ...c[id]! })),
+        }];
+      }
+      const fabIds = this.parceiroNavPrefs.getCurrentFabActions();
+      const actions: QuickAction[] = fabIds
+        .map((fid) => this.parceiroNavPrefs.getById(fid))
+        .filter((x): x is ParceiroNavCatalogItem => !!x)
+        .map((catItem) => ({
+          id: catItem.id as DockActionId,
+          label: catItem.label,
+          caption: catItem.label,
+          link: catItem.link,
+          icon: catItem.psIcon,
+          tone: 'neutral' as const,
+        }));
+      return [{ sectionLabel: null, actions }];
     }
     return this.buildConsumerSheetPanels();
   }
@@ -592,12 +652,12 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     const rows: SheetPanelRow[] = [];
     /** Cliente logado: notificações sai do dock e ganha linha dedicada no topo do sheet. */
     if (this.isCliente && !this.isAreaVetRoute) {
-      rows.push({ sectionLabel: null, actions: [cat['notificacoes']] });
+      rows.push({ sectionLabel: null, actions: [cat['notificacoes']!] });
     }
-    rows.push({ sectionLabel: 'Mapa e cuidados com o pet', actions: coreIds.map((id) => cat[id]) });
+    rows.push({ sectionLabel: 'Mapa e cuidados com o pet', actions: coreIds.map((id) => cat[id]!) });
     if (lojaPanel.length > 0) {
       const lojaActions = lojaPanel.map((id) => {
-        const base = cat[id];
+        const base = cat[id]!;
         if (tenantSf && id === 'comprar') {
           return {
             ...base,
@@ -617,15 +677,21 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       const contaIds: DockActionId[] = ['meus-agendamentos', 'meus-pets'];
       rows.push({
         sectionLabel: 'Compromissos e pets',
-        actions: contaIds.map((id) => this.mapTenantConsumerQuickActionIfNeeded(id, { ...cat[id] })),
+        actions: contaIds.map((id) => this.mapTenantConsumerQuickActionIfNeeded(id, { ...cat[id]! })),
       });
     }
     /** Parceiro: toggle na navbar superior (ver `Cliente | Parceiro`) — não no sheet central. */
     if (!tenantSf) {
-      const institucionalIds: DockActionId[] = ['sobre-nos', 'lp-veterinarios', 'lp-hotel-creche'];
+      const institucionalIds: DockActionId[] = [
+        'sobre-nos',
+        'lp-veterinarios',
+        'lp-hotel-creche',
+        'lp-transporte-animal',
+        'lp-passeadores',
+      ];
       rows.push({
         sectionLabel: 'Institucional e parceiros',
-        actions: institucionalIds.map((id) => cat[id]),
+        actions: institucionalIds.map((id) => cat[id]!),
       });
     }
     return rows;
@@ -702,9 +768,36 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
           ? ['comprar', 'prestador-login', 'buscar-vet', 'transporte-pet']
           : ['planos-parceiro', 'parceiro-cadastro', 'comprar', 'prestador-login'];
       }
-      return ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar'];
+      if (!this.isPartnerPainelRoute) {
+        return ['parceiro-painel', 'parceiro-agenda', 'parceiro-equipe', 'comprar'];
+      }
+      const prefs = this.parceiroNavPrefs.getCurrentFabActions();
+      const pad = ['painel', 'agenda', 'colaboradores', 'caixa'] as const;
+      const out: DockActionId[] = [];
+      for (const id of prefs.length ? prefs : [...pad]) {
+        if (out.length >= 4) break;
+        const key = id as DockActionId;
+        if (!out.includes(key)) out.push(key);
+      }
+      for (const p of pad) {
+        if (out.length >= 4) break;
+        const key = p as DockActionId;
+        if (!out.includes(key)) out.push(key);
+      }
+      return out.slice(0, 4);
     }
     return ['transporte-pet', 'buscar-vet', 'agendar', 'comprar'];
+  }
+
+  /**
+   * Ids para o menu radial (4). No modo parceiro **não** usa `DockContextService.topActions`,
+   * pois o histórico global (`ps_dock_action_freq_v1`) mistura frequências do app tutor
+   * (Hospedar, Agendar, Comprar, Buscar vet) e anula os atalhos configurados no painel.
+   */
+  private fabRadialActionIds(): DockActionId[] {
+    const defaults = this.fabRadialDefaultIds();
+    if (this.dockMode === 'parceiro') return defaults.slice(0, 4);
+    return this.dockCtx.topActions(4, defaults);
   }
 
   // ─── Mini-bag (carrinho contextual flutuante) ───────────────────────────────
@@ -747,6 +840,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
   private cartCountSeenFromStore = false;
   private clienteModalOpenSub?: Subscription;
   private partnerFabBridgeSub?: Subscription;
+  private parceiroNavPrefsSub?: Subscription;
   private nightSub?: Subscription;
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private longPressFired = false;
@@ -776,6 +870,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     private tenantLoja: TenantLojaService,
     private parceirosMobileShell: ParceirosMobileShellService,
     private parceiroAuth: ParceiroAuthService,
+    private parceiroNavPrefs: ParceiroNavPrefsService,
   ) {}
 
   ngOnInit(): void {
@@ -851,9 +946,20 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       this.recomputeRibbon();
     });
 
-    this.radialActions = this.dockCtx
-      .topActions(4, this.fabRadialDefaultIds())
-      .map(id => this.mapTenantConsumerQuickActionIfNeeded(id, { ...this.quickActionCatalog[id] }));
+    this.radialActions = this.fabRadialActionIds().map((id) => {
+      let src = this.resolveQuickActionBase(id);
+      if (this.dockMode === 'vet') {
+        return this.mapTenantConsumerQuickActionIfNeeded(id, { ...src, link: this.vetClinicalHref(src.link) });
+      }
+      let out = this.mapParceiroQuickActionCopy(id, { ...src });
+      out = this.mapTenantConsumerQuickActionIfNeeded(id, out);
+      return out;
+    });
+
+    this.parceiroNavPrefsSub = merge(
+      this.parceiroNavPrefs.dockSlots$,
+      this.parceiroNavPrefs.fabActions$,
+    ).subscribe(() => this.cdr.detectChanges());
 
     this.partnerFabBridgeSub = merge(
       this.parceirosMobileShell.openPartnerFabRadial$.pipe(map(() => 'radial' as const)),
@@ -939,6 +1045,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     if (next === 'parceiro') {
       this.dockCtx.setNavLensPreference('parceiro');
     }
+    this.parceiroNavPrefs.reloadIfPartnerChanged();
     if (next !== this.dockMode) {
       this.dockMode = next;
       this.dockCtx.setMode(next);
@@ -1113,11 +1220,11 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private dockLogoutParceiro(): void {
     try { this.parceiroAuth.logout(); } catch {}
-    /** Mantém a lente “Profissionais” — usuário permanece no contexto após sair. */
+    /** Mantém a lente “Profissionais” — landing institucional após sair. */
     try {
-      this.router.navigateByUrl('/parceiros/login');
+      this.router.navigateByUrl('/sobre-nos');
     } catch {
-      if (typeof window !== 'undefined') window.location.href = '/parceiros/login';
+      if (typeof window !== 'undefined') window.location.href = '/sobre-nos';
     }
   }
 
@@ -1165,10 +1272,18 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'cadastro-parc': return path.startsWith('/parceiro/cadastrar');
       case 'lp-vet-tab': return path.startsWith('/parceiro/veterinarios');
       case 'lp-hotel-tab': return path.startsWith('/parceiro/hotel-e-creche');
+      case 'lp-transporte-tab': return path.startsWith('/parceiro/transporte-animal');
+      case 'lp-passeadores-tab': return path.startsWith('/parceiro/passeadores');
       case 'lp-adestramentos-tab': return path.startsWith('/adestramentos');
       case 'prestador-shell':
         return path.startsWith('/parceiros/login') || path.startsWith('/parceiros/recuperar-senha');
-      default: return false;
+      default: {
+        if (item.link && item.link !== '#') {
+          const base = item.link.split('?')[0] || '';
+          return path === base || path.startsWith(`${base}/`);
+        }
+        return false;
+      }
     }
   }
 
@@ -1317,20 +1432,46 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  /** Resolve ícone do radial/snapshot inicial — catálogo fixo ou rotas personalizadas do painel parceiro. */
+  private resolveQuickActionBase(id: DockActionId): QuickAction {
+    const fromCat = this.quickActionCatalog[id];
+    if (fromCat) return { ...fromCat };
+    const nav = this.parceiroNavPrefs.getById(String(id));
+    if (nav && this.dockMode === 'parceiro' && this.parceiroAuth.isLoggedIn() && this.isPartnerPainelRoute) {
+      return {
+        id: id as DockActionId,
+        label: nav.label,
+        caption: nav.label,
+        link: nav.link,
+        icon: nav.psIcon,
+        tone: 'neutral',
+      };
+    }
+    const fb = this.quickActionCatalog['parceiro-painel'];
+    return fb
+      ? { ...fb }
+      : {
+          id: 'parceiro-painel',
+          label: 'Painel',
+          caption: 'Painel',
+          link: '/parceiros/painel',
+          icon: 'home',
+          tone: 'neutral',
+        };
+  }
+
   openRadial(): void {
     if (this.isRadialOpen) return;
     this.haptics.heavy();
-    this.radialActions = this.dockCtx
-      .topActions(4, this.fabRadialDefaultIds())
-      .map((id) => {
-        const src = this.quickActionCatalog[id];
-        if (this.dockMode === 'vet') {
-          return this.mapTenantConsumerQuickActionIfNeeded(id, { ...src, link: this.vetClinicalHref(src.link) });
-        }
-        let out = this.mapParceiroQuickActionCopy(id, { ...src });
-        out = this.mapTenantConsumerQuickActionIfNeeded(id, out);
-        return out;
-      });
+    this.radialActions = this.fabRadialActionIds().map((id) => {
+      let src = this.resolveQuickActionBase(id);
+      if (this.dockMode === 'vet') {
+        return this.mapTenantConsumerQuickActionIfNeeded(id, { ...src, link: this.vetClinicalHref(src.link) });
+      }
+      let out = this.mapParceiroQuickActionCopy(id, { ...src });
+      out = this.mapTenantConsumerQuickActionIfNeeded(id, out);
+      return out;
+    });
     this.isRadialOpen = true;
     this.cdr.detectChanges();
   }
@@ -1648,6 +1789,7 @@ export class NavmenuComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     try { this.clienteModalOpenSub?.unsubscribe(); } catch {}
+    try { this.parceiroNavPrefsSub?.unsubscribe(); } catch {}
     try { this.partnerFabBridgeSub?.unsubscribe(); } catch {}
     try { this.nightSub?.unsubscribe(); } catch {}
     if (this.idleTimer) clearTimeout(this.idleTimer);

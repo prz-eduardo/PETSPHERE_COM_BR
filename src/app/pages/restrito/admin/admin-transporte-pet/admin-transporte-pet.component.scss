@@ -47,6 +47,63 @@
   font-size: 0.9rem;
 }
 
+.stat small {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+.stats--secondary {
+  margin-top: 0;
+}
+
+.filtro,
+.filtros {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.funnel {
+  margin: 1rem 0;
+}
+
+.funnel__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: #475569;
+}
+
+.funnel__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.funnel__item {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  background: #f8fafc;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.funnel__status {
+  color: #64748b;
+}
+
+.funnel__n {
+  font-weight: 700;
+  color: #0f172a;
+}
+
 .tbl th,
 .tbl td {
   border-bottom: 1px solid #e2e8f0;

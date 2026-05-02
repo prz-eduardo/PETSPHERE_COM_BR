@@ -42,6 +42,8 @@ export interface ShopProduct {
    * Vem do backend como `permite_checkout` (snake_case) ou `permiteCheckout` (alias).
    */
   permiteCheckout?: boolean;
+  /** Na vitrine de um parceiro: produto de outro parceiro (catálogo compartilhado). */
+  vendidoParceiroExterno?: boolean;
   // Details
   promoPrice?: number | null;
   inStock?: boolean | number | null;
@@ -298,6 +300,7 @@ export class StoreService {
         isFavorited: typeof it.is_favorited === 'boolean' ? it.is_favorited : undefined,
         favoritesCount: typeof it.favoritos === 'number' ? it.favoritos : undefined,
         permiteCheckout: this.parsePermiteCheckout(it),
+        vendidoParceiroExterno: this.parseVendidoParceiroExterno(it),
       })) as ShopProduct[];
       return items;
     } catch {
@@ -433,6 +436,7 @@ export class StoreService {
           productCreatedAt: it.created_at ?? null,
           productUpdatedAt: it.updated_at ?? null,
           permiteCheckout: this.parsePermiteCheckout(it),
+          vendidoParceiroExterno: this.parseVendidoParceiroExterno(it),
         } as ShopProduct;
       });
 
@@ -626,6 +630,13 @@ export class StoreService {
     return Number(raw) !== 0;
   }
 
+  private parseVendidoParceiroExterno(it: any): boolean {
+    const raw = it?.vendido_parceiro_externo ?? it?.vendidoParceiroExterno;
+    if (raw == null) return false;
+    if (typeof raw === 'boolean') return raw;
+    return Number(raw) === 1;
+  }
+
   removeFromCart(productId: number) {
     const cart = this.cartSubject.value.filter(ci => ci.product.id !== productId);
     this.cartSubject.next(cart);
@@ -809,6 +820,7 @@ export class StoreService {
         productCreatedAt: it.created_at ?? it.createdAt ?? null,
         productUpdatedAt: it.updated_at ?? it.updatedAt ?? null,
         permiteCheckout: this.parsePermiteCheckout(it),
+        vendidoParceiroExterno: this.parseVendidoParceiroExterno(it),
       };
       return { product: p };
     } catch (e: unknown) {

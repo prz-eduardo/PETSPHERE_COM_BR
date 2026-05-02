@@ -54,6 +54,9 @@ export interface PetVacinaRow {
   id: number;
   pet_id: number;
   nome: string;
+  catalogo_id?: number | null;
+  catalogo_nome?: string | null;
+  catalogo_especie?: string | null;
   data_aplicacao: string;
   proxima_reforco?: string | null;
   lote?: string | null;
@@ -61,8 +64,48 @@ export interface PetVacinaRow {
   observacoes?: string | null;
   comprovante_url?: string | null;
   lembrete_ativo?: number | boolean;
+  origem_registro?: 'tutor' | 'vet' | 'admin' | string;
+  status_validacao?: 'pendente' | 'validada' | 'rejeitada' | string;
+  validado_por_vet_id?: number | null;
+  validado_em?: string | null;
+  motivo_rejeicao?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface PetVacinaCatalogoItem {
+  id: number;
+  nome: string;
+  especie: 'cao' | 'gato' | 'ambos' | string;
+  tipo: 'essencial' | 'opcional' | string;
+  intervalo_reforco_dias?: number | null;
+  idade_min_semanas?: number | null;
+  ativo?: number | boolean;
+}
+
+export interface PetVacinaCronogramaItem {
+  catalogo_id: number;
+  nome: string;
+  especie: string;
+  tipo: string;
+  idade_min_semanas?: number | null;
+  intervalo_reforco_dias?: number | null;
+  status: 'sugerida' | 'proxima' | 'atrasada' | 'em_dia' | string;
+  dias_para_proxima?: number | null;
+  ultima_aplicacao?: string | null;
+  proxima_reforco?: string | null;
+  status_validacao_ultima?: 'pendente' | 'validada' | 'rejeitada' | string | null;
+}
+
+export interface PetVacinaCronogramaResponse {
+  pet: {
+    id: number;
+    nome?: string | null;
+    especie?: string | null;
+    idade?: number | null;
+    data_nascimento?: string | null;
+  } | null;
+  itens: PetVacinaCronogramaItem[];
 }
 
 /** Resumo agregado para cards em Meus pets. */
@@ -1026,15 +1069,24 @@ export class ApiService {
       hoje_completas: number;
       hoje_receita_centavos: number;
       hoje_plataforma_centavos_estimado: number;
+      funnel: Record<string, number>;
+      sla_7d: { avg_wait_to_accept_min: number | null; n_amostras: number };
+      cancelamentos_7d: { total: number; auto_sem_motorista: number };
     }>(`${this.baseUrl}/admin/transporte-pet/stats`, {
       headers: { Authorization: `Bearer ${token}` },
     });
   }
 
-  listAdminTransportePetCorridas(token: string, opts?: { parceiro_id?: number; limit?: number }) {
+  listAdminTransportePetCorridas(
+    token: string,
+    opts?: { parceiro_id?: number; limit?: number; status?: string; date_from?: string; date_to?: string }
+  ) {
     const params: Record<string, string> = {};
     if (opts?.parceiro_id != null) params['parceiro_id'] = String(opts.parceiro_id);
     if (opts?.limit != null) params['limit'] = String(opts.limit);
+    if (opts?.status) params['status'] = opts.status;
+    if (opts?.date_from) params['date_from'] = opts.date_from;
+    if (opts?.date_to) params['date_to'] = opts.date_to;
     return this.http.get<{ corridas: any[] }>(`${this.baseUrl}/admin/transporte-pet/corridas`, {
       headers: { Authorization: `Bearer ${token}` },
       params,
@@ -1223,6 +1275,28 @@ export class ApiService {
     return this.http.get<PetVacinaRow[]>(url, { headers: { Authorization: `Bearer ${token}` } });
   }
 
+  listPetVacinasCatalogo(
+    clienteId: number,
+    petId: string | number,
+    token: string,
+    especie?: string | null
+  ) {
+    const qp = especie ? `?especie=${encodeURIComponent(String(especie))}` : '';
+    const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas/catalogo${qp}`;
+    return this.http.get<PetVacinaCatalogoItem[]>(url, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
+  getPetVacinasCronograma(
+    clienteId: number,
+    petId: string | number,
+    token: string,
+    especie?: string | null
+  ) {
+    const qp = especie ? `?especie=${encodeURIComponent(String(especie))}` : '';
+    const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas/cronograma${qp}`;
+    return this.http.get<PetVacinaCronogramaResponse>(url, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
   createPetVacina(clienteId: number, petId: string | number, formData: FormData, token: string) {
     const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas`;
     return this.http.post<PetVacinaRow>(url, formData, { headers: { Authorization: `Bearer ${token}` } });
@@ -1242,6 +1316,17 @@ export class ApiService {
   deletePetVacina(clienteId: number, petId: string | number, vacinaId: string | number, token: string) {
     const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas/${encodeURIComponent(String(vacinaId))}`;
     return this.http.delete<{ ok: boolean; id: number }>(url, { headers: { Authorization: `Bearer ${token}` } });
+  }
+
+  validarPetVacina(
+    clienteId: number,
+    petId: string | number,
+    vacinaId: string | number,
+    body: { status: 'pendente' | 'validada' | 'rejeitada'; motivo_rejeicao?: string },
+    token: string
+  ) {
+    const url = `${this.baseUrl}/clientes/${clienteId}/pets/${encodeURIComponent(String(petId))}/vacinas/${encodeURIComponent(String(vacinaId))}/validacao`;
+    return this.http.post<PetVacinaRow>(url, body, { headers: { Authorization: `Bearer ${token}` } });
   }
 
   // Atualizar Cliente (PUT)

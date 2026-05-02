@@ -1,8 +1,9 @@
 <div class="wrap">
   <a routerLink="/restrito/admin/dashboard" class="back">← Admin</a>
   <h1>Transporte Pet</h1>
-  <p class="muted">Visão agregada de corridas e receita estimada (hoje).</p>
+  <p class="muted">Visão agregada de corridas e receita.</p>
 
+  <!-- KPIs de hoje -->
   <section *ngIf="stats" class="stats">
     <div class="stat"><span>Corridas ativas</span><strong>{{ stats.corridas_ativas }}</strong></div>
     <div class="stat"><span>Concluídas hoje</span><strong>{{ stats.hoje_completas }}</strong></div>
@@ -10,25 +11,83 @@
     <div class="stat"><span>Comissão plataforma (est.)</span><strong>{{ fmtBrl(stats.hoje_plataforma_centavos_estimado) }}</strong></div>
   </section>
 
-  <div class="filtro">
-    <label>Filtrar parceiro_id <input type="number" [(ngModel)]="filtroParceiro" placeholder="opcional" /></label>
-    <button type="button" (click)="load()">Atualizar</button>
+  <!-- SLA e cancelamentos (7 dias) -->
+  <section *ngIf="stats?.sla_7d || stats?.cancelamentos_7d" class="stats stats--secondary">
+    <div class="stat" *ngIf="stats.sla_7d">
+      <span>Tempo médio aceite (7d)</span>
+      <strong>{{ stats.sla_7d.avg_wait_to_accept_min != null ? (stats.sla_7d.avg_wait_to_accept_min + ' min') : '—' }}</strong>
+      <small class="muted">{{ stats.sla_7d.n_amostras }} corridas</small>
+    </div>
+    <div class="stat" *ngIf="stats.cancelamentos_7d">
+      <span>Cancelamentos (7d)</span>
+      <strong>{{ stats.cancelamentos_7d.total }}</strong>
+      <small class="muted">{{ stats.cancelamentos_7d.auto_sem_motorista }} sem motorista</small>
+    </div>
+  </section>
+
+  <!-- Funil por status (all time) -->
+  <section *ngIf="funnelEntries().length" class="funnel">
+    <h2 class="funnel__title">Funil de corridas</h2>
+    <div class="funnel__list">
+      <div class="funnel__item" *ngFor="let f of funnelEntries()">
+        <span class="funnel__status">{{ f.status }}</span>
+        <span class="funnel__n">{{ f.n }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filtros -->
+  <div class="filtros">
+    <label>Parceiro ID <input type="number" [(ngModel)]="filtroParceiro" placeholder="opcional" /></label>
+    <label>Status
+      <select [(ngModel)]="filtroStatus">
+        <option *ngFor="let o of statusOpcoes" [value]="o.value">{{ o.label }}</option>
+      </select>
+    </label>
+    <label>De <input type="date" [(ngModel)]="filtroDataDe" /></label>
+    <label>Até <input type="date" [(ngModel)]="filtroDataAte" /></label>
+    <button type="button" (click)="load()">Filtrar</button>
   </div>
+
+  <p *ngIf="loading" class="muted">Carregando…</p>
 
   <table *ngIf="!loading" class="tbl">
     <thead>
-      <tr><th>ID</th><th>Parceiro</th><th>Cliente</th><th>Status</th><th>Valor</th><th>Atualizado</th></tr>
+      <tr>
+        <th>ID</th>
+        <th>Parceiro</th>
+        <th>Cliente</th>
+        <th>Motorista</th>
+        <th>Status</th>
+        <th>Porte</th>
+        <th>Urgência</th>
+        <th>Dist. km</th>
+        <th>Valor</th>
+        <th>Plat. %</th>
+        <th>Surge</th>
+        <th>Raio km</th>
+        <th>Atualizado</th>
+      </tr>
     </thead>
     <tbody>
       <tr *ngFor="let c of corridas">
         <td>{{ c.id }}</td>
         <td>{{ c.parceiro_id }}</td>
         <td>{{ c.cliente_id }}</td>
+        <td>{{ c.motorista_id || '—' }}</td>
         <td>{{ c.status }}</td>
+        <td>{{ c.pet_porte || '—' }}</td>
+        <td>{{ c.urgencia || '—' }}</td>
+        <td>{{ c.distancia_km != null ? c.distancia_km : '—' }}</td>
         <td>{{ fmtBrl(c.preco_centavos) }}</td>
+        <td>{{ fmtPct(c.pct_plataforma) }}</td>
+        <td>{{ c.surge_multiplier != null ? c.surge_multiplier : '1' }}</td>
+        <td>{{ c.matching_radius_km != null ? c.matching_radius_km : '—' }}</td>
         <td>{{ c.updated_at }}</td>
+      </tr>
+      <tr *ngIf="!corridas.length">
+        <td colspan="13" class="muted" style="text-align:center">Nenhuma corrida encontrada.</td>
       </tr>
     </tbody>
   </table>
-  <p *ngIf="loading">Carregando…</p>
 </div>

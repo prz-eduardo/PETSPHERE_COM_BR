@@ -1,0 +1,208 @@
+<main class="plp-shell" id="topo">
+  <header class="plp-hero" aria-labelledby="passeadores-hero-title">
+    <div class="hero-orbs" aria-hidden="true">
+      <span class="orb orb-aurora"></span>
+      <span class="orb orb-violet"></span>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-kicker">
+        <i class="fa-solid fa-person-walking" aria-hidden="true"></i>
+        Passeadores · dog walkers
+      </span>
+      <h1 id="passeadores-hero-title" class="hero-title">
+        Rotas claras <span class="hero-accent">e pet no mapa para o tutor</span>
+      </h1>
+      <p class="hero-lead">
+        Defina percursos, acompanhe a equipe na rua e ofereça tracking em tempo real para quem contratou — a mesma base de agenda,
+        vitrine e automações que hotéis e clínicas já usam na {{ marca }}.
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+          Ver planos e créditos
+        </a>
+        <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+          Cadastrar equipe
+        </a>
+        <a routerLink="/passeadores" class="btn btn-ghost btn-lg">
+          <i class="fa-solid fa-map" aria-hidden="true"></i>
+          Ver demo no mapa
+        </a>
+      </div>
+      <ul class="hero-trust" aria-label="Benefícios destacados">
+        <li *ngFor="let t of heroTrust">
+          <span class="trust-ic"><i [class]="t.icon" aria-hidden="true"></i></span>
+          <span><strong>{{ t.strong }}</strong> — {{ t.text }}</span>
+        </li>
+      </ul>
+      <div class="plp-hero-summary">
+        <p class="plp-hero-summary__head">
+          <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+          Passeios no painel parceiro
+        </p>
+        <p class="plp-hero-summary__lead">
+          Waypoints, duração e transparência para o tutor — integrado aos demais fluxos da {{ marca }} e à descoberta no mapa.
+        </p>
+        <ul class="plp-hero-summary__list">
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Rotas planejadas por passeio</li>
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Live location durante o passeio</li>
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Planos com WhatsApp + IA opcionais</li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <div class="plp-page">
+    <hr class="plp-divider" aria-hidden="true" />
+
+    <section class="plp-bloco plp-bloco--surface" aria-labelledby="passeadores-como-title" id="como-funciona">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Operação na rua</span>
+          <h2 id="passeadores-como-title" class="section-title">Como a PetSphere apoia passeadores</h2>
+          <p class="section-lead">
+            Do roteiro ao mapa ao vivo para o tutor — mesma infraestrutura de parceiros que já cobre agendas e comunicação.
+          </p>
+        </div>
+        <div class="servicos-grid">
+          <article class="servico-card" *ngFor="let o of operacao">
+            <div class="servico-card__icon" aria-hidden="true"><i [class]="o.icon"></i></div>
+            <h3 class="servico-card__title">{{ o.title }}</h3>
+            <p class="servico-card__lead">{{ o.lead }}</p>
+            <a href="#bloco-cta-passeadores" class="servico-card__link" (click)="scrollTo('bloco-cta-passeadores', $event)">
+              Quero profissionalizar <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <hr class="plp-divider" aria-hidden="true" />
+
+    <section class="plp-bloco" aria-labelledby="passeadores-modos-title">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Formatos de passeio</span>
+          <h2 id="passeadores-modos-title" class="section-title">Individual, grupo ou recorrente</h2>
+          <p class="section-lead">Comunique ao tutor o que está incluído — e deixe o mapa mostrar o que importa: onde está o pet.</p>
+        </div>
+        <div class="dores-grid">
+          <article class="dor-card" *ngFor="let m of modos">
+            <div class="dor-card__icon" aria-hidden="true"><i [class]="m.icon"></i></div>
+            <h3 class="dor-card__title">{{ m.title }}</h3>
+            <p class="dor-card__text">{{ m.text }}</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <hr class="plp-divider" aria-hidden="true" />
+
+    <section class="plp-bloco plp-bloco--cosmos" aria-labelledby="passeadores-tracking-title">
+      <div class="section-inner">
+        <div class="section-head section-head--light">
+          <span class="eyebrow eyebrow--light">Transparência</span>
+          <h2 id="passeadores-tracking-title" class="section-title section-title--light">Tracking em tempo real para tutores</h2>
+          <p class="section-lead section-lead--light">
+            Durante o passeio ativo, o tutor acompanha posição e progresso no mapa — estados claros (iniciado, em rota, pausa,
+            concluído) reduzem mensagens repetitivas. Nos planos pagos, combine com WhatsApp automático e IA descritos em Planos
+            &amp; créditos.
+          </p>
+        </div>
+        <div class="pro-grid">
+          <article class="pro-card" *ngFor="let c of comunicacao">
+            <div class="pro-card__icon" aria-hidden="true"><i [class]="c.icon"></i></div>
+            <h3 class="pro-card__title">{{ c.title }}</h3>
+            <p class="pro-card__text">{{ c.text }}</p>
+          </article>
+        </div>
+        <div class="pro-cta">
+          <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+            Ver Planos Free e Pro
+          </a>
+          <a routerLink="/passeadores" class="btn btn-ghost btn-lg">Abrir demo ilustrativa no mapa</a>
+        </div>
+      </div>
+    </section>
+
+    <hr class="plp-divider" aria-hidden="true" />
+
+    <section class="plp-bloco" aria-labelledby="jornada-passeadores-title">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Passo a passo</span>
+          <h2 id="jornada-passeadores-title" class="section-title">Do cadastro ao primeiro passeio rastreado</h2>
+        </div>
+        <ol class="jornada-track">
+          <li class="jornada-step">
+            <span class="jornada-step__n" aria-hidden="true">1</span>
+            <div class="jornada-step__body">
+              <h3 class="jornada-step__title">Cadastre a equipe como parceiro</h3>
+              <p class="jornada-step__text">Plano inicial, vitrine e mapa — tutores passam a encontrar seus passeios no ecossistema.</p>
+            </div>
+          </li>
+          <li class="jornada-step">
+            <span class="jornada-step__n" aria-hidden="true">2</span>
+            <div class="jornada-step__body">
+              <h3 class="jornada-step__title">Monte rotas e regras por serviço</h3>
+              <p class="jornada-step__text">Waypoints, tempo alvo e políticas (chuva, equipamento) alinhados ao que cada passeio promete.</p>
+            </div>
+          </li>
+          <li class="jornada-step">
+            <span class="jornada-step__n" aria-hidden="true">3</span>
+            <div class="jornada-step__body">
+              <h3 class="jornada-step__title">Ative live location e automações</h3>
+              <p class="jornada-step__text">
+                Libere tracking em tempo real para o tutor e, nos planos pagos, mensagens automáticas para início e fim de passeio.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="plp-bloco" aria-labelledby="faq-passeadores-title">
+      <div class="section-inner section-inner--narrow">
+        <div class="section-head">
+          <span class="eyebrow">Dúvidas</span>
+          <h2 id="faq-passeadores-title" class="section-title">Perguntas frequentes</h2>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item" *ngFor="let item of faq">
+            <summary class="faq-q">{{ item.q }}</summary>
+            <p class="faq-a">{{ item.a }}</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="plp-cta-band" id="bloco-cta-passeadores" aria-labelledby="cta-passeadores-final">
+      <div class="section-inner">
+        <h2 id="cta-passeadores-final" class="cta-band__title">Profissionalize passeios com mapa ao vivo</h2>
+        <p class="cta-band__lead">
+          Experimente Free com vitrine e mapa ou suba de plano quando tracking e automações forem o seu diferencial de confiança.
+        </p>
+        <div class="cta-band__actions">
+          <a routerLink="/parceiro/cadastrar" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-door-open" aria-hidden="true"></i>
+            Começar agora
+          </a>
+          <a routerLink="/parceiro/planos" class="btn btn-ghost btn-lg">Comparar planos</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="plp-sticky-cta" role="region" aria-label="Ações rápidas">
+      <a routerLink="/parceiro/planos" class="plp-sticky-cta__btn plp-sticky-cta__btn--primary">
+        <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+        Planos
+      </a>
+      <a routerLink="/parceiro/cadastrar" class="plp-sticky-cta__btn plp-sticky-cta__btn--secondary">
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+        Cadastrar
+      </a>
+    </div>
+  </div>
+</main>

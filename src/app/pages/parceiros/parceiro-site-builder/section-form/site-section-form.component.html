@@ -1,0 +1,115 @@
+<form class="sf" (ngSubmit)="submit()">
+
+  <!-- Comum: Título -->
+  <div class="sf-field">
+    <label class="sf-label">Título</label>
+    <input class="sf-input" type="text" [ngModel]="titulo()" (ngModelChange)="titulo.set($event)" name="titulo" placeholder="Título da seção (opcional)" />
+  </div>
+
+  <!-- HERO -->
+  @if (tipo === 'hero') {
+    <div class="sf-field">
+      <label class="sf-label">Subtítulo</label>
+      <input class="sf-input" type="text" [ngModel]="subtitulo()" (ngModelChange)="subtitulo.set($event)" name="subtitulo" placeholder="Frase de impacto" />
+    </div>
+    <div class="sf-field">
+      <label class="sf-label">Texto do botão (CTA)</label>
+      <input class="sf-input" type="text" [ngModel]="ctaTexto()" (ngModelChange)="ctaTexto.set($event)" name="ctaTexto" placeholder="Ex: Agende agora" />
+    </div>
+    <div class="sf-field">
+      <label class="sf-label">Link do botão</label>
+      <input class="sf-input" type="url" [ngModel]="ctaUrl()" (ngModelChange)="ctaUrl.set($event)" name="ctaUrl" placeholder="https://..." />
+    </div>
+    <div class="sf-field">
+      <label class="sf-label">Imagem de fundo</label>
+      @if (imagens().length > 0) {
+        <div class="sf-img-preview">
+          <img [src]="imagens()[0].url" alt="Hero background" />
+          <button type="button" class="sf-img-remove" (click)="removeImage(0)">✕</button>
+        </div>
+      } @else {
+        <label class="sf-upload-btn">
+          @if (uploadingImage()) { <span>Enviando…</span> } @else { <span>📷 Selecionar imagem</span> }
+          <input type="file" accept="image/*" hidden (change)="pickImage($event)" [disabled]="uploadingImage()" />
+        </label>
+      }
+    </div>
+  }
+
+  <!-- TEXTO -->
+  @if (tipo === 'texto') {
+    <div class="sf-field">
+      <label class="sf-label">Conteúdo</label>
+      <quill-editor
+        [ngModel]="conteudo()"
+        (ngModelChange)="conteudo.set($event)"
+        name="conteudo"
+        [modules]="quillModules"
+        class="sf-quill">
+      </quill-editor>
+    </div>
+  }
+
+  <!-- GALERIA -->
+  @if (tipo === 'galeria') {
+    <div class="sf-field">
+      <label class="sf-label">Imagens</label>
+      <div class="sf-gallery">
+        @for (img of imagens(); track img.url; let i = $index) {
+          <div class="sf-gallery__item">
+            <img [src]="img.url" [alt]="img.alt || ''" />
+            <input class="sf-input sf-input--sm" type="text" [value]="img.alt" (input)="updateImageAlt(i, $any($event.target).value)" placeholder="Texto alt" />
+            <input class="sf-input sf-input--sm" type="text" [value]="img.legenda" (input)="updateImageLegenda(i, $any($event.target).value)" placeholder="Legenda" />
+            <button type="button" class="sf-img-remove sf-img-remove--list" (click)="removeImage(i)">Remover</button>
+          </div>
+        }
+      </div>
+      <label class="sf-upload-btn">
+        @if (uploadingImage()) { <span>Enviando…</span> } @else { <span>+ Adicionar imagem</span> }
+        <input type="file" accept="image/*" hidden (change)="pickImage($event)" [disabled]="uploadingImage()" />
+      </label>
+    </div>
+  }
+
+  <!-- SERVIÇOS -->
+  @if (tipo === 'servicos') {
+    <div class="sf-field">
+      <label class="sf-label">Descrição / Conteúdo</label>
+      <quill-editor
+        [ngModel]="conteudo()"
+        (ngModelChange)="conteudo.set($event)"
+        name="conteudo_servicos"
+        [modules]="quillModules"
+        class="sf-quill">
+      </quill-editor>
+    </div>
+  }
+
+  <!-- WHATSAPP -->
+  @if (tipo === 'whatsapp') {
+    <div class="sf-field">
+      <label class="sf-label">Número do WhatsApp <small>(com DDD, sem espaços)</small></label>
+      <input class="sf-input" type="tel" [ngModel]="telefone()" (ngModelChange)="telefone.set($event)" name="telefone" placeholder="5511999999999" />
+    </div>
+    <div class="sf-field">
+      <label class="sf-label">Mensagem pré-preenchida (opcional)</label>
+      <textarea class="sf-input sf-textarea" [ngModel]="mensagem()" (ngModelChange)="mensagem.set($event)" name="mensagem" rows="3" placeholder="Olá! Vim pelo site e gostaria de mais informações."></textarea>
+    </div>
+  }
+
+  <!-- Visibilidade -->
+  <div class="sf-field sf-field--row">
+    <label class="sf-label">Visível na página</label>
+    <label class="sf-toggle">
+      <input type="checkbox" [ngModel]="ativo()" (ngModelChange)="ativo.set($event)" name="ativo" />
+      <span class="sf-toggle__track"></span>
+    </label>
+  </div>
+
+  <div class="sf-actions">
+    <button type="button" class="sf-btn sf-btn--ghost" (click)="cancel()">Cancelar</button>
+    <button type="submit" class="sf-btn sf-btn--primary" [disabled]="saving">
+      {{ saving ? 'Salvando…' : 'Salvar seção' }}
+    </button>
+  </div>
+</form>

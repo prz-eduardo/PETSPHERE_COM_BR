@@ -2,7 +2,7 @@
   <header class="page-head">
     <h1>Configurações</h1>
     <p class="lead">
-      URL pública da vitrine, textos institucionais e integração com pagamentos.
+      URL pública da vitrine e textos institucionais.
       Catálogo (produtos, cupons, promoções):
       <a routerLink="/parceiros/petshop-online">Petshop online</a>.
     </p>
@@ -33,33 +33,6 @@
       ></textarea>
     </div>
 
-    <fieldset *ngIf="auth.isMaster() && catalogParceiroEntries().length" class="hotel-globais-fieldset">
-      <legend>Serviços globais do hotel (vitrine pública)</legend>
-      <p class="muted fieldset-hint">
-        Aparecem na loja do parceiro junto com as acomodações cadastradas em Hospedagem pet.
-      </p>
-      <div class="checkbox-list">
-        <label class="checkbox-row" *ngFor="let o of catalogParceiroEntries()">
-          <input type="checkbox" [checked]="hotelGlobalSelected(o.slug)" (change)="toggleHotelGlobal(o.slug)" />
-          <span>{{ o.label_pt }}</span>
-        </label>
-      </div>
-    </fieldset>
-
-    <ng-container *ngIf="auth.isMaster()">
-      <div class="field">
-        <label class="field-label" for="cfg-mp-token">Mercado Pago — access token (opcional)</label>
-        <input
-          id="cfg-mp-token"
-          type="password"
-          formControlName="mercadopago_access_token"
-          autocomplete="off"
-          placeholder="Deixe em branco para não alterar; salve vazio para remover"
-        />
-        <small class="muted">Pagamentos de pedidos desta vitrine usarão esta credencial quando configurada e ativa.</small>
-      </div>
-    </ng-container>
-
     <div class="actions">
       <button type="submit" class="btn-primary" [disabled]="saving() || !auth.isMaster()">
         {{ saving() ? 'Salvando…' : 'Salvar' }}
@@ -67,4 +40,107 @@
       <span *ngIf="!auth.isMaster()" class="muted">Somente o master pode editar.</span>
     </div>
   </form>
+
+  <section class="nav-prefs" aria-labelledby="nav-prefs-title">
+    <h2 id="nav-prefs-title" class="nav-prefs__title">Navegação rápida (mobile)</h2>
+    <p class="nav-prefs__lead muted">
+      Personalize os três botões à esquerda e à direita do botão central na barra inferior quando você está
+      <strong>logado no painel</strong> (<code>/parceiros/*</code>). O botão <strong>Sair</strong> permanece fixo.
+      O menu ao tocar no botão central (FAB) usa a lista abaixo — você pode escolher quantos atalhos quiser.
+    </p>
+
+    <div class="nav-prefs__card">
+      <h3 class="nav-prefs__subtitle">Dock inferior — 3 atalhos</h3>
+      <p class="muted nav-prefs__hint">Ordem: esquerda · esquerda-centro · direita-centro · (FAB) · <strong>Sair</strong></p>
+
+      <div class="nav-prefs__dock-row">
+        <label class="nav-prefs__field">
+          <span class="field-label">Slot 1</span>
+          <select
+            name="dockSlot1"
+            class="nav-prefs__select"
+            [ngModel]="dockSlot1()"
+            (ngModelChange)="dockSlot1.set($event)"
+          >
+            <ng-container *ngFor="let g of groupOrder">
+              <optgroup [label]="groupLabel(g)">
+                <option *ngFor="let item of itemsInGroup(g)" [value]="item.id">{{ item.label }}</option>
+              </optgroup>
+            </ng-container>
+          </select>
+        </label>
+        <label class="nav-prefs__field">
+          <span class="field-label">Slot 2</span>
+          <select
+            name="dockSlot2"
+            class="nav-prefs__select"
+            [ngModel]="dockSlot2()"
+            (ngModelChange)="dockSlot2.set($event)"
+          >
+            <ng-container *ngFor="let g of groupOrder">
+              <optgroup [label]="groupLabel(g)">
+                <option *ngFor="let item of itemsInGroup(g)" [value]="item.id">{{ item.label }}</option>
+              </optgroup>
+            </ng-container>
+          </select>
+        </label>
+        <label class="nav-prefs__field">
+          <span class="field-label">Slot 3</span>
+          <select
+            name="dockSlot3"
+            class="nav-prefs__select"
+            [ngModel]="dockSlot3()"
+            (ngModelChange)="dockSlot3.set($event)"
+          >
+            <ng-container *ngFor="let g of groupOrder">
+              <optgroup [label]="groupLabel(g)">
+                <option *ngFor="let item of itemsInGroup(g)" [value]="item.id">{{ item.label }}</option>
+              </optgroup>
+            </ng-container>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="nav-prefs__card">
+      <h3 class="nav-prefs__subtitle">Menu rápido (FAB)</h3>
+      <p class="muted nav-prefs__hint">
+        {{ fabIds().length }} selecionado(s) — sem limite. Toque para incluir ou remover; use as setas para ordenar.
+      </p>
+
+      <div class="fab-order" *ngIf="fabIds().length">
+        <div *ngFor="let id of fabIds()" class="fab-order__row">
+          <span class="fab-order__label">{{ labelForId(id) }}</span>
+          <div class="fab-order__actions">
+            <button type="button" class="fab-order__btn" (click)="moveFabUp(id)" aria-label="Subir">↑</button>
+            <button type="button" class="fab-order__btn" (click)="moveFabDown(id)" aria-label="Descer">↓</button>
+          </div>
+        </div>
+      </div>
+
+      <ng-container *ngFor="let g of groupOrder">
+        <h4 class="fab-group-title">{{ groupLabel(g) }}</h4>
+        <div class="fab-chip-grid">
+          <button
+            type="button"
+            *ngFor="let item of itemsInGroup(g)"
+            class="fab-chip"
+            [class.fab-chip--selected]="fabSelected(item.id)"
+            (click)="toggleFab(item.id)"
+          >
+            {{ item.shortLabel || item.label }}
+          </button>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="nav-prefs__actions">
+      <button type="button" class="btn-primary" [disabled]="navSaving()" (click)="saveNavPrefs()">
+        {{ navSaving() ? 'Salvando…' : 'Salvar atalhos da barra' }}
+      </button>
+      <button type="button" class="btn-ghost" [disabled]="navSaving()" (click)="resetNavPrefs()">
+        Restaurar padrões
+      </button>
+    </div>
+  </section>
 </div>

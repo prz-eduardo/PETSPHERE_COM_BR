@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { afterNextRender, Component, ElementRef, OnInit, signal, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -16,6 +16,8 @@ export interface PosCartLine {
   qty: number;
 }
 
+const POS_STEP_LABELS = ['Produtos', 'Carrinho', 'Pagamento'] as const;
+
 @Component({
   selector: 'app-parceiro-inventario-pos',
   standalone: true,
@@ -32,17 +34,69 @@ export class ParceiroInventarioPosComponent implements OnInit {
   readonly cartLines = signal<PosCartLine[]>([]);
   formaPagamento: FormaPagamentoPos = 'dinheiro';
 
+  /** 0 = produtos, 1 = carrinho, 2 = pagamento */
+  readonly posStep = signal(0);
+  readonly posSteps = POS_STEP_LABELS.map((label) => ({ label }));
+
+  /** Ponto único para plugar USB/SDK quando existir backend. */
+  readonly pinpadIntegration = signal<'none' | 'usb' | 'sdk'>('none');
+
+  readonly scanInput = viewChild<ElementRef<HTMLInputElement>>('scanInput');
+
   constructor(
     private produtosApi: ParceiroComercialProdutosService,
     private caixaApi: ParceiroCaixaService,
     public auth: ParceiroAuthService,
     private toast: ToastService,
     private router: Router,
-  ) {}
+  ) {
+    afterNextRender(() => this.scheduleScanFocus());
+  }
 
   ngOnInit(): void {
     void this.reload();
     void this.loadCaixa();
+  }
+
+  scanHintForStep(): string {
+    switch (this.posStep()) {
+      case 0:
+        return 'A lista filtra conforme você digita. Com o leitor USB, o Enter confirma e adiciona ao carrinho.';
+      case 1:
+        return 'Continue escaneando para somar produtos sem voltar à lista.';
+      case 2:
+        return 'Última chance de incluir itens por código antes de confirmar a venda.';
+      default:
+        return '';
+    }
+  }
+
+  pinpadStatusLabel(): string {
+    return 'Pronto para uso manual';
+  }
+
+  pinpadIntegrationModeLabel(): string {
+    switch (this.pinpadIntegration()) {
+      case 'usb':
+        return 'USB';
+      case 'sdk':
+        return 'SDK';
+      default:
+        return 'Nenhuma (manual)';
+    }
+  }
+
+  onFormaPagamentoChange(): void {
+    this.scheduleScanFocus();
+  }
+
+  /** Foco no campo de leitura após navegar no assistente (fluxo POS). */
+  private scheduleScanFocus(): void {
+    queueMicrotask(() => {
+      requestAnimationFrame(() => {
+        this.scanInput()?.nativeElement?.focus({ preventScroll: true });
+      });
+    });
   }
 
   async loadCaixa(): Promise<void> {
@@ -64,6 +118,7 @@ export class ParceiroInventarioPosComponent implements OnInit {
       this.toast.error(msg);
     } finally {
       this.loading.set(false);
+      this.scheduleScanFocus();
     }
   }
 
@@ -75,7 +130,7 @@ export class ParceiroInventarioPosComponent implements OnInit {
       (row) =>
         (row.nome || '').toLowerCase().includes(t) ||
         String(row.codigo_barras || '').toLowerCase().includes(t) ||
-        String(row.sku || '').toLowerCase().includes(t)
+        String(row.sku || '').toLowerCase().includes(t),
     );
   }
 
@@ -146,15 +201,67 @@ export class ParceiroInventarioPosComponent implements OnInit {
   }
 
   removeLine(line: PosCartLine): void {
-    this.cartLines.set(this.cartLines().filter((l) => l.produto_id !== line.produto_id));
+    const next = this.cartLines().filter((l) => l.produto_id !== line.produto_id);
+    this.cartLines.set(next);
+    if (!next.length && this.posStep() > 0) {
+      this.posStep.set(0);
+      this.scheduleScanFocus();
+    }
   }
 
   cartTotal(): number {
     return this.cartLines().reduce((s, l) => s + l.preco * l.qty, 0);
   }
 
+  /** Quantidade total de unidades no carrinho (soma das qty). */
+  cartUnitsTotal(): number {
+    return this.cartLines().reduce((s, l) => s + l.qty, 0);
+  }
+
   clearCart(): void {
     this.cartLines.set([]);
+    this.posStep.set(0);
+    this.scheduleScanFocus();
+  }
+
+  stepperProgressPct(): number {
+    const last = this.posSteps.length - 1;
+    if (last <= 0) return 100;
+    return (this.posStep() / last) * 100;
+  }
+
+  canGoToStep(i: number): boolean {
+    if (i < 0 || i >= this.posSteps.length) return false;
+    const cur = this.posStep();
+    if (i === cur) return true;
+    if (i < cur) return true;
+    return this.cartLines().length > 0;
+  }
+
+  /** Stepper: desabilita saltos à frente inválidos; o passo atual permanece clicável (no-op). */
+  stepperBtnDisabled(i: number): boolean {
+    return !this.canGoToStep(i) && this.posStep() !== i;
+  }
+
+  goToStep(i: number): void {
+    if (!this.canGoToStep(i)) return;
+    this.posStep.set(i);
+    this.scheduleScanFocus();
+  }
+
+  nextStep(): void {
+    const cur = this.posStep();
+    if (cur >= this.posSteps.length - 1) return;
+    if (!this.cartLines().length) return;
+    this.posStep.set(cur + 1);
+    this.scheduleScanFocus();
+  }
+
+  prevStep(): void {
+    const cur = this.posStep();
+    if (cur <= 0) return;
+    this.posStep.set(cur - 1);
+    this.scheduleScanFocus();
   }
 
   caixaAberto(): boolean {

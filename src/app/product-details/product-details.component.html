@@ -68,6 +68,7 @@
 			</div>
 
 			<div class="hero-stats" aria-label="Resumo do produto">
+				<span class="hero-stat hero-stat--partner" *ngIf="p.vendidoParceiroExterno" title="Entregue e vendido pelo parceiro fornecedor (logística e pós-venda com o parceiro).">Parceiro</span>
 				<span class="hero-stat" *ngIf="hasRating()">
 					<span class="stat-dot" aria-hidden="true"></span>
 					<strong>{{ p.rating | number:'1.1-1' }}</strong> · {{ p.ratingsCount || 0 }} avaliações
@@ -214,6 +215,9 @@
 						</div>
 						<button type="button" class="btn fav" (click)="toggleFav()"><span [class.on]="isFavLocal || p.isFavorited">♥</span> Favoritar</button>
 					</div>
+					<p class="pd-partner-fulfillment" *ngIf="p.vendidoParceiroExterno" role="note">
+						Este produto é <strong>entregue e vendido pelo parceiro</strong> fornecedor (logística e pós-venda ficam com o parceiro, não com a equipe desta loja).
+					</p>
 					<div class="desc" *ngIf="p.description?.trim() && p.description !== p.shortDescription">{{ p.description }}</div>
 					<div class="pd-reg" *ngIf="p.registro_mapa"><span>Registro</span> {{ p.registro_mapa }}</div>
 					<div class="pd-cuidados" *ngIf="p.validade_meses != null || p.armazenamento">

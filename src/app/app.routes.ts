@@ -50,6 +50,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/politica-privacidade/politica-privacidade.component').then(m => m.PoliticaPrivacidadeComponent)
   },
+  {
+    path: 'termos-de-uso',
+    loadComponent: () =>
+      import('./pages/termos-de-uso/termos-de-uso.component').then((m) => m.TermosDeUsoComponent),
+  },
   { 
     path: 'meus-pedidos', 
     loadComponent: () => import('./pages/meus-pedidos/meus-pedidos.component').then(m => m.MeusPedidosComponent),
@@ -87,6 +92,22 @@ export const routes: Routes = [
       loadComponent: () =>
         import('./pages/parceiro-hotel-creche/parceiro-hotel-creche.component').then(m => m.ParceiroHotelCrecheComponent),
       data: { title: 'Hotel, creche e day use PetSphere' },
+    },
+    {
+      path: 'parceiro/transporte-animal',
+      canActivate: [tenantBlockPetsphereMarketingGuard],
+      loadComponent: () =>
+        import('./pages/parceiro-transporte-animal/parceiro-transporte-animal.component').then(
+          (m) => m.ParceiroTransporteAnimalComponent,
+        ),
+      data: { title: 'Transporte animal PetSphere' },
+    },
+    {
+      path: 'parceiro/passeadores',
+      canActivate: [tenantBlockPetsphereMarketingGuard],
+      loadComponent: () =>
+        import('./pages/parceiro-passeadores/parceiro-passeadores.component').then((m) => m.ParceiroPasseadoresComponent),
+      data: { title: 'Passeadores e dog walkers PetSphere' },
     },
     { path: 'veterinarios', redirectTo: 'parceiro/veterinarios', pathMatch: 'full' },
     { path: 'hotel-creche', redirectTo: 'parceiro/hotel-e-creche', pathMatch: 'full' },

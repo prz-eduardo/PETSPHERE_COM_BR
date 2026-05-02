@@ -1,7 +1,12 @@
 import { Component, Input, OnChanges, SimpleChanges, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, PetVacinaRow } from '../../services/api.service';
+import {
+  ApiService,
+  PetVacinaCatalogoItem,
+  PetVacinaCronogramaItem,
+  PetVacinaRow,
+} from '../../services/api.service';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
@@ -15,15 +20,21 @@ export class PetVacinasPanelComponent implements OnChanges {
   @Input() clienteId: number | null = null;
   @Input() petId: string | null = null;
   @Input() authToken: string | null = null;
+  @Input() especiePet: string | null = null;
   /** Preferência global do perfil (lembretes de vacina). */
   @Input() lembretesGlobaisAtivos = false;
 
   lista: PetVacinaRow[] = [];
+  catalogo: PetVacinaCatalogoItem[] = [];
+  cronograma: PetVacinaCronogramaItem[] = [];
   carregando = false;
+  carregandoCatalogo = false;
+  carregandoCronograma = false;
   salvando = false;
 
   /** Form nova dose / edição */
   editandoId: number | null = null;
+  formCatalogoId = '';
   formNome = '';
   formDataAplicacao = '';
   formProxima = '';
@@ -40,9 +51,14 @@ export class PetVacinasPanelComponent implements OnChanges {
   ) {}
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['petId'] || changes['clienteId'] || changes['authToken']) {
+    if (changes['petId'] || changes['clienteId'] || changes['authToken'] || changes['especiePet']) {
       this.reload();
     }
+  }
+
+  get podeValidarClinicamente(): boolean {
+    const tipo = this.currentUserTipo();
+    return tipo === 'vet' || tipo === 'admin';
   }
 
   private canLoad(): boolean {
@@ -58,6 +74,8 @@ export class PetVacinasPanelComponent implements OnChanges {
   reload() {
     if (!this.canLoad()) {
       this.lista = [];
+      this.catalogo = [];
+      this.cronograma = [];
       return;
     }
     this.carregando = true;
@@ -71,10 +89,47 @@ export class PetVacinasPanelComponent implements OnChanges {
         this.carregando = false;
       },
     });
+    this.loadCatalogo();
+    this.loadCronograma();
+  }
+
+  private loadCatalogo() {
+    if (!this.canLoad()) return;
+    this.carregandoCatalogo = true;
+    this.api
+      .listPetVacinasCatalogo(this.clienteId!, this.petId!, this.authToken!, this.especiePet)
+      .subscribe({
+        next: (rows) => {
+          this.catalogo = Array.isArray(rows) ? rows : [];
+          this.carregandoCatalogo = false;
+        },
+        error: () => {
+          this.catalogo = [];
+          this.carregandoCatalogo = false;
+        },
+      });
+  }
+
+  private loadCronograma() {
+    if (!this.canLoad()) return;
+    this.carregandoCronograma = true;
+    this.api
+      .getPetVacinasCronograma(this.clienteId!, this.petId!, this.authToken!, this.especiePet)
+      .subscribe({
+        next: (res) => {
+          this.cronograma = Array.isArray(res?.itens) ? res.itens : [];
+          this.carregandoCronograma = false;
+        },
+        error: () => {
+          this.cronograma = [];
+          this.carregandoCronograma = false;
+        },
+      });
   }
 
   iniciarNova() {
     this.editandoId = null;
+    this.formCatalogoId = '';
     this.formNome = '';
     this.formDataAplicacao = '';
     this.formProxima = '';
@@ -87,6 +142,7 @@ export class PetVacinasPanelComponent implements OnChanges {
 
   editar(row: PetVacinaRow) {
     this.editandoId = row.id;
+    this.formCatalogoId = row.catalogo_id != null ? String(row.catalogo_id) : '';
     this.formNome = row.nome || '';
     this.formDataAplicacao = this.toYmd(row.data_aplicacao);
     this.formProxima = row.proxima_reforco ? this.toYmd(row.proxima_reforco) : '';
@@ -125,9 +181,9 @@ export class PetVacinasPanelComponent implements OnChanges {
 
   salvar() {
     if (!this.canLoad()) return;
-    const nome = (this.formNome || '').trim();
+    const nome = (this.formNome || '').trim() || (this.catalogo.find((c) => String(c.id) === this.formCatalogoId)?.nome || '').trim();
     if (!nome) {
-      this.toast.info('Informe o nome da vacina.', 'Atenção');
+      this.toast.info('Selecione uma vacina do catálogo ou informe manualmente.', 'Atenção');
       return;
     }
     if (!(this.formDataAplicacao || '').trim()) {
@@ -136,6 +192,7 @@ export class PetVacinasPanelComponent implements OnChanges {
     }
     const fd = new FormData();
     fd.append('nome', nome);
+    if (this.formCatalogoId) fd.append('catalogo_id', this.formCatalogoId);
     fd.append('data_aplicacao', (this.formDataAplicacao || '').trim());
     if ((this.formProxima || '').trim()) fd.append('proxima_reforco', this.formProxima.trim());
     else fd.append('proxima_reforco', '');
@@ -166,6 +223,71 @@ export class PetVacinasPanelComponent implements OnChanges {
         this.salvando = false;
       },
     });
+  }
+
+  validar(row: PetVacinaRow, status: 'validada' | 'rejeitada' | 'pendente') {
+    if (!this.canLoad() || !row?.id || !this.podeValidarClinicamente) return;
+    let motivo = '';
+    if (status === 'rejeitada') {
+      if (!isPlatformBrowser(this.platformId)) return;
+      motivo = (prompt('Motivo da rejeição da dose (obrigatório):', '') || '').trim();
+      if (!motivo) {
+        this.toast.info('Informe um motivo para rejeitar o registro.', 'Validação');
+        return;
+      }
+    }
+    this.api
+      .validarPetVacina(this.clienteId!, this.petId!, row.id, { status, motivo_rejeicao: motivo || undefined }, this.authToken!)
+      .subscribe({
+        next: () => {
+          this.toast.success('Status de validação atualizado.');
+          this.reload();
+        },
+        error: (err: any) => {
+          const msg = err?.error?.error || err?.error?.message || err?.message || 'Erro ao validar dose';
+          this.toast.error(msg, 'Erro');
+        },
+      });
+  }
+
+  onCatalogoChange() {
+    const sel = this.catalogo.find((c) => String(c.id) === this.formCatalogoId);
+    if (sel && !this.formNome.trim()) {
+      this.formNome = sel.nome;
+    }
+  }
+
+  statusValidacaoLabel(status?: string | null): string {
+    const s = String(status || '').toLowerCase();
+    if (s === 'validada') return 'Validada';
+    if (s === 'rejeitada') return 'Rejeitada';
+    return 'Pendente';
+  }
+
+  statusValidacaoMod(status?: string | null): 'ok' | 'warn' | 'danger' {
+    const s = String(status || '').toLowerCase();
+    if (s === 'validada') return 'ok';
+    if (s === 'rejeitada') return 'danger';
+    return 'warn';
+  }
+
+  private currentUserTipo(): string | null {
+    if (!this.authToken) return null;
+    const parts = String(this.authToken).split('.');
+    if (parts.length < 2 || !isPlatformBrowser(this.platformId)) return null;
+    try {
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(
+        atob(b64)
+          .split('')
+          .map((c) => `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`)
+          .join('')
+      );
+      const payload = JSON.parse(json);
+      return payload?.tipo ? String(payload.tipo).toLowerCase() : null;
+    } catch {
+      return null;
+    }
   }
 
   excluir(row: PetVacinaRow) {

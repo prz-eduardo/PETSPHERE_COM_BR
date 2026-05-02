@@ -16,13 +16,35 @@
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--admin-radius-lg);
   border: 1px solid var(--admin-border);
   background: var(--admin-surface);
 
-  // Mobile: reserve space so the floating dock doesn't hide the last timeslots
   @media (max-width: 767px) {
     padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Mobile: conteúdo flui; scroll único em .agenda-mobile-scroll (shell). */
+@media (max-width: 768px) {
+  :host {
+    flex: 0 0 auto;
+    min-height: min-content;
+    overflow: visible;
+  }
+
+  .grid-scroll {
+    flex: 0 0 auto;
+    overflow: visible;
+    padding-bottom: 0;
+    -webkit-overflow-scrolling: auto;
+  }
+
+  .time-col,
+  .time-gutter {
+    position: relative;
+    left: auto;
   }
 }
 
@@ -47,6 +69,14 @@
   background: var(--admin-surface);
   border-bottom: 2px solid var(--admin-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Sticky dentro de overflow:auto + repaint dos cards costuma travar scroll no Safari/iOS. */
+@media (max-width: 768px) {
+  .grid-header {
+    position: relative;
+    top: auto;
+  }
 }
 
 .time-gutter {

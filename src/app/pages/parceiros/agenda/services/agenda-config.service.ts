@@ -11,7 +11,7 @@ export class AgendaConfigService {
           allowOverlap: false,
           defaultDuration: 60,
           servicesEnabled: true,
-          viewModes: ['DAY', 'WEEK', 'TIMELINE', 'LIST'],
+          viewModes: ['DAY', 'WEEK', 'MONTH', 'TIMELINE', 'LIST'],
           workStart: 8,
           workEnd: 19,
         };
@@ -21,7 +21,7 @@ export class AgendaConfigService {
           allowOverlap: false,
           defaultDuration: 30,
           servicesEnabled: true,
-          viewModes: ['DAY', 'WEEK', 'TIMELINE', 'LIST'],
+          viewModes: ['DAY', 'WEEK', 'MONTH', 'TIMELINE', 'LIST'],
           workStart: 8,
           workEnd: 18,
         };
@@ -31,7 +31,7 @@ export class AgendaConfigService {
           allowOverlap: false,
           defaultDuration: 60,
           servicesEnabled: true,
-          viewModes: ['DAY', 'WEEK', 'LIST'],
+          viewModes: ['DAY', 'WEEK', 'MONTH', 'LIST'],
           workStart: 7,
           workEnd: 22,
         };
@@ -41,7 +41,7 @@ export class AgendaConfigService {
           allowOverlap: true,
           defaultDuration: 1440,
           servicesEnabled: false,
-          viewModes: ['WEEK', 'LIST'],
+          viewModes: ['WEEK', 'MONTH', 'LIST'],
           workStart: 0,
           workEnd: 24,
         };
@@ -51,7 +51,7 @@ export class AgendaConfigService {
           allowOverlap: true,
           defaultDuration: 60,
           servicesEnabled: false,
-          viewModes: ['DAY', 'WEEK', 'LIST'],
+          viewModes: ['DAY', 'WEEK', 'MONTH', 'LIST'],
           workStart: 7,
           workEnd: 20,
         };
@@ -62,6 +62,7 @@ export class AgendaConfigService {
     return {
       DAY: 'Dia',
       WEEK: 'Semana',
+      MONTH: 'Mês',
       TIMELINE: 'Timeline',
       LIST: 'Lista',
     };

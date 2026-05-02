@@ -138,7 +138,6 @@ export class ParceiroShellComponent implements OnInit {
     return (
       this.currentUrl.includes('/parceiros/servicos') ||
       this.currentUrl.includes('/parceiros/meus-clientes') ||
-      this.currentUrl.includes('/parceiros/gestao-tutores-aulas') ||
       this.currentUrl.includes('/parceiros/telemedicina-emergencial') ||
       this.currentUrl.includes('/parceiros/reservas-hotel') ||
       this.currentUrl.includes('/parceiros/hospedagem') ||
@@ -152,8 +151,7 @@ export class ParceiroShellComponent implements OnInit {
       this.currentUrl.includes('/parceiros/configuracoes') ||
       this.currentUrl.includes('/parceiros/minha-loja') ||
       this.currentUrl.includes('/parceiros/gestao-clinica') ||
-      this.currentUrl.includes('/parceiros/financeiro-parceiro') ||
-      this.currentUrl.includes('/parceiros/planos-assinatura')
+      this.currentUrl.includes('/parceiros/financeiro-parceiro')
     );
   }
 
@@ -165,7 +163,6 @@ export class ParceiroShellComponent implements OnInit {
   isComercialActive(): boolean {
     return (
       this.currentUrl.includes('/parceiros/petshop-online') ||
-      this.currentUrl.includes('/parceiros/banners') ||
       this.currentUrl.includes('/parceiros/catalogo-produto') ||
       this.currentUrl.includes('/parceiros/inventario-pos') ||
       this.currentUrl.includes('/parceiros/caixa')

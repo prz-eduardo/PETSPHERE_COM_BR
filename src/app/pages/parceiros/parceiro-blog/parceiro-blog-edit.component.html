@@ -1,0 +1,87 @@
+<div class="be-page">
+  <header class="be-header">
+    <a class="be-back" routerLink="../">← Voltar</a>
+    <h1 class="be-header__title">{{ isNew() ? 'Novo post' : 'Editar post' }}</h1>
+    <div class="be-header__actions">
+      @if (!isNew()) {
+        <button class="be-btn be-btn--outline" [disabled]="saving()" (click)="save(!publicado())">
+          {{ publicado() ? 'Mover para rascunho' : 'Publicar' }}
+        </button>
+      }
+      <button class="be-btn be-btn--primary" [disabled]="saving()" (click)="save()">
+        {{ saving() ? 'Salvando…' : 'Salvar' }}
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="be-loading">Carregando…</div>
+  } @else {
+    <div class="be-layout">
+      <!-- Main content -->
+      <div class="be-main">
+        <input
+          class="be-title-input"
+          type="text"
+          placeholder="Título do post"
+          [ngModel]="titulo()"
+          (ngModelChange)="titulo.set($event); autoSlug()" />
+
+        <div class="be-slug-row">
+          <span class="be-slug-label">Slug:</span>
+          <input
+            class="be-slug-input"
+            type="text"
+            [ngModel]="slug()"
+            (ngModelChange)="slug.set($event)"
+            placeholder="gerado-automaticamente" />
+        </div>
+
+        <quill-editor
+          [ngModel]="conteudo()"
+          (ngModelChange)="conteudo.set($event)"
+          name="conteudo"
+          [modules]="quillModules"
+          placeholder="Escreva o conteúdo do post…"
+          class="be-quill">
+        </quill-editor>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="be-sidebar">
+        <!-- Capa -->
+        <div class="be-sidebar__card">
+          <h3 class="be-sidebar__label">Imagem de capa</h3>
+          @if (imagemCapa()) {
+            <div class="be-cover-preview">
+              <img [src]="imagemCapa()!" alt="Capa" />
+              <button type="button" class="be-cover-remove" (click)="removeCover()">Remover</button>
+            </div>
+          } @else {
+            <label class="be-upload-btn">
+              @if (uploadingCover()) { Enviando… } @else { 📷 Adicionar capa }
+              <input type="file" accept="image/*" hidden (change)="pickCover($event)" [disabled]="uploadingCover()" />
+            </label>
+          }
+        </div>
+
+        <!-- Status -->
+        <div class="be-sidebar__card">
+          <h3 class="be-sidebar__label">Status</h3>
+          <label class="be-toggle-row">
+            <span>{{ publicado() ? 'Publicado' : 'Rascunho' }}</span>
+            <label class="be-toggle">
+              <input type="checkbox" [ngModel]="publicado()" (ngModelChange)="publicado.set($event)" />
+              <span class="be-toggle__track"></span>
+            </label>
+          </label>
+        </div>
+
+        <!-- Save bottom -->
+        <button class="be-btn be-btn--primary be-btn--full" [disabled]="saving()" (click)="save()">
+          {{ saving() ? 'Salvando…' : 'Salvar post' }}
+        </button>
+      </aside>
+    </div>
+  }
+</div>

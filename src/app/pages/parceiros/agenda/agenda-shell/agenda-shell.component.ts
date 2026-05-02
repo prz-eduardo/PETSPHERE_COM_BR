@@ -1,8 +1,5 @@
 import {
   Component,
-  DestroyRef,
-  ElementRef,
-  inject,
   OnInit,
   signal,
   computed,
@@ -21,6 +18,7 @@ import { AgendaFiltersComponent } from '../agenda-filters/agenda-filters.compone
 import { AgendaGridComponent } from '../agenda-grid/agenda-grid.component';
 import { AgendaTimelineComponent } from '../agenda-timeline/agenda-timeline.component';
 import { AgendaWeekComponent } from '../agenda-week/agenda-week.component';
+import { AgendaMonthComponent } from '../agenda-month/agenda-month.component';
 import { AgendaListComponent } from '../agenda-list/agenda-list.component';
 import { AgendaSidebarComponent } from '../agenda-sidebar/agenda-sidebar.component';
 import { AgendaModalComponent } from '../agenda-modal/agenda-modal.component';
@@ -43,6 +41,7 @@ import {
     AgendaGridComponent,
     AgendaTimelineComponent,
     AgendaWeekComponent,
+    AgendaMonthComponent,
     AgendaListComponent,
     AgendaSidebarComponent,
     AgendaModalComponent,
@@ -51,9 +50,6 @@ import {
   styleUrls: ['./agenda-shell.component.scss'],
 })
 export class AgendaShellComponent implements OnInit {
-
-  private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly destroyRef = inject(DestroyRef);
 
   viewMode = signal<ViewMode>('DAY');
   selectedDate = signal<Date>(new Date());
@@ -132,7 +128,7 @@ export class AgendaShellComponent implements OnInit {
   agendamentosForView = computed(() => {
     const vm = this.viewMode();
     const base = this.filteredAgendamentos();
-    if (vm === 'WEEK' || vm === 'LIST') return base;
+    if (vm === 'WEEK' || vm === 'MONTH' || vm === 'LIST') return base;
     const d = this.selectedDate();
     const target = d.toDateString();
     return base.filter(a => toDate(a.inicio).toDateString() === target);
@@ -154,6 +150,9 @@ export class AgendaShellComponent implements OnInit {
       const end = new Date(start.getTime() + 6 * 86400000);
       return `${start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} – ${end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
     }
+    if (this.viewMode() === 'MONTH') {
+      return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
     return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
   });
 
@@ -166,11 +165,12 @@ export class AgendaShellComponent implements OnInit {
   readonly MODE_LABELS: Record<ViewMode, string> = {
     DAY: 'Dia',
     WEEK: 'Semana',
+    MONTH: 'Mês',
     TIMELINE: 'Timeline',
     LIST: 'Lista',
   };
 
-  readonly ALL_MODES: ViewMode[] = ['DAY', 'WEEK', 'TIMELINE', 'LIST'];
+  readonly ALL_MODES: ViewMode[] = ['DAY', 'WEEK', 'MONTH', 'TIMELINE', 'LIST'];
 
   constructor(
     private auth: ParceiroAuthService,
@@ -192,18 +192,9 @@ export class AgendaShellComponent implements OnInit {
       void this.reloadFromApi();
     }, { allowSignalWrites: true });
 
-    effect(() => {
-      const locked = this.sidebarOpen() || this.modalAgendamentoId() !== null;
-      const main = this.hostEl.nativeElement.closest('.parceiro-main') as HTMLElement | null;
-      if (!main) return;
-      if (locked) main.style.overflow = 'hidden';
-      else main.style.removeProperty('overflow');
-    });
-
-    this.destroyRef.onDestroy(() => {
-      const main = this.hostEl.nativeElement.closest('.parceiro-main') as HTMLElement | null;
-      main?.style.removeProperty('overflow');
-    });
+    /* Não alterar overflow no host nem no main: alternar inline overflow + removeProperty no WebKit
+     * deixava .grid-scroll sem rolar até outro reflow (ex.: abrir o sidebar — locked punha overflow:hidden
+     * outra vez). O overlay fixo do sidebar/modal já cobre o ecrã; :host já tem overflow:hidden no SCSS. */
   }
 
   async ngOnInit(): Promise<void> {
@@ -246,6 +237,11 @@ export class AgendaShellComponent implements OnInit {
       const start = this.getWeekStart(d);
       const end = new Date(start);
       end.setDate(end.getDate() + 6);
+      return { data_inicio: this.formatLocalYmd(start), data_fim: this.formatLocalYmd(end) };
+    }
+    if (this.viewMode() === 'MONTH') {
+      const start = new Date(d.getFullYear(), d.getMonth(), 1);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
       return { data_inicio: this.formatLocalYmd(start), data_fim: this.formatLocalYmd(end) };
     }
     const one = this.formatLocalYmd(d);
@@ -303,22 +299,45 @@ export class AgendaShellComponent implements OnInit {
     }
   }
 
+  /** No mobile, foco no botão ‹ › “segura” o gesto de scroll até sair do foco. */
+  private releaseDateNavFocus(): void {
+    queueMicrotask(() => {
+      try {
+        const el = document.activeElement as HTMLElement | null;
+        if (el?.closest?.('.date-nav')) el.blur();
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
   prevDate(): void {
     const d = new Date(this.selectedDate());
-    const delta = this.viewMode() === 'WEEK' ? 7 : 1;
-    d.setDate(d.getDate() - delta);
+    if (this.viewMode() === 'MONTH') {
+      d.setMonth(d.getMonth() - 1);
+    } else {
+      const delta = this.viewMode() === 'WEEK' ? 7 : 1;
+      d.setDate(d.getDate() - delta);
+    }
     this.selectedDate.set(d);
+    this.releaseDateNavFocus();
   }
 
   nextDate(): void {
     const d = new Date(this.selectedDate());
-    const delta = this.viewMode() === 'WEEK' ? 7 : 1;
-    d.setDate(d.getDate() + delta);
+    if (this.viewMode() === 'MONTH') {
+      d.setMonth(d.getMonth() + 1);
+    } else {
+      const delta = this.viewMode() === 'WEEK' ? 7 : 1;
+      d.setDate(d.getDate() + delta);
+    }
     this.selectedDate.set(d);
+    this.releaseDateNavFocus();
   }
 
   goToToday(): void {
     this.selectedDate.set(new Date());
+    this.releaseDateNavFocus();
   }
 
   setViewMode(m: ViewMode): void {

@@ -25,6 +25,22 @@
   position: relative;
 }
 
+/* Desktop: filhos participam do flex de .shell; mobile Dia/Timeline: vira scrollport único. */
+.agenda-mobile-scroll {
+  display: contents;
+}
+
+/* Mesmo “stack” que .sidebar-overlay (fixed + z-index alto + touch-action) — WebKit sem isto não rola .agenda-mobile-scroll. */
+.agenda-scroll-compositor-fix {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  pointer-events: none;
+  opacity: 0;
+  overscroll-behavior: none;
+}
+
 // ── Toolbar ───────────────────────────────────────────────────────────────
 
 .toolbar {
@@ -297,15 +313,11 @@
   padding: 12px;
   gap: 0;
 
-  @media (max-width: 767px) {
-    // Reserve space for the floating dock so list/week/empty states aren't clipped
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-  }
-
   // Every routed view child fills the remaining space
   > app-agenda-grid,
   > app-agenda-timeline,
   > app-agenda-week,
+  > app-agenda-month,
   > app-agenda-list,
   > section {
     flex: 1 1 0%;
@@ -383,7 +395,47 @@ app-agenda-filters {
 
   .view-area {
     padding: 8px;
-    padding-top: 8px;
+    /* Shorthand above must not wipe dock clearance; default = small inset only. */
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :host-context(body:has(app-navmenu .ps-dock)) .view-area {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px) + 24px);
+  }
+
+  /* Dia / Timeline / vazio: scroll único em .agenda-mobile-scroll (FAB fica fora no .shell). */
+  :host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .agenda-mobile-scroll {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    box-sizing: border-box;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  :host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .agenda-scroll-compositor-fix {
+    display: block;
+  }
+
+  :host-context(body:has(app-navmenu .ps-dock)):host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .agenda-mobile-scroll {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px) + 24px);
+  }
+
+  :host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .view-area {
+    overflow: visible;
+    flex: 0 0 auto;
+    padding-bottom: 8px;
+  }
+
+  :host-context(body:has(app-navmenu .ps-dock)):host:has(:is(app-agenda-grid, app-agenda-timeline, section.agenda-empty)) .view-area {
+    padding-bottom: 8px;
   }
 
   .date-label {

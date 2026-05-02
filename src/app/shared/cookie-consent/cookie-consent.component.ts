@@ -69,8 +69,9 @@ export class CookieConsentComponent implements OnInit, OnDestroy {
     const path = (this.router.url || '').split('?')[0].split('#')[0];
     const onPolitica =
       path === '/politica-de-privacidade' || path.endsWith('/politica-de-privacidade');
+    const onTermos = path === '/termos-de-uso' || path.endsWith('/termos-de-uso');
     const onAdminArea = path.startsWith('/restrito/admin') || path.startsWith('/restrito/produto');
-    this.hideCookieByRoute = onPolitica || onAdminArea;
+    this.hideCookieByRoute = onPolitica || onTermos || onAdminArea;
   }
 
   private hydrateDraft(): void {

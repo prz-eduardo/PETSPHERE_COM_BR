@@ -1,0 +1,71 @@
+<div class="bl-page">
+  <header class="bl-header">
+    <div>
+      <h1 class="bl-header__title">Blog</h1>
+      <p class="bl-header__sub">Gerencie os posts do seu blog institucional.</p>
+    </div>
+    <a class="bl-btn bl-btn--primary" routerLink="novo">+ Novo post</a>
+  </header>
+
+  <!-- Filters -->
+  <div class="bl-filters">
+    <input
+      class="bl-search"
+      type="search"
+      placeholder="Buscar posts…"
+      [ngModel]="q()"
+      (ngModelChange)="q.set($event)"
+      (keyup.enter)="search()" />
+    <select
+      class="bl-select"
+      [ngModel]="filterPublicado()"
+      (ngModelChange)="filterPublicado.set($event); search()">
+      <option value="all">Todos</option>
+      <option value="1">Publicados</option>
+      <option value="0">Rascunhos</option>
+    </select>
+    <button class="bl-btn bl-btn--outline" (click)="search()">Buscar</button>
+  </div>
+
+  @if (loading()) {
+    <div class="bl-loading">Carregando…</div>
+  } @else if (posts().length === 0) {
+    <div class="bl-empty">
+      <p>Nenhum post encontrado.</p>
+    </div>
+  } @else {
+    <div class="bl-list">
+      @for (post of posts(); track post.id) {
+        <div class="bl-card">
+          @if (post.imagem_capa) {
+            <img class="bl-card__cover" [src]="post.imagem_capa" [alt]="post.titulo" />
+          } @else {
+            <div class="bl-card__cover bl-card__cover--empty">📰</div>
+          }
+          <div class="bl-card__info">
+            <span class="bl-badge" [class.bl-badge--published]="post.publicado" [class.bl-badge--draft]="!post.publicado">
+              {{ post.publicado ? 'Publicado' : 'Rascunho' }}
+            </span>
+            <p class="bl-card__title">{{ post.titulo }}</p>
+            <p class="bl-card__meta">
+              {{ post.publicado && post.publicado_em ? (post.publicado_em | date: 'dd/MM/yyyy') : 'Não publicado' }}
+            </p>
+          </div>
+          <div class="bl-card__actions">
+            <a class="bl-icon-btn" [routerLink]="[post.id]" title="Editar">✏️</a>
+            <button class="bl-icon-btn bl-icon-btn--danger" (click)="deletePost(post)" title="Excluir">🗑️</button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+      <div class="bl-pagination">
+        <button [disabled]="page() === 1" (click)="goPage(page() - 1)">‹</button>
+        <span>{{ page() }} / {{ totalPages() }}</span>
+        <button [disabled]="page() === totalPages()" (click)="goPage(page() + 1)">›</button>
+      </div>
+    }
+  }
+</div>

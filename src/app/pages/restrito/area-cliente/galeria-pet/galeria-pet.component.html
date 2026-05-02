@@ -27,12 +27,31 @@
     <div class="gallery-toolbar">
       <div class="gallery-toolbar__copy">
         <p class="photo-hint muted small">Pode enviar várias fotos, até 12 novas por vez, com 3MB cada.</p>
-        <p class="gallery-toolbar__subhint">Clique em uma foto salva para abrir a configuração da imagem, ajustar legenda e definir se ela entra na galeria pública.</p>
+        <p class="gallery-toolbar__subhint">Fotos em coleção aparecem como 1 card no feed público (com carrossel). Por isso, 3 fotos salvas podem virar 2 cards públicos.</p>
       </div>
       <div class="gallery-toolbar__actions">
         <button type="button" class="btn btn-sec btn-sec--small" (click)="carregarColecoesSelecionadas()" [disabled]="!hasSelectedPets">Atualizar coleções</button>
         <button *ngIf="fotoPreviews.length" type="button" class="btn btn-sec" (click)="removerTodasNovas()">Limpar novas</button>
       </div>
+    </div>
+
+    <div class="gallery-kpis" *ngIf="hasSelectedPets">
+      <article class="gallery-kpi">
+        <span class="gallery-kpi__label">Fotos salvas</span>
+        <strong class="gallery-kpi__value">{{ totalFotosSalvas }}</strong>
+      </article>
+      <article class="gallery-kpi gallery-kpi--public">
+        <span class="gallery-kpi__label">Fotos públicas elegíveis</span>
+        <strong class="gallery-kpi__value">{{ totalFotosPublicas }}</strong>
+      </article>
+      <article class="gallery-kpi gallery-kpi--cards">
+        <span class="gallery-kpi__label">Cards estimados no feed</span>
+        <strong class="gallery-kpi__value">{{ totalCardsPublicosEstimados }}</strong>
+      </article>
+      <article class="gallery-kpi gallery-kpi--hidden">
+        <span class="gallery-kpi__label">Ocultas/pendentes</span>
+        <strong class="gallery-kpi__value">{{ totalFotosOcultas }}</strong>
+      </article>
     </div>
 
     <!-- Gallery Sections -->
@@ -71,6 +90,18 @@
           </button>
         </div>
 
+        <div class="visibility-tabs" *ngIf="hasSelectedPets">
+          <button type="button" class="visibility-tab" [class.visibility-tab--active]="isVisibilityFilterActive('all')" (click)="setVisibilityFilter('all')">
+            Todas
+          </button>
+          <button type="button" class="visibility-tab" [class.visibility-tab--active]="isVisibilityFilterActive('public')" (click)="setVisibilityFilter('public')">
+            Públicas
+          </button>
+          <button type="button" class="visibility-tab" [class.visibility-tab--active]="isVisibilityFilterActive('hidden')" (click)="setVisibilityFilter('hidden')">
+            Ocultas/Pendentes
+          </button>
+        </div>
+
         <div class="gallery-list" *ngIf="visibleGaleriaItens.length; else noFotoSalva">
           <article class="gallery-item-card gallery-item-card--clickable" *ngFor="let g of visibleGaleriaItens" (click)="openGalleryItemSettings(g)" (keydown.enter)="openGalleryItemSettings(g)" tabindex="0">
             <div class="gallery-item-card__media">
@@ -80,8 +111,17 @@
             <div class="gallery-item-card__body">
               <div class="gallery-item-card__title">Foto da galeria</div>
               <div class="gallery-item-card__pet">{{ g.pet_nome }}</div>
-              <div class="gallery-item-card__status">{{ galleryItemStatus(g) }}</div>
+              <div class="gallery-item-card__status" [ngClass]="'gallery-item-card__status--' + galleryItemStatusTone(g)">{{ galleryItemStatus(g) }}</div>
               <div class="gallery-item-card__meta" *ngIf="g.legenda">{{ g.legenda }}</div>
+              <div class="gallery-item-card__actions">
+                <button
+                  type="button"
+                  class="btn btn-sec btn-sec--small"
+                  (click)="toggleGalleryItemVisibility(g, $event)"
+                >
+                  {{ (g.galeria_publica === false || g.galeria_publica === 0 || g.galeria_publica === '0') ? 'Publicar foto' : 'Ocultar foto' }}
+                </button>
+              </div>
               <div class="gallery-item-card__cta">Clique para configurar esta foto</div>
             </div>
           </article>

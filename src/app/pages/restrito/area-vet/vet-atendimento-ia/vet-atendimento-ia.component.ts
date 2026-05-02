@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ApiService } from '../../../../services/api.service';
+import { ApiService, PetVacinaCronogramaItem, PetVacinaRow } from '../../../../services/api.service';
 import { AuthService } from '../../../../services/auth.service';
 import { ParceiroAuthService } from '../../../../services/parceiro-auth.service';
 
@@ -17,6 +17,11 @@ export class VetAtendimentoIaComponent implements OnInit {
   loading = false;
   erro: string | null = null;
   detalhe: any = null;
+
+  vacinasCronograma: PetVacinaCronogramaItem[] = [];
+  vacinasList: PetVacinaRow[] = [];
+  carregandoVacinas = false;
+  vacinaErro: string | null = null;
 
   readonly steps = [
     'Áudio ou notas livres',
@@ -71,11 +76,51 @@ export class VetAtendimentoIaComponent implements OnInit {
       next: (r) => {
         this.detalhe = r;
         this.loading = false;
+        this.loadVacinas(r, token);
       },
       error: (e) => {
         this.erro = e?.error?.error || 'Não foi possível carregar o atendimento.';
         this.loading = false;
       },
+    });
+  }
+
+  loadVacinas(detalhe: any, token: string): void {
+    const clienteId = detalhe?.cliente_id ?? detalhe?.tutor_id;
+    const petId = detalhe?.pet_id;
+    if (!clienteId || !petId) return;
+    this.carregandoVacinas = true;
+    this.api.getPetVacinasCronograma(Number(clienteId), petId, token).subscribe({
+      next: (r) => {
+        this.vacinasCronograma = r?.itens ?? [];
+        this.carregandoVacinas = false;
+      },
+      error: () => { this.carregandoVacinas = false; },
+    });
+    this.api.listPetVacinas(Number(clienteId), petId, token).subscribe({
+      next: (rows) => { this.vacinasList = rows ?? []; },
+      error: () => {},
+    });
+  }
+
+  validarVacina(vacinaId: number, status: 'validada' | 'rejeitada', motivo?: string): void {
+    const clienteId = this.detalhe?.cliente_id ?? this.detalhe?.tutor_id;
+    const petId = this.detalhe?.pet_id;
+    const token = this.getEffectiveToken();
+    if (!clienteId || !petId || !token) return;
+    this.api.validarPetVacina(
+      Number(clienteId),
+      petId,
+      vacinaId,
+      { status, motivo_rejeicao: motivo },
+      token
+    ).subscribe({
+      next: (updated) => {
+        this.vacinasList = this.vacinasList.map(v =>
+          v.id === updated.id ? { ...v, status_validacao: updated.status_validacao } : v
+        );
+      },
+      error: () => { this.vacinaErro = 'Erro ao validar vacina.'; },
     });
   }
 }

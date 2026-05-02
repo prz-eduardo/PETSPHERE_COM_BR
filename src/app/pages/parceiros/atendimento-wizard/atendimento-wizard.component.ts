@@ -14,7 +14,7 @@ import {
 } from '../../../services/vet-wizard-session.service';
 import { ParceiroAuthService } from '../../../services/parceiro-auth.service';
 import { AuthService } from '../../../services/auth.service';
-import { ApiService } from '../../../services/api.service';
+import { ApiService, PetVacinaCronogramaItem } from '../../../services/api.service';
 import { ToastService } from '../../../services/toast.service';
 
 interface StepMeta {
@@ -88,6 +88,10 @@ export class AtendimentoWizardComponent implements OnInit, OnDestroy {
     diagnostico: false,
     receita: false,
   };
+
+  // Vacinas
+  vacinasCronograma: PetVacinaCronogramaItem[] = [];
+  carregandoVacinas = false;
 
   // Etapa 4 — decisão
   decisao: DecisaoOperacional | null = null;
@@ -370,6 +374,38 @@ export class AtendimentoWizardComponent implements OnInit, OnDestroy {
   selecionarPet(pet: WizardPet): void {
     this.petSelecionado = pet;
     this.form.petNomeManual = '';
+    this.loadVacinasCronograma();
+  }
+
+  loadVacinasCronograma(): void {
+    if (!this.clienteIdSelecionado || !this.petSelecionado?.id) return;
+    if (!isPlatformBrowser(this.platformId)) return;
+    const token = this.getEffectiveToken();
+    if (!token) return;
+    this.carregandoVacinas = true;
+    this.vacinasCronograma = [];
+    this.apiService
+      .getPetVacinasCronograma(
+        this.clienteIdSelecionado,
+        this.petSelecionado.id,
+        token,
+        this.petSelecionado.especie
+      )
+      .subscribe({
+        next: (r) => {
+          this.vacinasCronograma = r?.itens ?? [];
+          this.carregandoVacinas = false;
+        },
+        error: () => { this.carregandoVacinas = false; },
+      });
+  }
+
+  get vacinasAtrasadas(): PetVacinaCronogramaItem[] {
+    return this.vacinasCronograma.filter(v => v.status === 'atrasada');
+  }
+
+  get vacinasProximas(): PetVacinaCronogramaItem[] {
+    return this.vacinasCronograma.filter(v => v.status === 'proxima');
   }
 
   get podeIniciarAtendimento(): boolean {

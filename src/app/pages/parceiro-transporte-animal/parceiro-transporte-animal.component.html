@@ -1,0 +1,208 @@
+<main class="plp-shell" id="topo">
+  <header class="plp-hero" aria-labelledby="transporte-hero-title">
+    <div class="hero-orbs" aria-hidden="true">
+      <span class="orb orb-aurora"></span>
+      <span class="orb orb-violet"></span>
+    </div>
+    <div class="hero-inner">
+      <span class="hero-kicker">
+        <i class="fa-solid fa-truck" aria-hidden="true"></i>
+        Transporte animal
+      </span>
+      <h1 id="transporte-hero-title" class="hero-title">
+        Corridas pet <span class="hero-accent">com rastro e tranquilidade</span>
+      </h1>
+      <p class="hero-lead">
+        Coleta, trânsito e entrega integrados à mesma plataforma em que tutores já encontram vets, hotéis e passeios — visibilidade no
+        mapa, agenda organizada e comunicação automática nos planos pagos.
+      </p>
+      <div class="hero-actions">
+        <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+          Ver planos e créditos
+        </a>
+        <a routerLink="/parceiro/cadastrar" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+          Cadastrar operação
+        </a>
+        <a routerLink="/mapa?service=transporte" class="btn btn-ghost btn-lg">
+          <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+          Ver no mapa
+        </a>
+      </div>
+      <ul class="hero-trust" aria-label="Benefícios destacados">
+        <li *ngFor="let t of heroTrust">
+          <span class="trust-ic"><i [class]="t.icon" aria-hidden="true"></i></span>
+          <span><strong>{{ t.strong }}</strong> — {{ t.text }}</span>
+        </li>
+      </ul>
+      <div class="plp-hero-summary">
+        <p class="plp-hero-summary__head">
+          <i class="fa-solid fa-road" aria-hidden="true"></i>
+          Logística no painel parceiro
+        </p>
+        <p class="plp-hero-summary__lead">
+          Ofereça transporte com a mesma linguagem de agendamentos e status que o restante da {{ marca }} — tutores enxergam
+          previsibilidade; você enxerga ocupação.
+        </p>
+        <ul class="plp-hero-summary__list">
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Janelas de coleta e entrega</li>
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Planos com WhatsApp + IA opcionais</li>
+          <li><i class="fa-solid fa-check" aria-hidden="true"></i> Descoberta no mapa e marketplace</li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <div class="plp-page">
+    <hr class="plp-divider" aria-hidden="true" />
+
+    <section class="plp-bloco plp-bloco--surface" aria-labelledby="transporte-como-title" id="como-funciona">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Operação de transporte</span>
+          <h2 id="transporte-como-title" class="section-title">Como a PetSphere apoia corridas com pet</h2>
+          <p class="section-lead">
+            Do cadastro público ao acompanhamento do tutor — mesma infraestrutura de parceiros que já cobre agendas exigentes.
+          </p>
+        </div>
+        <div class="servicos-grid">
+          <article class="servico-card" *ngFor="let o of operacao">
+            <div class="servico-card__icon" aria-hidden="true"><i [class]="o.icon"></i></div>
+            <h3 class="servico-card__title">{{ o.title }}</h3>
+            <p class="servico-card__lead">{{ o.lead }}</p>
+            <a href="#bloco-cta-transporte" class="servico-card__link" (click)="scrollTo('bloco-cta-transporte', $event)">
+              Quero escalar <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <hr class="plp-divider" aria-hidden="true" />
+
+    <section class="plp-bloco" aria-labelledby="transporte-modos-title">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Um serviço, vários formatos</span>
+          <h2 id="transporte-modos-title" class="section-title">Clínica, hotel ou evento</h2>
+          <p class="section-lead">Adapte a oferta ao que você transporta sem perder o mesmo back-end de parceiro.</p>
+        </div>
+        <div class="dores-grid">
+          <article class="dor-card" *ngFor="let m of modos">
+            <div class="dor-card__icon" aria-hidden="true"><i [class]="m.icon"></i></div>
+            <h3 class="dor-card__title">{{ m.title }}</h3>
+            <p class="dor-card__text">{{ m.text }}</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <hr class="plp-divider" aria-hidden="true" />
+
+    <section class="plp-bloco plp-bloco--cosmos" aria-labelledby="transporte-auto-title">
+      <div class="section-inner">
+        <div class="section-head section-head--light">
+          <span class="eyebrow eyebrow--light">Relacionamento com tutores</span>
+          <h2 id="transporte-auto-title" class="section-title section-title--light">Menos “cadê o carro?” na operação</h2>
+          <p class="section-lead section-lead--light">
+            Nos planos Pro e superiores, a {{ marca }} oferece o mesmo pacote de WhatsApp, IA e e-mail já documentado para outros
+            prestadores em Planos &amp; créditos — aplicável a confirmações de janela e avisos de status.
+          </p>
+        </div>
+        <div class="pro-grid">
+          <article class="pro-card" *ngFor="let c of comunicacao">
+            <div class="pro-card__icon" aria-hidden="true"><i [class]="c.icon"></i></div>
+            <h3 class="pro-card__title">{{ c.title }}</h3>
+            <p class="pro-card__text">{{ c.text }}</p>
+          </article>
+        </div>
+        <div class="pro-cta">
+          <a routerLink="/parceiro/planos" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+            Ver Planos Free e Pro
+          </a>
+          <a routerLink="/parceiro/passeadores" class="btn btn-ghost btn-lg">Também atendo passeios</a>
+        </div>
+      </div>
+    </section>
+
+    <hr class="plp-divider" aria-hidden="true" />
+
+    <section class="plp-bloco" aria-labelledby="jornada-transporte-title">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Passo a passo</span>
+          <h2 id="jornada-transporte-title" class="section-title">Do cadastro à primeira corrida rastreada</h2>
+        </div>
+        <ol class="jornada-track">
+          <li class="jornada-step">
+            <span class="jornada-step__n" aria-hidden="true">1</span>
+            <div class="jornada-step__body">
+              <h3 class="jornada-step__title">Cadastre a operação como parceiro</h3>
+              <p class="jornada-step__text">Escolha plano inicial e libere a vitrine — tutores já podem encontrar transporte no ecossistema.</p>
+            </div>
+          </li>
+          <li class="jornada-step">
+            <span class="jornada-step__n" aria-hidden="true">2</span>
+            <div class="jornada-step__body">
+              <h3 class="jornada-step__title">Defina janelas, regiões e tipos de caixa</h3>
+              <p class="jornada-step__text">Alinhe o que você realmente cobre (IDA, volta, evento) às regras de agendamento no painel.</p>
+            </div>
+          </li>
+          <li class="jornada-step">
+            <span class="jornada-step__n" aria-hidden="true">3</span>
+            <div class="jornada-step__body">
+              <h3 class="jornada-step__title">Ative automações conforme escala</h3>
+              <p class="jornada-step__text">
+                Subindo para planos pagos, ligue WhatsApp, IA na recepção digital e lembretes para reduzir faltas e replanejamentos de última hora.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="plp-bloco" aria-labelledby="faq-transporte-title">
+      <div class="section-inner section-inner--narrow">
+        <div class="section-head">
+          <span class="eyebrow">Dúvidas</span>
+          <h2 id="faq-transporte-title" class="section-title">Perguntas frequentes</h2>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item" *ngFor="let item of faq">
+            <summary class="faq-q">{{ item.q }}</summary>
+            <p class="faq-a">{{ item.a }}</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="plp-cta-band" id="bloco-cta-transporte" aria-labelledby="cta-transporte-final">
+      <div class="section-inner">
+        <h2 id="cta-transporte-final" class="cta-band__title">Coloque seu transporte pet no mapa</h2>
+        <p class="cta-band__lead">
+          Experimente Free com vitrine e mapa ou suba de plano quando status em tempo real e automações virarem obrigatórios.
+        </p>
+        <div class="cta-band__actions">
+          <a routerLink="/parceiro/cadastrar" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-door-open" aria-hidden="true"></i>
+            Começar agora
+          </a>
+          <a routerLink="/parceiro/planos" class="btn btn-ghost btn-lg">Comparar planos</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="plp-sticky-cta" role="region" aria-label="Ações rápidas">
+      <a routerLink="/parceiro/planos" class="plp-sticky-cta__btn plp-sticky-cta__btn--primary">
+        <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+        Planos
+      </a>
+      <a routerLink="/parceiro/cadastrar" class="plp-sticky-cta__btn plp-sticky-cta__btn--secondary">
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+        Cadastrar
+      </a>
+    </div>
+  </div>
+</main>

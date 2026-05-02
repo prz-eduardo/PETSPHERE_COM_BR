@@ -1,0 +1,94 @@
+<div class="sb-page">
+  <header class="sb-header">
+    <div class="sb-header__left">
+      <h1 class="sb-header__title">Site Builder</h1>
+      <p class="sb-header__sub">Monte as seções da sua página institucional.</p>
+    </div>
+    <a
+      class="sb-btn sb-btn--outline"
+      routerLink="/institucional-loja"
+      target="_blank"
+      rel="noopener">
+      Ver página →
+    </a>
+  </header>
+
+  <!-- Add section picker -->
+  <section class="sb-add-section">
+    <p class="sb-add-section__label">Adicionar seção:</p>
+    <div class="sb-add-section__chips">
+      @for (tipo of TIPOS; track tipo.value) {
+        <button class="sb-chip" (click)="openCreate(tipo.value)">
+          <span class="sb-chip__icon">{{ tipo.icon }}</span>
+          {{ tipo.label }}
+        </button>
+      }
+    </div>
+  </section>
+
+  @if (loading()) {
+    <div class="sb-loading">Carregando seções…</div>
+  } @else if (sections().length === 0) {
+    <div class="sb-empty">
+      <p>Nenhuma seção ainda. Use os botões acima para começar.</p>
+    </div>
+  } @else {
+    <div
+      class="sb-list"
+      cdkDropList
+      (cdkDropListDropped)="onDrop($event)">
+      @for (section of sections(); track section.id) {
+        <div
+          class="sb-card"
+          [class.sb-card--inactive]="!section.ativo"
+          cdkDrag>
+          <div class="sb-card__drag" cdkDragHandle>
+            <svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor">
+              <circle cx="3" cy="4" r="2"/><circle cx="11" cy="4" r="2"/>
+              <circle cx="3" cy="10" r="2"/><circle cx="11" cy="10" r="2"/>
+              <circle cx="3" cy="16" r="2"/><circle cx="11" cy="16" r="2"/>
+            </svg>
+          </div>
+
+          <div class="sb-card__icon">{{ tipoIcon(section.tipo) }}</div>
+
+          <div class="sb-card__info">
+            <span class="sb-card__tipo">{{ tipoLabel(section.tipo) }}</span>
+            <span class="sb-card__titulo">{{ section.titulo || '(sem título)' }}</span>
+          </div>
+
+          <div class="sb-card__actions">
+            <button
+              class="sb-icon-btn"
+              [title]="section.ativo ? 'Ocultar' : 'Exibir'"
+              (click)="toggleActive(section)">
+              {{ section.ativo ? '👁️' : '🚫' }}
+            </button>
+            <button class="sb-icon-btn" title="Editar" (click)="openEdit(section)">✏️</button>
+            <button class="sb-icon-btn sb-icon-btn--danger" title="Excluir" (click)="deleteSection(section)">🗑️</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Drawer -->
+@if (drawerOpen()) {
+  <div class="sb-overlay" (click)="closeDrawer()"></div>
+  <aside class="sb-drawer">
+    <div class="sb-drawer__header">
+      <h2>{{ drawerMode() === 'create' ? 'Nova seção: ' + tipoLabel(newTipo()) : 'Editar seção' }}</h2>
+      <button class="sb-icon-btn" (click)="closeDrawer()">✕</button>
+    </div>
+    <div class="sb-drawer__body">
+      <app-site-section-form
+        [tipo]="drawerMode() === 'create' ? newTipo() : editingSection()!.tipo"
+        [initial]="editingSection()"
+        [saving]="saving()"
+        (saved)="onFormSave($event)"
+        (cancelled)="closeDrawer()">
+      </app-site-section-form>
+    </div>
+  </aside>
+}

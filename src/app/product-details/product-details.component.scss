@@ -147,6 +147,26 @@
 	background: linear-gradient(135deg, #f5a700, var(--fp-yellow));
 }
 .pd-hero .hero-stat strong { color: #0f172a; }
+.pd-hero .hero-stat--partner {
+	background: #0f766e;
+	color: #fff;
+	border-color: rgba(15, 118, 110, 0.35);
+	font-size: 12px;
+	font-weight: 800;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+}
+
+.pd-partner-fulfillment {
+	margin: 12px 0 10px;
+	padding: 12px 14px;
+	font-size: 14px;
+	line-height: 1.45;
+	color: #0f172a;
+	background: rgba(15, 118, 110, 0.08);
+	border-left: 4px solid #0f766e;
+	border-radius: 8px;
+}
 
 /* CTA card (padrão galeria/mapa) */
 .pd-cta-card {

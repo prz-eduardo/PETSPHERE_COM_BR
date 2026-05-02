@@ -5,7 +5,7 @@
 
 export type PartnerType = 'PETSHOP' | 'CLINIC' | 'SITTER' | 'HOTEL' | 'DAYCARE';
 
-export type ViewMode = 'DAY' | 'WEEK' | 'TIMELINE' | 'LIST';
+export type ViewMode = 'DAY' | 'WEEK' | 'MONTH' | 'TIMELINE' | 'LIST';
 
 export type AgendaStatus =
   | 'AGENDADO'

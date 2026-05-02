@@ -579,12 +579,7 @@
   font-weight: 500;
   font-family: inherit;
   text-align: left;
-  text-decoration: none;
   transition: background 0.15s, color 0.15s;
-
-  &.item--external {
-    color: inherit;
-  }
 
   > i:first-child {
     width: 18px;

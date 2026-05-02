@@ -5,6 +5,7 @@
       <span class="saas-pill__dot" aria-hidden="true"></span>
       Solução PetSphere
     </span>
+    <span class="partner-fulfillment-pill" *ngIf="product.vendidoParceiroExterno" title="Entregue e vendido pelo parceiro fornecedor (não por esta loja).">Parceiro</span>
   </div>
   <div class="box-content">
     <button class="buy" *ngIf="product.permiteCheckout !== false" type="button" (click)="onAddClick($event)">+</button>

@@ -293,16 +293,11 @@
           <span>Hotel & Creche</span>
           <span class="badge-soon">Em breve</span>
         </button>
-        <a
-          class="item item--external"
-          routerLink="/adestramentos"
-          *ngIf="matches('adestramento treinamento comportamento')"
-        >
+        <button class="item item--soon" *ngIf="matches('adestramento treinamento comportamento')" tabindex="0" disabled>
           <i class="fa fa-graduation-cap"></i>
           <span>Adestramento</span>
-          <span class="badge-soon">Preview</span>
-          <i class="fa fa-arrow-right item-arrow" aria-hidden="true"></i>
-        </a>
+          <span class="badge-soon">Em breve</span>
+        </button>
         <button class="item item--soon" *ngIf="matches('planos assinatura financeiro cobranca')" tabindex="0" disabled>
           <i class="fa fa-credit-card"></i>
           <span>Planos & Assinatura</span>

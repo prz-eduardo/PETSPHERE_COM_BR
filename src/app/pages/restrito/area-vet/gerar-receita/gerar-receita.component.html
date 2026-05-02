@@ -114,6 +114,19 @@
       <div class="muted">Nenhum pet encontrado para este tutor.</div>
     </ng-template>
     </ng-container>
+
+  <!-- Banner de alerta vacinal -->
+  <div class="vacinas-alerta" *ngIf="petSelecionado && (vacinasAtrasadas.length || vacinasProximas.length)">
+    <div class="vacinas-alerta__title"><i class="fa fa-syringe"></i> Situação vacinal — {{ petSelecionado.nome }}</div>
+    <div class="vacinas-alerta__grupo" *ngIf="vacinasAtrasadas.length">
+      <span class="badge badge--danger">Atrasada</span>
+      <span *ngFor="let v of vacinasAtrasadas" class="vacinas-alerta__item">{{ v.nome }}</span>
+    </div>
+    <div class="vacinas-alerta__grupo" *ngIf="vacinasProximas.length">
+      <span class="badge badge--warning">Próxima</span>
+      <span *ngFor="let v of vacinasProximas" class="vacinas-alerta__item">{{ v.nome }}</span>
+    </div>
+  </div>
   </article>
 
   <!-- Cadastro manual do tutor -->

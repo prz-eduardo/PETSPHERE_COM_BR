@@ -18,6 +18,62 @@
   font-size: 14px;
 }
 
+.vac-cronograma {
+  margin: 0 0 18px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.vac-cronograma__title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #e6eef8;
+}
+
+.vac-cronograma__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.vac-cronograma__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.vac-chip {
+  display: inline-flex;
+  width: fit-content;
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.vac-chip--ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
+.vac-chip--warn {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+.vac-chip--danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
 .vac-panel__empty {
   margin: 8px 0 20px;
   font-size: 14px;
@@ -112,6 +168,21 @@
   border-radius: 999px;
   background: rgba(196, 214, 0, 0.15);
   color: #d9e86a;
+}
+
+.vac-badge--ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
+.vac-badge--warn {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+.vac-badge--danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
 }
 
 .vac-btn-ghost {

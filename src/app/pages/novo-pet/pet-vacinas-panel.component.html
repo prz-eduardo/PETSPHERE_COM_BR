@@ -5,6 +5,20 @@
 
   <div *ngIf="carregando" class="vac-panel__loading" aria-live="polite">Carregando carteira…</div>
 
+  <section class="vac-cronograma" *ngIf="!carregandoCronograma && cronograma.length">
+    <h5 class="vac-cronograma__title">Carteirinha inteligente (cronograma)</h5>
+    <div class="vac-cronograma__grid">
+      <div class="vac-cronograma__item" *ngFor="let c of cronograma">
+        <strong>{{ c.nome }}</strong>
+        <span class="muted small-print">{{ c.tipo === 'essencial' ? 'Essencial' : 'Opcional' }}</span>
+        <span class="vac-chip" [class.vac-chip--ok]="c.status === 'em_dia'" [class.vac-chip--warn]="c.status === 'proxima' || c.status === 'sugerida'" [class.vac-chip--danger]="c.status === 'atrasada'">
+          {{ c.status === 'em_dia' ? 'Em dia' : c.status === 'proxima' ? 'Próxima' : c.status === 'atrasada' ? 'Atrasada' : 'Sugerida' }}
+        </span>
+        <span class="muted small-print" *ngIf="c.proxima_reforco">Próxima: {{ formatarBrData(c.proxima_reforco) }}</span>
+      </div>
+    </div>
+  </section>
+
   <ul class="vac-timeline" *ngIf="!carregando && lista.length">
     <li *ngFor="let v of lista" class="vac-timeline__item">
       <div class="vac-timeline__dot" aria-hidden="true"></div>
@@ -26,7 +40,12 @@
             rel="noopener noreferrer"
           >Ver comprovante</a>
           <span class="vac-badge" *ngIf="v.lembrete_ativo === 1 || v.lembrete_ativo === true">Lembrete ligado</span>
+          <span class="vac-badge" [ngClass]="'vac-badge--' + statusValidacaoMod(v.status_validacao)">
+            {{ statusValidacaoLabel(v.status_validacao) }}
+          </span>
           <button type="button" class="vac-btn-ghost" (click)="editar(v)">Editar</button>
+          <button type="button" class="vac-btn-ghost" *ngIf="podeValidarClinicamente" (click)="validar(v, 'validada')">Validar</button>
+          <button type="button" class="vac-btn-ghost vac-btn-ghost--danger" *ngIf="podeValidarClinicamente" (click)="validar(v, 'rejeitada')">Rejeitar</button>
           <button type="button" class="vac-btn-ghost vac-btn-ghost--danger" (click)="excluir(v)">Excluir</button>
         </div>
       </div>
@@ -39,8 +58,15 @@
     <h4 class="vac-form-card__title">{{ editandoId != null ? 'Editar dose' : 'Nova dose' }}</h4>
     <div class="vac-form-grid">
       <div class="field">
-        <label>Vacina *</label>
-        <input type="text" [(ngModel)]="formNome" placeholder="Ex.: V8, Antirrábica" />
+        <label>Catálogo (cães e gatos)</label>
+        <select [(ngModel)]="formCatalogoId" (ngModelChange)="onCatalogoChange()">
+          <option value="">Selecionar vacina</option>
+          <option *ngFor="let c of catalogo" [value]="c.id">{{ c.nome }} · {{ c.especie }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Vacina (manual)</label>
+        <input type="text" [(ngModel)]="formNome" placeholder="Ex.: V8, Antirrábica, outra vacina" />
       </div>
       <div class="field">
         <label>Data da aplicação *</label>
