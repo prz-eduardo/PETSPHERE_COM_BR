@@ -1,4 +1,4 @@
-<ng-container *ngIf="pet && (inlineMode || isOpen)">
+<ng-container *ngIf="post && (inlineMode || isOpen)">
   <div class="pet-lightbox-inline" *ngIf="inlineMode">
     <ng-container *ngTemplateOutlet="lightboxBody"></ng-container>
   </div>
@@ -9,7 +9,8 @@
 </ng-container>
 
 <ng-template #lightboxBody>
-  <div class="pet-lightbox" [class.pet-lightbox--inline]="inlineMode" [attr.aria-label]="'Foto de ' + (pet.nome || 'pet')">
+  <ng-container *ngIf="post as p">
+  <div class="pet-lightbox" [class.pet-lightbox--inline]="inlineMode" [attr.aria-label]="'Post de ' + (p.pet?.nome || 'pet')">
     <div
       class="lightbox-media"
       (pointerdown)="onMediaPointerDown($event)"
@@ -18,30 +19,29 @@
       (wheel)="onMediaWheel($event)"
     >
       <button class="lightbox-close" *ngIf="!inlineMode" type="button" aria-label="Fechar" (click)="onClose()">×</button>
-      <p *ngIf="pet.colecao_titulo" class="lightbox-colecao-tag">{{ pet.colecao_titulo }}</p>
-      <button type="button" class="lb-nav lb-prev" *ngIf="showCarouselNav()" (click)="prevLb($event)" aria-label="Foto anterior">‹</button>
-      <img class="lightbox-main-img" [src]="resolveImage()" alt="Foto de {{ pet.nome || 'pet' }}" (error)="onImgError($event)" />
-      <button type="button" class="lb-nav lb-next" *ngIf="showCarouselNav()" (click)="nextLb($event)" aria-label="Foto seguinte">›</button>
-      <div class="lb-dots" *ngIf="showCarouselNav() && lbDots().length > 1">
+      <button type="button" class="lb-nav lb-prev" *ngIf="hasMultipleImages" (click)="prevSlide($event)" aria-label="Foto anterior">‹</button>
+      <img class="lightbox-main-img" [src]="resolveImage()" alt="Foto do post" (error)="onImgError($event)" />
+      <button type="button" class="lb-nav lb-next" *ngIf="hasMultipleImages" (click)="nextSlide($event)" aria-label="Foto seguinte">›</button>
+      <div class="lb-dots" *ngIf="hasMultipleImages && dots.length > 1">
         <button
           type="button"
-          *ngFor="let i of lbDots()"
+          *ngFor="let i of dots"
           class="lb-dot"
-          [class.lb-dot--on]="lightboxImgIndex === i"
-          (click)="goLb(i, $event)"
+          [class.lb-dot--on]="imageIndex === i"
+          (click)="goSlide(i, $event)"
           [attr.aria-label]="'Foto ' + (i + 1)"
         ></button>
       </div>
 
       <section class="reactions-section reactions-section--overlay">
-        <div class="reactions-summary" *ngIf="getTotalReactions() > 0">
+        <div class="reactions-summary" *ngIf="totalReactions() > 0">
           <div class="reaction-stack">
-            <span class="stacked-emoji" *ngFor="let r of getTopReactions(); let i = index; trackBy: trackReaction" [style.--i]="i">
+            <span class="stacked-emoji" *ngFor="let r of topReactions(); let i = index; trackBy: trackReaction" [style.--i]="i">
               {{ r.emoji }}
             </span>
           </div>
           <span class="reaction-total-label">
-            {{ getTotalReactions() }} {{ getTotalReactions() === 1 ? 'reação' : 'reações' }}
+            {{ totalReactions() }} {{ totalReactions() === 1 ? 'reação' : 'reações' }}
           </span>
         </div>
         <div class="reactions-bar">
@@ -49,12 +49,12 @@
             *ngFor="let r of reactionTypes; trackBy: trackReaction"
             type="button"
             class="reaction-chip"
-            [class.active]="userReactionForUi === r.tipo"
+            [class.active]="currentReaction === r.tipo"
             (click)="onSelectReaction(r.tipo)"
             [attr.aria-label]="r.label"
           >
             <span class="emoji">{{ r.emoji }}</span>
-            <span class="count">{{ getReactionCount(r.tipo) }}</span>
+            <span class="count">{{ reactionCount(r.tipo) }}</span>
           </button>
         </div>
       </section>
@@ -64,34 +64,31 @@
       <header class="pet-header">
         <div class="pet-title-row">
           <a
-            *ngIf="pet.pet_id; else petTitleSemLink"
+            *ngIf="p.pet_id; else petTitleSemLink"
             [routerLink]="getPetPerfilPath()"
             class="pet-title-cta"
             (click)="$event.stopPropagation()"
-            [attr.aria-label]="'Perfil do pet — ' + (pet.nome || pet.name || 'Sem nome')"
+            [attr.aria-label]="'Perfil do pet — ' + (p.pet?.nome || 'Sem nome')"
           >
-            <h2 class="pet-name">{{ pet.nome || pet.name || 'Sem nome' }}</h2>
+            <h2 class="pet-name">{{ p.pet?.nome || 'Sem nome' }}</h2>
             <span class="pet-title-cta__hint">Perfil do pet</span>
           </a>
           <ng-template #petTitleSemLink>
-            <h2 class="pet-name">{{ pet.nome || pet.name || 'Sem nome' }}</h2>
+            <h2 class="pet-name">{{ p.pet?.nome || 'Sem nome' }}</h2>
           </ng-template>
-          <span class="pet-species-emoji" [attr.title]="pet.especie || pet.tipo || 'Pet'" aria-hidden="true">{{ typeEmoji(pet.especie || pet.tipo) }}</span>
+          <span class="pet-species-emoji" [attr.title]="p.pet?.especie || 'Pet'" aria-hidden="true">{{ speciesEmoji(p.pet?.especie) }}</span>
         </div>
-        <div class="pet-multi-names" *ngIf="pet.pets_na_foto?.length > 1" role="list" aria-label="Pets na foto">
-          <span *ngFor="let np of pet.pets_na_foto" class="chip chip--multi" role="listitem">{{ np.nome }}</span>
+        <div class="pet-multi-names" *ngIf="p.pets.length > 1" role="list" aria-label="Pets no post">
+          <span *ngFor="let np of p.pets" class="chip chip--multi" role="listitem">{{ np.nome }}</span>
         </div>
         <div class="pet-meta">
-          <span *ngIf="pet.raca" class="chip">{{ pet.raca }}</span>
-          <span *ngIf="pet.especie" class="chip">{{ pet.especie }}</span>
-          <span *ngIf="pet.idade != null" class="chip">{{ pet.idade }} {{ pet.idade === 1 ? 'ano' : 'anos' }}</span>
-          <span *ngIf="pet.sexo" class="chip">{{ pet.sexo }}</span>
-          <span *ngIf="pet.pesoKg" class="chip">{{ pet.pesoKg }} kg</span>
+          <span *ngIf="p.pet?.raca" class="chip">{{ p.pet?.raca }}</span>
+          <span *ngIf="p.pet?.especie" class="chip">{{ p.pet?.especie }}</span>
         </div>
-        <div class="pet-tutor" *ngIf="pet.tutor_nome">
-          <img *ngIf="pet.tutor_foto" [src]="pet.tutor_foto" alt="Tutor" class="tutor-avatar" (error)="onImgError($event)" />
+        <div class="pet-tutor" *ngIf="p.tutor?.nome">
+          <img *ngIf="p.tutor?.foto" [src]="resolveTutorPhotoUrl()" alt="Tutor" class="tutor-avatar" (error)="onImgError($event)" />
           <span class="tutor-label">por</span>
-          <span class="tutor-name">{{ pet.tutor_nome }}</span>
+          <span class="tutor-name">{{ p.tutor?.nome }}</span>
         </div>
 
         <div class="lightbox-share-row" role="group" aria-label="Compartilhar na galeria">
@@ -110,8 +107,8 @@
         </div>
       </header>
 
-      <section class="pet-obs" *ngIf="pet.observacoes">
-        <p>{{ pet.observacoes }}</p>
+      <section class="pet-obs" *ngIf="p.caption">
+        <p>{{ p.caption }}</p>
       </section>
 
       <section class="comments-section">
@@ -123,7 +120,7 @@
           aria-controls="pet-comments-body"
         >
           <span>Comentários</span>
-          <span class="comments-count">{{ totalComentarios }}</span>
+          <span class="comments-count">{{ p.engagement.comentarios }}</span>
         </button>
 
         <div class="comments-panel" id="pet-comments-body" *ngIf="commentsExpanded">
@@ -178,4 +175,5 @@
       </section>
     </aside>
   </div>
+  </ng-container>
 </ng-template>

@@ -12,6 +12,7 @@ export type ClienteAreaModalView =
   | 'meus-agendamentos'
   | 'suporte'
   | 'postar-foto'
+  | 'minha-galeria'
   | null;
 
 export type ClientePetEditId = string | number;

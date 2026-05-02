@@ -11,7 +11,7 @@ import { Subscription } from 'rxjs';
 import { ApiService, PostDto } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
-import { ClienteAreaModalService } from '../../services/cliente-area-modal.service';
+import { ClienteAreaModalService, ClienteAreaModalView } from '../../services/cliente-area-modal.service';
 import { TenantLojaService } from '../../services/tenant-loja.service';
 import { BannerSlotComponent } from '../../shared/banner-slot/banner-slot.component';
 import { MARCA_NOME } from '../../constants/loja-public';
@@ -39,7 +39,7 @@ import { FeedAdItem, FeedPostItem, normalizePost } from './gallery-utils';
 export class GaleriaPublicaComponent implements OnInit, OnDestroy {
   readonly marcaNome = MARCA_NOME;
 
-  feedState: GaleriaFeedState = this.feed.state;
+  feedState: GaleriaFeedState;
   lightboxPost: FeedPostItem | null = null;
   postFotoModalOpen = false;
 
@@ -61,7 +61,9 @@ export class GaleriaPublicaComponent implements OnInit, OnDestroy {
     private clienteAreaModal: ClienteAreaModalService,
     private tenantLoja: TenantLojaService,
     private feed: GaleriaFeedService
-  ) {}
+  ) {
+    this.feedState = this.feed.state;
+  }
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -263,7 +265,7 @@ export class GaleriaPublicaComponent implements OnInit, OnDestroy {
     }
   }
 
-  openClienteAreaView(view: 'meus-pets' | 'novo-pet' | 'postar-foto' | 'minha-galeria'): void {
+  openClienteAreaView(view: ClienteAreaModalView): void {
     if (!isPlatformBrowser(this.platformId)) return;
     this.clienteAreaModal.open(view);
   }

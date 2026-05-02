@@ -7,6 +7,7 @@ export interface FeedPostItem {
   pet_id: number;
   pet?: PostPetResumo | null;
   pets: PostPetResumo[];
+  tutor?: { nome?: string | null; foto?: string | null } | null;
   caption: string;
   cover_imagem_id: number | null;
   galeria_publica: boolean;
@@ -48,37 +49,63 @@ function safeStr(value: unknown): string | null {
 
 /** Normaliza um post vindo do backend para um `FeedPostItem`. */
 export function normalizePost(raw: any): FeedPostItem {
-  const imagens: PostImagem[] = Array.isArray(raw?.imagens)
+  const imgList = Array.isArray(raw?.imagens)
     ? raw.imagens
-        .map((img: any) => ({
-          id: Number(img?.id ?? 0),
-          url: typeof img?.url === 'string' ? img.url.trim() : '',
-          ordem: img?.ordem != null ? Number(img.ordem) : null,
-        }))
-        .filter((img: PostImagem) => img.id > 0 && !!img.url)
-    : [];
+    : Array.isArray(raw?.images)
+      ? raw.images
+      : [];
+  const imagens: PostImagem[] = imgList
+    .map((img: any) => ({
+      id: Number(img?.id ?? 0),
+      url: typeof img?.url === 'string' ? img.url.trim() : '',
+      ordem: img?.ordem != null ? Number(img.ordem) : null,
+    }))
+    .filter((img: PostImagem) => img.id > 0 && !!img.url);
 
-  const engagementRaw: PostEngagement = raw?.engagement || {};
+  const engagementRaw: PostEngagement = raw?.engagement && typeof raw.engagement === 'object' ? raw.engagement : {};
+  const mineTipo =
+    engagementRaw.minha_reacao && typeof engagementRaw.minha_reacao === 'object'
+      ? String(engagementRaw.minha_reacao.tipo || '').toLowerCase()
+      : raw?.mine?.reaction
+        ? String(raw.mine.reaction).toLowerCase()
+        : '';
   const engagement = {
-    love: Number(engagementRaw.love ?? 0) || 0,
-    haha: Number(engagementRaw.haha ?? 0) || 0,
-    sad: Number(engagementRaw.sad ?? 0) || 0,
-    angry: Number(engagementRaw.angry ?? 0) || 0,
-    total: Number(engagementRaw.total ?? 0) || 0,
-    comentarios: Number(engagementRaw.comentarios ?? 0) || 0,
-    minha_reacao:
-      engagementRaw.minha_reacao && typeof engagementRaw.minha_reacao === 'object'
-        ? { tipo: String(engagementRaw.minha_reacao.tipo || '').toLowerCase() }
-        : null,
+    love: Number(engagementRaw.love ?? raw?.love ?? 0) || 0,
+    haha: Number(engagementRaw.haha ?? raw?.haha ?? 0) || 0,
+    sad: Number(engagementRaw.sad ?? raw?.sad ?? 0) || 0,
+    angry: Number(engagementRaw.angry ?? raw?.angry ?? 0) || 0,
+    total: Number(engagementRaw.total ?? raw?.total ?? 0) || 0,
+    comentarios:
+      Number(
+        engagementRaw.comentarios ??
+          raw?.comentarios ??
+          (raw?.counts && raw.counts.comments != null ? raw.counts.comments : 0)
+      ) || 0,
+    minha_reacao: mineTipo ? { tipo: mineTipo } : null,
   };
 
   if (!engagement.total) {
     engagement.total = engagement.love + engagement.haha + engagement.sad + engagement.angry;
   }
+  if (!engagement.total && raw?.counts && raw.counts.reactions != null) {
+    engagement.total = Number(raw.counts.reactions) || 0;
+  }
 
   const cover = imagens.find((img) => img.id === Number(raw?.cover_imagem_id)) || imagens[0] || null;
   const cover_url = cover ? cover.url : null;
   const galeria_urls = imagens.map((img) => img.url);
+
+  const mapPet = (p: any): PostPetResumo => ({
+    id: Number(p?.id ?? 0),
+    nome: p?.nome ?? null,
+    especie: p?.especie ?? null,
+    raca: p?.raca ?? null,
+    foto: p?.foto ?? p?.photoURL ?? null,
+  });
+
+  const tagged = Array.isArray(raw?.tagged_pets) ? raw.tagged_pets.map(mapPet) : [];
+  const legacyPets = Array.isArray(raw?.pets) ? raw.pets.map(mapPet) : [];
+  const pets = tagged.length ? tagged : legacyPets;
 
   return {
     type: 'post',
@@ -93,15 +120,13 @@ export function normalizePost(raw: any): FeedPostItem {
           foto: raw.pet.foto ?? raw.pet.photoURL ?? null,
         }
       : null,
-    pets: Array.isArray(raw?.pets)
-      ? raw.pets.map((p: any) => ({
-          id: Number(p?.id ?? 0),
-          nome: p?.nome ?? null,
-          especie: p?.especie ?? null,
-          raca: p?.raca ?? null,
-          foto: p?.foto ?? p?.photoURL ?? null,
-        }))
-      : [],
+    tutor: raw?.tutor
+      ? {
+          nome: raw.tutor.nome ?? null,
+          foto: raw.tutor.foto ?? null,
+        }
+      : null,
+    pets,
     caption: typeof raw?.caption === 'string' ? raw.caption : '',
     cover_imagem_id: cover ? cover.id : null,
     galeria_publica: !!(raw?.galeria_publica ?? 1),

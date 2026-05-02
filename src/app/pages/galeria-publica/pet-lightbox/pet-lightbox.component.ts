@@ -28,6 +28,8 @@ import { FeedPostItem, typeEmoji } from '../gallery-utils';
 })
 export class PetLightboxComponent implements OnChanges, OnDestroy {
   @Input() post: FeedPostItem | null = null;
+  /** Ao abrir a partir de um thumb específico, foca o slide dessa imagem (`pet_imagens.id`). */
+  @Input() initialImageId: number | null = null;
   @Input() isOpen = false;
   @Input() inlineMode = false;
 
@@ -76,7 +78,10 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     } else if (changes['post'] && (this.isOpen || this.inlineMode)) {
       this.imageIndex = 0;
       this.commentsExpanded = false;
-      this.refreshEngagement();
+      this.applyInitialSlide();
+      void this.refreshEngagement();
+    } else if (changes['initialImageId'] && this.post && (this.isOpen || this.inlineMode)) {
+      this.applyInitialSlide();
     }
   }
 
@@ -94,7 +99,8 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     this.commentsExpanded = false;
     this.comentariosError = null;
     this.imageIndex = 0;
-    this.refreshEngagement();
+    this.applyInitialSlide();
+    void this.refreshEngagement();
   }
 
   private onCloseInternal(): void {
@@ -140,6 +146,18 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     const idx = Math.min(Math.max(0, this.imageIndex), Math.max(0, urls.length - 1));
     const raw = urls[idx] || urls[0] || '';
     return raw ? this.api.resolveMediaUrl(raw) : '/imagens/image.png';
+  }
+
+  resolveTutorPhotoUrl(): string {
+    const u = this.post?.tutor?.foto;
+    return u ? this.api.resolveMediaUrl(u) : '';
+  }
+
+  private applyInitialSlide(): void {
+    const want = this.initialImageId != null ? Number(this.initialImageId) : NaN;
+    if (!this.post?.imagens?.length || !want || Number.isNaN(want)) return;
+    const idx = this.post.imagens.findIndex((img) => img.id === want);
+    if (idx >= 0) this.imageIndex = idx;
   }
 
   prevSlide(ev?: Event): void {
@@ -213,7 +231,8 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
         firstValueFrom(this.api.getPostComentarios(postId, { page: 1, pageSize: 50 })) as Promise<any>,
       ]);
       this.applyEngagement(eng);
-      this.comentarios = Array.isArray(com) ? com : com?.data || [];
+      const rawList = Array.isArray(com) ? com : com?.data || [];
+      this.comentarios = rawList.map((r: any) => this.normalizeCommentRow(r)).filter(Boolean);
       if (this.post && eng?.comentarios != null) {
         this.post.engagement.comentarios = Number(eng.comentarios);
       }
@@ -284,8 +303,9 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
     this.sendingComentario = true;
     try {
       const res: any = await firstValueFrom(this.api.postPostComentario(this.post.id, texto, token));
-      if (res?.comentario) {
-        this.comentarios = [res.comentario, ...this.comentarios];
+      const mapped = this.normalizeCommentRow(res?.comentario ?? res);
+      if (mapped) {
+        this.comentarios = [mapped, ...this.comentarios];
       }
       const total = Number(res?.total_comentarios ?? this.comentarios.length);
       this.post.engagement.comentarios = total;
@@ -493,6 +513,26 @@ export class PetLightboxComponent implements OnChanges, OnDestroy {
 
   trackComentario = (_: number, c: any) => c?.id ?? _;
   trackReaction = (_: number, r: any) => r?.tipo ?? _;
+
+  /** API devolve `texto` + `cliente_nome`; o template espera `comentario` + `cliente`. */
+  private normalizeCommentRow(row: any): any | null {
+    if (!row || row.id == null) return null;
+    if (row.cliente && (row.comentario != null || row.texto != null)) {
+      return {
+        ...row,
+        comentario: row.comentario ?? row.texto ?? '',
+      };
+    }
+    return {
+      id: row.id,
+      created_at: row.created_at,
+      comentario: row.texto ?? row.comentario ?? '',
+      cliente: row.cliente || {
+        nome: row.cliente_nome,
+        foto: row.cliente_foto,
+      },
+    };
+  }
 
   private emitChange(): void {
     if (this.post) this.postChanged.emit(this.post);

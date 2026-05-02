@@ -166,7 +166,13 @@
         </p>
       </section>
 
-      <app-pet-lightbox *ngIf="fotoLightboxPet" [pet]="fotoLightboxPet" [isOpen]="true" (close)="closeFotoLightbox()" />
+      <app-pet-lightbox
+        *ngIf="lightboxPost"
+        [post]="lightboxPost"
+        [initialImageId]="lightboxInitialImageId"
+        [isOpen]="true"
+        (close)="closeFotoLightbox()"
+      />
     </ng-container>
   </section>
 </main>
